@@ -1,0 +1,16 @@
+{
+  "clientNumber": 0,
+  "clients": [
+    {
+      "id": 0,
+      "email": "email",
+      "password": "password",
+      "userAgent": "Mozilla/5.0 (Windows NT 6.1; rv:45.0) Gecko/20100101 Firefox/45.0",
+      "gameUserId": "session-uid",
+      "gameUserAuth": "session-key",
+      "cfduid": "cfuid",
+      "ipAddress": "52.59.255.62",
+      "port": 8090
+    }
+  ]
+}

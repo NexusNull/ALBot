@@ -1,0 +1,23 @@
+{
+  "name": "adventurelandbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Patric Wellershaus",
+  "license": "ISC",
+  "dependencies": {
+    "bot-web-interface": "git+https://github.com/Fansana/bot-web-interface.git",
+    "cheerio": "^0.22.0",
+    "extend": "^3.0.0",
+    "minimist": "^1.2.0",
+    "promise": "^7.1.1",
+    "request": "^2.81.0",
+    "request-defaults": "^1.2.0",
+    "socket.io-client": "^1.7.3",
+    "tough-cookie": "^2.3.2",
+    "vm2": "^3.4.6"
+  }
+}
