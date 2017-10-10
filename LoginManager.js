@@ -67,21 +67,23 @@ var LoginManager = function (request, socket, userId, callback, character_to_loa
         console.log("No viable Login session. Logging in.")
         this.request({url: "http://adventure.land"}, function (err, data, body) {
             if (!err) {
-                self.login(client.email, client.password);
-                self.getCharacterIds(function (characterIds) {
-                    if (characterIds == null) {
-                        close("Login session invalid");
-                    } else {
-                        callback({
-                            request: self.request,
-                            socket: self.socket,
-                            gameUserId: self.gameUserId,
-                            socketAuth: self.socketAuth,
-                            ipAddress: client.ipAddress,
-                            port: client.port,
-                            characterId: characterIds[character_to_load]
-                        })
-                    }
+                self.login(client.email, client.password,function(data){
+                    self.getCharacterIds(function (characterIds) {
+                        if (characterIds == null) {
+                            close("Login session invalid");
+                        } else {
+                            console.log(self.socketAuth);
+                            callback({
+                                request: self.request,
+                                socket: self.socket,
+                                gameUserId: data.gameUserId,
+                                socketAuth: self.socketAuth,
+                                ipAddress: client.ipAddress,
+                                port: client.port,
+                                characterId: characterIds[character_to_load]
+                            })
+                        }
+                    });
                 });
             } else {
                 close("could not fetch index.html on login." + err)
@@ -122,7 +124,7 @@ LoginManager.prototype.getCharacterIds = function (callback) {
     this.request({url: "http://adventure.land"}, function (err, data, body) {
         if (!err) {
             var characterIds = [];
-
+            //console.log(body)
             self.socketAuth = /user_auth="(\w+)"/.exec(body)[1];
 
             var $ = cheerio.load(body);
@@ -151,7 +153,9 @@ LoginManager.prototype.getCharacterIds = function (callback) {
         }
     });
 };
-LoginManager.prototype.login = function (email, password) {
+LoginManager.prototype.login = function (email, password, callback) {
+    if(typeof callback !== "function")
+        callback = function(){};
     var self = this;
     this.request.post(
         {
@@ -186,15 +190,12 @@ LoginManager.prototype.login = function (email, password) {
                     for (var i in cookies) {
                         if (cookies[i].key == "auth") {
                             var data = cookies[i].value.split("-");
-                            self.database.data.clients[self.localUserId].gameUserId = data[0];
-                            self.database.data.clients[self.localUserId].gameUserAuth = data[1];
-                        } else if (cookies[i].key == "__cfduid") {
-                            self.database.data.clients[self.localUserId].cfduid = cookies[i].value;
+                            var loginData = {};
+                            loginData.gameUserId = data[0];
+                            loginData.gameUserAuth = data[1];
                         }
                     }
-                    self.checkLogin(function (result) {
-                        console.log(result);
-                    });
+                    callback(loginData);
                 } else {
                     close("Login unsuccessful")
                 }

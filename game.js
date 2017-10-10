@@ -1,13 +1,15 @@
 /**
  * Created by nexus on 03/04/17.
  */
-
+function close(error) {
+    console.error(error);
+    process.exit(1);
+}
 
 var Game = function (args) {
     var fs = require("fs")
     var cheerio = require("cheerio");
     var G = require("./gameData");
-    var fs = require('fs');
     var Executor = require("./Executor");
 
     eval(fs.readFileSync('modedGameFiles/game.js')+'');

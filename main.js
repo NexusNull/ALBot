@@ -19,6 +19,7 @@ var LoginManager = require("./LoginManager");
 var Game = require("./game");
 
 new LoginManager(proxy.getRequestConnection(0), proxy.getSocketConnection("52.59.255.62",8090,0), argv.userId, function(data){
+    console.log(data);
     var game = new Game(data);
     game.start();
 },0);

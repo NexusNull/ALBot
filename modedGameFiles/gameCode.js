@@ -11,13 +11,24 @@ setInterval(function(){
     }
 
     loot();
-
+    var whitelist = ["ringsj", "hpamulet", "hpbelt"];
+    for(var i in character.items){
+        var item = character.items[i];
+        if(item && whitelist.indexOf(item.name) !== -1){
+            if(item.level){
+                if(item.level < 1)
+                    sell(i);
+            } else {
+                sell(i);
+            }
+        }
+    }
     if(!attack_mode || is_moving(character)) return;
 
     var target=get_targeted_monster();
     if(!target)
     {
-        target=get_nearest_monster({min_xp:100,max_att:120});
+        target=get_nearest_monster({min_xp:100,max_att:120,type:"spider"});
         if(target) change_target(target);
         else
         {

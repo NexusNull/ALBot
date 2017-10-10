@@ -1,7 +1,6 @@
 var fs = require("fs")
 eval(fs.readFileSync('modedGameFiles/common_functions.js') + '');
 eval(fs.readFileSync('modedGameFiles/functions.js') + '');
-var SocketServer = require("bot-web-interface");
 
 var u_item = null
     , u_scroll = null
@@ -2322,28 +2321,3 @@ function draw(a, b) {
 function cut(number){
     return Math.floor(number*100)/100;
 }
-
-SocketServer.setStructure([
-    {name: "name", type: "text", label: "name"},
-    {name: "inv", type: "text", label: "Inventory"},
-    {name: "level", type: "text", label: "Level"},
-    {name: "xp", type: "progressBar", label: "Experience", options:{color:"green"}},
-    {name: "health", type: "progressBar", label: "Health", options:{color:"red"}},
-    {name: "mana", type: "progressBar", label: "Mana",     options:{color:"blue"}},
-    {name: "status", type: "text", label: "Status"},
-]);
-
-SocketServer.registerDatSource(function () {
-    if (character)
-        return {
-            name: character.id,
-            level: character.level,
-            inv: character.items.length+"/"+42,
-            xp: cut(100* character.xp / character.max_xp),
-            health: cut(100*character.hp/character.max_hp),
-            mana: cut(100* character.mp/character.max_mp),
-            status: "online"
-        }
-    else
-        return {};
-});
