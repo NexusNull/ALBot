@@ -822,8 +822,6 @@ function sell(a, b) {
         b = 1
     }
     socket.emit("sell", {num: a, quantity: b});
-    $(".sellnum").html((parseInt($(".sellnum").data("q")) - b) + "");
-    $(".sellnum").data("q", $(".sellnum").html())
 }
 function call_code_function(c, b, a, f) {
     try {

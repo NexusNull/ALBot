@@ -11,15 +11,16 @@ setInterval(function(){
     }
 
     loot();
+
     var whitelist = ["ringsj", "hpamulet", "hpbelt"];
     for(var i in character.items){
         var item = character.items[i];
         if(item && whitelist.indexOf(item.name) !== -1){
             if(item.level){
                 if(item.level < 1)
-                    sell(i);
+                    destroy_item(i);
             } else {
-                sell(i);
+                destroy_item(i);
             }
         }
     }

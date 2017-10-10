@@ -889,6 +889,7 @@ function init_socket() {
                 var options = {
                     url: 'http://' + server_addr + ':' + (+port + 40) + '/character?checkin=1&ipass=' + ipass + '&id=' + character.id + '&callback=jQuery' + callbackId + '_' + callbackStart + '&_=' + callbackCount
                 };
+                console.log(options);
                 request(options);
             }
         }, 30000);
