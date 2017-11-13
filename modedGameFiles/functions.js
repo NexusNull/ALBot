@@ -75,25 +75,7 @@ function cached(d, c, b, a) {
     return false
 }
 function disappearing_clone(b) {
-    console.log("Disappearing clone added");
-    /*var a = new PIXI.Sprite(b.texture);
-    if (b.me) {
-        a.x = b.real_x;
-        a.y = b.real_y - 1;
-        a.width = b.width / 2;
-        a.height = b.height / 2
-    } else {
-        a.x = b.x;
-        a.y = b.y - 1;
-        a.width = b.width;
-        a.height = b.height
-    }
-    a.displayGroup = b.displayGroup;
-    a.anchor = b.anchor;
-    a.alpha = 0.8;
-    map.addChild(a);
-    draw_timeout(fade_away(5, a), 15)
-    */
+
 }
 function fade_away(b, a) {
     return function () {
@@ -107,100 +89,41 @@ function fade_away(b, a) {
     }
 }
 function show_game_guide() {
-    if (gameplay == "hardcore") {
-        //show_modal($("#hardcoreguide").html())
-    } else {
-        //show_modal($("#gameguide").html())
-    }
+
 }
 function hide_modal() {
-    if (modal_count > 0) {
-        modal_count--
-    }
-    /*if ($(".modal:last").find(".destroy").length) {
-        eval($(".modal:last").find(".destroy").attr("onclick"))
-    }
-    $(".modal:last").remove()*/
+
 }
 function show_modal(f, a) {
-    if (!a) {
-        a = {}
-    }
-    if (!a.opacity) {
-        a.opacity = 0.5
-    }
-    if (a.wrap === undefined) {
-        a.wrap = true
-    }
-    /*
-    var d = "";
-    if (a.wrap) {
-        d = "width: 600px; border: 5px solid gray; background: black;"
-    }
-    modal_count++;
-    var b = "", c = "";
-    c += "position: fixed; top: 0px; bottom: 0px; left: 0px; right: 0px; z-index: 9000; text-align: center; vertical-align: middle; overflow-y: scroll; ";
-    c += "background: rgba(0,0,0," + a.opacity + ")";
-    b += "<div style='" + c + "' class='modal' onclick='stpr(event); hide_modal()'>";
-    b += "<div style='display: inline-block; " + d + " " + (a.styles || "") + " margin-bottom: 100px; margin-top: 40px; padding: 10px; text-align: left; position: relative'";
-    b += " onclick='stpr(event); return false' class='imodal'>";
-    b += f;
-    if (a.ondestroy) {
-        b += '<div style="display:none" class="destroy" onclick="' + a.ondestroy + '"></div>'
-    }
-    b += "</div>";
-    b += "</div>";
-    $("body").append(b);
-    var g = $(".imodal:last").height();
-    if (height > g) {
-        $(".imodal:last").css("margin-bottom", "0px").css("margin-top", max(0, round(height / 2 - g / 2 - 5)))
-    }
-    */
+
 }
 function position_modals() {
-    $(".imodal").each(function () {
-        var a = $(this), b = a.height();
-        if (height > b) {
-            a.css("margin-bottom", "0px").css("margin-top", max(0, round(height / 2 - b / 2 - 5)))
-        } else {
-            a.css("margin-bottom", "40px").css("margin-top", "100px")
-        }
-    })
+
 }
 function show_json(a) {
+    return;
     if (!is_string(a)) {
         a = safe_stringify(a, 2)
     }
     show_modal("<div style='font-size: 24px; white-space: pre;' class='yesselect'>" + syntax_highlight(a) + "</div>")
 }
 function json_to_html(a) {
+    return;
     if (!is_string(a)) {
         a = safe_stringify(a, 2)
     }
     return "<div style='font-size: 24px; white-space: pre;' class='yesselect'>" + syntax_highlight(a) + "</div>"
 }
 function add_frequest(a) {
-    //$(".pin" + a).remove();
-    //$("#chatlog").append("<div class='chatentry pin" + a + "' style='color: gray'><span style='color: white'>" + a + "</span> wants to be your friend. 		<span class='clickable' style='color:#409BDD' onclick='socket.emit(\"friend\",{event:\"accept\",name:\"" + a + "\"}); $(this).parent().remove()'>Accept</span></div>");
-    //$("#chatlog").scrollTop($("#chatlog")[0].scrollHeight);
     call_code_function("on_friend_request", a)
 }
 function add_invite(a) {
-    //$(".pin" + a).remove();
-    //$("#chatlog").append("<div class='chatentry pin" + a + "' style='color: gray'><span style='color: white'>" + a + "</span> wants to party. 		<span class='clickable' style='color:green' onclick='socket.emit(\"party\",{event:\"accept\",name:\"" + a + "\"}); $(this).parent().remove()'>Accept</span></div>");
-    //$("#chatlog").scrollTop($("#chatlog")[0].scrollHeight);
     call_code_function("on_party_invite", a)
 }
 function add_request(a) {
-    //$(".pin" + a).remove();
-    //$("#chatlog").append("<div class='chatentry pin" + a + "' style='color: gray'><span style='color: white'>" + a + "</span> wants to join your party. 		<span class='clickable' style='color:#119CC1' onclick='socket.emit(\"party\",{event:\"raccept\",name:\"" + a + "\"}); $(this).parent().remove()'>Accept</span></div>");
-    //$("#chatlog").scrollTop($("#chatlog")[0].scrollHeight);
     call_code_function("on_party_request", a)
 }
 function add_frequest(a) {
-    //$(".pin" + a).remove();
-    //$("#chatlog").append("<div class='chatentry pin" + a + "' style='color: gray'><span style='color: white'>" + a + "</span> wants to be your friend. 		<span class='clickable' style='color:#DB7BB3' onclick='socket.emit(\"friend\",{event:\"accept\",name:\"" + a + "\"}); $(this).parent().remove()'>Accept</span></div>");
-    //$("#chatlog").scrollTop($("#chatlog")[0].scrollHeight);
     call_code_function("on_party_request", a)
 }
 function add_update_notes() {
@@ -215,73 +138,30 @@ function add_update_notes() {
 var game_logs = [], game_chats = [];
 function clear_game_logs() {
     game_logs = [];
-    //$("#gamelog").html("")
 }
 function add_log(c, a) {
-    if (mode.dom_tests || inside == "payments") {
-        return
-    }
-    if (game_logs.length > 1000) {
-        var b = "<div class='gameentry' style='color: gray'>- Truncated -</div>";
-        game_logs = game_logs.slice(-720);
-        game_logs.forEach(function (d) {
-            b += "<div class='gameentry' style='color: " + (d[1] || "white") + "'>" + d[0] + "</div>"
-        });
-        //$("#gamelog").html(b)
-    }
     console.log(c);
-    //game_logs.push([c, a]);
-    //$("#gamelog").append("<div class='gameentry' style='color: " + (a || "white") + "'>" + c + "</div>");
-    //$("#gamelog").scrollTop($("#gamelog")[0].scrollHeight)
 }
 function add_xmas_log() {
-    //$("#gamelog").append("<div class='gameentry' style='color: white'>Would you like to turn on the Xmas Tunes? <span style='color: #C82F17' class='clickable' onclick='xmas_tunes=true; sound_music=\"1\"; init_music(); reflect_music();  $(\".musicoff\").hide(); $(\".musicon\").show(); add_log(\"As a reminder, you can control Music from CONF\",\"gray\"); $(this).parent().remove();'>Yes!</span></div>");
-    //$("#gamelog").scrollTop($("#gamelog")[0].scrollHeight)
+
 }
 function add_greenlight_log() {
-    //$("#gamelog").append("<div class='gameentry' style='color: white'>Adventure Land is on Steam Greenlight! Would really appreciate your help: <a href='http://steamcommunity.com/sharedfiles/filedetails/?id=821265543' target='_blank' class='cancela' style='color: " + colors.xmas + "'>Browser</a> <a href='steam://url/CommunityFilePage/821265543' target='_blank' class='cancela' style='color: " + colors.xmasgreen + "'>Open: Steam</a></div>");
-    //$("#gamelog").scrollTop($("#gamelog")[0].scrollHeight)
+
 }
 function add_chat(b, k, d) {
     console.log(b,k,d)
 }
 function cpm_window(a) {
-    var b = "pm" + a;
-    last_say = b;
-    if (!in_arr(b, cwindows)) {
-        open_chat_window("pm", a, 1)
-    } else {
-        toggle_chat_window("pm", a)
-    }
+
 }
 function add_pmchat(g, a, d) {
-    var f = "pm" + g, c = "";
-    if (!in_arr(f, cwindows)) {
-        open_chat_window("pm", g, a == character.name)
-    }
-    if (a != character.name && in_arr(f, docked)) {
-        //$("#chatt" + f).addClass("newmessage")
-    }
-    var b = "";
-    b = "<span style='color:white'>" + a + ":</span> ";
-    //$("#chatd" + f).append("<div style='color: " + (c || "gray") + "'>" + b + html_escape(d) + "</div>");
-    //$("#chatd" + f).scrollTop($("#chatd" + f)[0].scrollHeight)
+
 }
 function add_partychat(a, d) {
-    var f = "party", c = "";
-    if (!in_arr(f, cwindows)) {
-        open_chat_window("party", "", a == character.name)
-    }
-    if (a != character.name && in_arr(f, docked)) {
-        $("#chatt" + f).addClass("newmessage")
-    }
-    var b = "";
-    b = "<span style='color:white'>" + a + ":</span> ";
-    //$("#chatd" + f).append("<div style='color: " + (c || "gray") + "'>" + b + html_escape(d) + "</div>");
-    //7$("#chatd" + f).scrollTop($("#chatd" + f)[0].scrollHeight)
+
 }
 function refresh_page() {
-    window.location = window.location
+    return;
 }
 function item_position(a) {
     for (var b = 41; b >= 0; b--) {
@@ -358,9 +238,11 @@ function use_skill(b, c) {
     }
 }
 function gallery_click(a) {
+    return;
     render_item("#topleftcornerdialog", {id: "buying" + a, item: G.items[a], name: a, buying: true})
 }
 function inventory_click(a) {
+    return;
     if (character.items[a]) {
         if (character.items[a].name == "computer") {
             return render_computer_network(".inventory-item")
@@ -375,6 +257,7 @@ function inventory_click(a) {
     }
 }
 function slot_click(a) {
+    return;
     if (ctarget && ctarget.slots && ctarget.slots[a]) {
         dialogs_target = ctarget;
         render_item("#topleftcornerdialog", {
@@ -505,33 +388,12 @@ function transport_to(a, b) {
     }
     socket.emit("transport", {to: a, s: b})
 }
-function show_transports() {
-    $("#rightcornerui").html($(".transports").html());
-    topright_npc = "transports"
-}
-function hide_transports() {
-    $("#rightcornerui").html("");
-    topright_npc = false
-}
 function show_snippet() {
-    var a = "<textarea id='rendererx'></textarea><div class='gamebutton' style='position: absolute; bottom: -68px; right: -5px' onclick='eval_snippet()'>EXECUTE</div>";
-    show_modal(a);
-    window.codemirror_render3 = CodeMirror(function (b) {
-        $("#rendererx").replaceWith(b)
-    }, {
-        value: window.codemirror_render3 && codemirror_render3.getValue() || "",
-        mode: "javascript",
-        indentUnit: 4,
-        indentWithTabs: true,
-        lineWrapping: true,
-        lineNumbers: true,
-        gutters: ["CodeMirror-linenumbers", "lspacer"],
-        theme: "pixel",
-        cursorHeight: 0.75,
-    });
-    codemirror_render3.focus()
+    return;
+
 }
 function code_eval(a) {
+    throw new Error("code_eval is not supported.");
     if (code_active) {
         call_code_function("eval", a)
     } else {
@@ -543,46 +405,17 @@ function code_eval(a) {
     }
 }
 function eval_snippet() {
-    code_eval(codemirror_render3.getValue())
+    throw new Error("eval_snippet is not supported.");
+    code_eval(codemirror_rewnder3.getValue())
 }
 function start_runner(a, b) {
-    if (!a) {
-        a = "maincode"
-    }
-    if (b === undefined) {
-        b = codemirror_render.getValue()
-    }
-    the_code = b;
-    $(".engagebutton").hide();
-    $(".dengagebutton").show();
-    $("#" + a).remove();
-    $("body").append('<iframe src="/runner" height="60" width="120" id="' + a + '" style="position: fixed; bottom: 0px; right: 0px; z-index: 999; border: 5px solid gray"></iframe>');
-    code_run = true
+    throw new Error("start_runner is not supported.");
 }
 function stop_runner(a) {
-    if (!a) {
-        a = "maincode"
-    }
-    call_code_function("on_destroy");
-    code_run = code_active = false;
-    $(".engagebutton").show();
-    $(".dengagebutton").hide();
-    $("#" + a).remove();
-    socket.emit("code", {run: 0})
+    throw new Error("stop_runner is not supported.");
 }
 function code_persistence_logic() {
-    if (persist_code) {
-        try {
-            var c = window.localStorage.getItem("code_cache"), b = "", a = false;
-            c = c && JSON.parse(c) || {};
-            c["run_" + real_id] = code_run && "1" || "";
-            c["code_" + real_id] = codemirror_render.getValue();
-            window.localStorage.setItem("code_cache", JSON.stringify(c));
-            console.log("Code saved!")
-        } catch (d) {
-            console.log(d)
-        }
-    }
+    throw new Error("code_persistence_logic is not supported.");
 }
 function toggle_runner() {
     if (code_run) {
@@ -612,92 +445,16 @@ function load_code(a, b) {
     api_call("load_code", {name: a, run: "", log: b})
 }
 function toggle_code() {
-    if (code) {
-        $(".codeui").hide();
-        code = false;
-        $(":focus").blur()
-    } else {
-        $(".codeui").show();
-        code = true;
-        codemirror_render.refresh()
-    }
+    throw new Error("toggle_code is not supported.");
 }
 function start_timer(a) {
-    timers[a] = new Date()
+
 }
 function stop_timer(b, a) {
-    if (a) {
-        a = "[" + a + "]"
-    } else {
-        a = ""
-    }
-    ms = mssince(timers[b]);
-    if (b == "draw" && ms > 10 || b == "remove_sprite") {
-        if (log_flags.timers) {
-            console.log("timer[" + b + "]" + a + ": " + mssince(timers[b]))
-        }
-    }
-    timers[b] = new Date()
+
 }
 function the_door() {
-    if (animatables.the_door) {
-        h_shake()
-    }
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            set_texture(animatables.the_door, "1")
-        }
-    }, 200);
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            set_texture(animatables.the_door, "2")
-        }
-    }, 300);
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            set_texture(animatables.the_door, "3")
-        }
-    }, 400);
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            set_texture(animatables.the_door, "4")
-        }
-    }, 500);
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            set_texture(animatables.the_door, "5")
-        }
-    }, 600);
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            h_shake()
-        }
-    }, 2800);
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            set_texture(animatables.the_door, "4")
-        }
-    }, 2900);
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            set_texture(animatables.the_door, "3")
-        }
-    }, 3000);
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            set_texture(animatables.the_door, "2")
-        }
-    }, 3100);
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            set_texture(animatables.the_door, "1")
-        }
-    }, 3200);
-    draw_timeout(function () {
-        if (animatables.the_door) {
-            set_texture(animatables.the_door, "0")
-        }
-    }, 3300)
+    return;
 }
 function h_shake() {
     function b(c) {
@@ -799,12 +556,10 @@ function destroy_sprite(a, c) {
 function trade(d, a, c, b) {
     b = b || 1;
     socket.emit("equip", {q: b, slot: d, num: a, value: ("" + c).replace_all(",", "").replace_all(".", "")});
-    $("#topleftcornerdialog").html("")
 }
 function trade_buy(d, c, a, b) {
     b = b || 1;
     socket.emit("trade_buy", {slot: d, id: c, rid: a, q: b});
-    $("#topleftcornerdialog").html("")
 }
 function buy(a, b) {
     if (mssince(last_npc_right_click) < 100) {
@@ -815,15 +570,12 @@ function buy(a, b) {
         c = "buy_with_cash"
     }
     socket.emit(c, {name: a, quantity: b});
-    $(".buynum").html($(".buynum").data("q"))
 }
 function sell(a, b) {
     if (!b) {
         b = 1
     }
     socket.emit("sell", {num: a, quantity: b});
-    $(".sellnum").html((parseInt($(".sellnum").data("q")) - b) + "");
-    $(".sellnum").data("q", $(".sellnum").html())
 }
 function call_code_function(c, b, a, f) {
     try {
@@ -833,7 +585,7 @@ function call_code_function(c, b, a, f) {
     }
 }
 function get_code_function(a) {
-    return code_active && document.getElementById("maincode") && document.getElementById("maincode").contentWindow && document.getElementById("maincode").contentWindow[a] || (function () {
+    return code_active || (function () {
         })
 }
 function private_say(a, c, b) {
@@ -934,19 +686,6 @@ function say(g, f) {
                                                             add_chat("", "Target someone to friend")
                                                         }
                                                     }
-                                                } else {
-                                                    if (h == "guide") {
-                                                        show_modal($("#gameguide").html())
-                                                    } else {
-                                                        if (code_active && document.getElementById("maincode") && document.getElementById("maincode").contentWindow && document.getElementById("maincode").contentWindow.handle_command) {
-                                                            if (document.getElementById("maincode").contentWindow.handle_command(h, c) != -1) {
-                                                            } else {
-                                                                add_chat("", "Command not found. You can add a `handle_command` function to your CODE to capture commands.")
-                                                            }
-                                                        } else {
-                                                            add_chat("", "Command not found. Suggestion: /list")
-                                                        }
-                                                    }
                                                 }
                                             }
                                         }
@@ -991,21 +730,14 @@ function deposit(a) {
         add_log("Not in the bank.", "gray");
         return
     }
-    if (!a) {
-        a = $(".npcgold").html() || ""
-    }
     a = a.replace_all(",", "").replace_all(".", "");
     socket.emit("bank", {operation: "deposit", amount: parseInt(a)})
 }
 function withdraw(a) {
     if (!G.maps[current_map].mount) {
         add_log("Not in the bank.", "gray");
-        return
+        return;
     }
-    if (!a) {
-        a = $(".npcgold").html() || ""
-    }
-    a = a.replace_all(",", "").replace_all(".", "");
     socket.emit("bank", {operation: "withdraw", amount: parseInt(a)})
 }
 var exchange_animations = false, last_excanim = new Date(), exclast = 0;
@@ -1030,10 +762,6 @@ function exchange_animation_logic() {
     }
     if (mssince(last_excanim) > 300) {
         last_excanim = new Date();
-        $("#eitem").children().css("border-color", a[exclast % a.length]);
-        $(".ering3").css("border-color", a[(exclast + 1) % a.length]);
-        $(".ering2").css("border-color", a[(exclast + 2) % a.length]);
-        $(".ering1").css("border-color", a[(exclast + 3) % a.length]);
         exclast++
     }
 }
@@ -1121,12 +849,13 @@ function reopen() {
             reset_inventory()
         }
         if (exchange_animations) {
-            $(".ering").css("border-color", "gray");
             exchange_animations = false
         }
     })
 }
 function esc_pressed() {
+    throw new Error("esc_pressed is not supported.");
+
     if (modal_count > 0) {
         hide_modal()
     } else {
@@ -1157,14 +886,15 @@ function esc_pressed() {
     }
 }
 function toggle_stats() {
+    throw new Error("toggle_stats is not supported.");
     if (topright_npc != "character") {
         render_character_sheet()
     } else {
-        $("#rightcornerui").html("");
         topright_npc = false
     }
 }
-function toggle_character() {
+function reset_inventory() {
+    throw new Error("reset_inventory is not supported.");
     if (ctarget == character && !topleft_npc) {
         ctarget = null
     } else {
@@ -1172,6 +902,7 @@ function toggle_character() {
     }
 }
 function reset_inventory(a) {
+    throw new Error("reset_inventory is not supported.");
     if (inventory) {
         if (a && !in_arr(rendered_target, ["upgrade", "compound", "exchange", "npc", "merchant", "crafter"])) {
             return
@@ -1180,6 +911,7 @@ function reset_inventory(a) {
     }
 }
 function generate_textures(b, l) {
+    return;
     console.log("generate_textures " + b + " " + l);
     if (l == "full") {
         var k = D[b], c = k[2], o = k[3], q = 0, p = 0;
@@ -1249,6 +981,7 @@ function set_texture(d, b, a) {
     d.cskin = f
 }
 function new_sprite(l, h, a) {
+    return;
     if (h == "full") {
         if (!textures[l]) {
             generate_textures(l, "full")
@@ -1341,6 +1074,7 @@ function new_map_tile(b) {
     return new PIXI.Sprite(b[5])
 }
 function assassin_smoke(a, f, c) {
+    return;
     if (!c) {
         c = "explode_p"
     }
@@ -1374,6 +1108,7 @@ function assassin_smoke(a, f, c) {
     draw_timeout(d(1), 40)
 }
 function confetti_shower(c, h) {
+    return;
     var a = 200, f = 1, g = 25;
     if (h == 2) {
         a = 150, f = 2, g = 60
@@ -1452,6 +1187,7 @@ function stop_animation(b, a) {
     delete c.animations[a]
 }
 function set_base_rectangle(b) {
+    return;
     var a = b.texture.frame;
     b.base_rectangle = new PIXI.Rectangle(a.x, a.y, a.width, a.height)
 }
@@ -1461,10 +1197,12 @@ function dirty_fix(a) {
     a.texture = new PIXI.Rectangle(b.x, b.y + 8, b.width, b.height)
 }
 function restore_base(b) {
+    return;
     var a = b.base_rectangle;
     b.texture.frame = new PIXI.Rectangle(a.x, a.y, a.width, a.height)
 }
 function rotate(l, g) {
+    return;
     var m = PIXI.GroupD8, j = l.texture;
     var d = m.isSwapWidthHeight(g) ? j.frame.width : j.frame.height;
     var k = m.isSwapWidthHeight(g) ? j.frame.height : j.frame.width;
@@ -1480,6 +1218,7 @@ function rotate(l, g) {
     l.texture = c
 }
 function rotated_texture(j, a, g) {
+    return;
     if (!g) {
         return new PIXI.Texture(j, a)
     }
@@ -1525,6 +1264,7 @@ function draw_trigger(a) {
     draw_timeouts.push([a, new Date(), 2])
 }
 function tint_logic() {
+    return;
     var c = new Date(), s = [];
     for (var h = 0; h < tints.length; h++) {
         var d = tints[h], a = 240, j = 95, p = 0, f = 50, n = 205, l = 50;
@@ -1634,6 +1374,7 @@ function tint_logic() {
     }
 }
 function add_tint(a, b) {
+    return;
     if (mode.dom_tests) {
         return
     }
@@ -1756,36 +1497,13 @@ function border_logic(a) {
 }
 function rip_logic() {
     if (character.rip && !rip) {
-        if (code_run) {
-            if (document.getElementById("maincode") && document.getElementById("maincode").contentWindow && document.getElementById("maincode").contentWindow.handle_death) {
-                var c = false;
-                try {
-                    if (document.getElementById("maincode").contentWindow.handle_death() != -1) {
-                        c = true
-                    }
-                } catch (b) {
-                    add_log(b + " on handle_death", "#E13758")
-                }
-                if (!c) {
-                    stop_runner("maincode")
-                }
-            } else {
-                stop_runner("maincode")
-            }
-        }
         rip = true;
-        var a = new PIXI.filters.ColorMatrixFilter();
-        a.desaturate();
-        stage.filters = [a];
         character.moving = false;
-        $("#ripbutton").show();
         skill_timeout("use_town", 12000);
         reopen()
     }
     if (!character.rip && rip) {
         rip = false;
-        stage.filters = null;
-        $("#ripbutton").hide()
     }
 }
 function name_logic(a) {
@@ -1803,158 +1521,30 @@ function name_logic(a) {
     }
 }
 function add_name_tag(c) {
-
 }
 function add_name_tag_large(d) {
-    if (d.name_tag) {
-        destroy_sprite(d.name_tag, "children");
-        d.name_tag = null
-    }
-    var h = new PIXI.Graphics(), c = "Lv." + d.level + " " + d.name, f = c.length * 7 + 6, a = 21, g = 1;
-    h.beginFill(7433580);
-    h.drawRect(0, 0, f, a);
-    h.endFill();
-    h.beginFill(2105119);
-    h.drawRect(2, 2, f - 4, a - 4);
-    h.endFill();
-    h.position = new PIXI.Point(-round(f / 2), 2);
-    d.addChild(h);
-    if (!d.me) {
-        g = 4
-    } else {
-        g = 8
-    }
-    var b = {fontFamily: S.font, fontSize: 64 * g, fill: "white", align: "center"};
-    var c = new PIXI.Text(c, b);
-    c.x = (f / 2);
-    c.y = 4;
-    c.anchor.set(0.5, 0);
-    c.scale = new PIXI.Point(0.25 / g, 0.25 / g);
-    h.addChild(c);
-    d.name_tag = h;
-    d.addChild(h)
 }
 function add_name_tag_experimental(d) {
-    if (d.name_tag) {
-        destroy_sprite(d.name_tag, "children");
-        d.name_tag = null
-    }
-    var h = new PIXI.Graphics(), c = "Lv." + d.level + " " + d.name, f = c.length * 7 + 6, a = 21, g = 1;
-    h.beginFill(7433580);
-    h.drawRect(0, 0, f, a);
-    h.endFill();
-    h.beginFill(2105119);
-    h.drawRect(2, 2, f - 4, a - 4);
-    h.endFill();
-    h.position = new PIXI.Point(-round(f / 2), -a - (d.aheight || d.height));
-    d.addChild(h);
-    if (!d.me) {
-        g = 4
-    } else {
-        g = 8
-    }
-    var b = {fontFamily: S.font, fontSize: 64 * g, fill: "white", align: "center"};
-    var c = new PIXI.Text(c, b);
-    c.x = (f / 2);
-    c.y = 4;
-    c.anchor.set(0.5, 0);
-    c.scale = new PIXI.Point(0.25 / g, 0.25 / g);
-    h.addChild(c);
-    d.name_tag = h;
-    d.addChild(h)
 }
 function hp_bar_logic(a) {
 
 }
 function add_hp_bar(c) {
-    var a = max(32, round(c.width * 0.8)), d = 1, g = round(2 * d);
-    var b = 11609895;
-    if (c.npc) {
-        b = 14717952
-    } else {
-        if (c.type == "character" && !pvp && !is_pvp && ctarget == c) {
-            b = 3574827
-        } else {
-            if (c.type == "character" && (pvp || is_pvp) && character && character.guild != c.guild && character.party != c.party && c.target == character.name) {
-            } else {
-                if (character && character.party && character.party == c.party) {
-                    b = 7290759
-                } else {
-                    if (character && character.guild && character.guild == c.guild) {
-                        b = 4110016
-                    } else {
-                        if (character && is_monster(c) && ctarget == c) {
-                        } else {
-                            if (c.guild == "A") {
-                                b = 3783508
-                            } else {
-                                if (c.guild == "B") {
-                                    b = 14366627
-                                } else {
-                                    if (character && c.target == character.name && is_player(c)) {
-                                        b = 4171985
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    var f = round((a - round(2 * (d + 1))) * c.hp / c.max_hp);
-    if (c.hp_bar) {
-        if (c.hp_width == f && c.hp_color == b) {
-            return
-        }
-        destroy_sprite(c.hp_bar, "children");
-        c.hp_bar = null
-    }
-    c.hp_width = f;
-    var k = new PIXI.Graphics();
-    k.beginFill(7433580);
-    k.drawRect(0, 0, a, 6 + g);
-    k.endFill();
-    k.beginFill(2105119);
-    k.drawRect(d, d, a - g, 6);
-    k.endFill();
-    k.beginFill(b);
-    k.drawRect(d + 1, d + 1, c.hp_width, 4);
-    k.endFill();
-    var h = 12, j = 0;
-    if (c.type == "character" && character_names) {
-        h += 8
-    }
-    if (c.mscale == 2) {
-        h += 6, j += a / 2
-    }
-    k.position = new PIXI.Point(-(a / 2) - j, -h - (c.aheight || c.height) + (c.mscale == 2 && -4 || 0));
-    if (c.mscale) {
-        k.scale = new PIXI.Point(c.mscale, c.mscale)
-    }
-    c.hp_bar = k;
-    c.hp_color = b;
-    c.addChild(k)
 }
 function test_bitmap(a, d, b) {
-    var c = new PIXI.BitmapText("YAY BITMAPS!", {font: b + "px m5x7", align: "center"});
-    c.displayGroup = text_layer;
-    c.x = round(a);
-    c.y = round(d);
-    map.addChild(c)
 }
 function d_line(d, a, b) {
 }
 function d_text(n, j, h, g) {
 }
-function api_call(h, c, g) {
+function api_call(command, c, g) {
     if (!c) {
         c = {}
     }
     if (!g) {
         g = {}
     }
-    var d = "/api/" + h, b = g.disable;
+    var path = "/api/" + command, b = g.disable;
     if (c.ui_loader) {
         g.r_id = randomStr(10);
         delete c.ui_loader
@@ -1966,8 +1556,8 @@ function api_call(h, c, g) {
     if (b) {
         b.addClass("disable")
     }
-    data = {method: h, "arguments": JSON.stringify(c)};
-    function f(k, j) {
+    data = {method: command, "arguments": JSON.stringify(c)};
+    function success(k, j) {
         return function (l) {
             if (k.r_id) {
                 hide_loader(k.r_id)
@@ -1986,12 +1576,12 @@ function api_call(h, c, g) {
         }
     }
 
-    function a(k, j) {
+    function error(k, j) {
         return function (l) {
             if (k.r_id) {
                 hide_loader(k.r_id)
             }
-            if (k.silent || in_arr(h, auto_api_methods)) {
+            if (k.silent || in_arr(command, auto_api_methods)) {
                 return
             }
             ui_error("An Unknown Error");
@@ -2004,7 +1594,7 @@ function api_call(h, c, g) {
     if (g.r_id) {
         show_loader(g.r_id)
     }
-    call_args = {type: "POST", dataType: "json", url: base_url + d, data: data, success: f(g, b), error: a(g, b)};
+    call_args = {type: "POST", dataType: "json", url: base_url + path, data: data, success: success(g, b), error: error(g, b)};
     $.ajax(call_args)
 }
 function api_call_l(c, a, b) {
@@ -2015,13 +1605,12 @@ function api_call_l(c, a, b) {
     return api_call(c, a, b)
 }
 var warned = {}, map_info = {};
+
 function new_map_logic(a, b) {
     map_info = b.info || {};
     if (current_map == "abtesting" && !abtesting) {
         abtesting = {A: 0, B: 0};
         abtesting_ui = true;
-        $("#topmid").append("<div id='abtesting'><div class='gamebutton' style='border-color: " + colors.A + "'>A <span class='scoreA'>0</span></div> <div class='gamebutton abtime'>5:00</div> <div class='gamebutton' style='border-color: " + colors.B + "'>B <span class='scoreB'>0</span></div></div>");
-        reposition_ui();
         abtesting.end = future_s(G.events.abtesting.duration)
     }
     if (current_map != "abtesting" && abtesting_ui) {
@@ -2075,54 +1664,16 @@ function save_code_s() {
 function handle_information(g) {
     for (var f = 0; f < g.length; f++) {
         info = g[f];
-        if (info.type == "code_list") {
-            if (info.purpose == "load") {
-                var d = "", c = false;
-                info.list[0] = "Default";
-                for (var b in info.list) {
-                    d += "<div class='gamebutton block' style='margin-bottom: -4px' onclick='load_code(\"" + b + "\",1)'>[" + b + "] " + info.list[b] + "</div>";
-                    c = true
-                }
-                d += "<div style='margin: 10px 5px 5px 5px; font-size: 24px; line-height: 28px'>";
-                d += "<div>You can also load code's into your code. For example, you can save your 'Functions' in one code slot, let's say 2, and inside your first code slot, you can: <span class='label' style='height: 24px; margin: -2px 0px 0px 0px;'>load_code(2)</span> or <span class='label' style='height: 24px; margin: -2px 0px 0px 0px;'>load_code('Functions')</span></div>";
-                d += "</div>";
-                show_modal(d)
-            } else {
-                if (info.purpose == "save") {
-                    var d = "", c = false;
-                    d += "<div style='box-sizing: border-box; width: 100%; text-align: center; margin-bottom: 8px'>";
-                    d += "<input type='text' style='box-sizing: border-box; width: 20%;' placeholder='#' class='csharp cinput'/>";
-                    d += "<input type='text' style='box-sizing: border-box; width: 58%;' placeholder='NAME' class='codename cinput' />";
-                    d += "<div class='gamebutton' style='box-sizing: border-box; width: 20%; padding: 8px' onclick='save_code_s()'>SAVE</div>";
-                    d += "</div>";
-                    if (!Object.keys(info.list).length) {
-                        info.list = {"1": "Empty", "2": "Empty"}
-                    }
-                    code_list = info.list;
-                    info.list["#"] = "DELETE";
-                    for (var b in info.list) {
-                        d += "<div class='gamebutton block' style='margin-bottom: -4px' onclick='load_code_s(\"" + b + "\")'>[" + b + "] " + info.list[b] + "</div>";
-                        c = true
-                    }
-                    d += "<div style='margin: 10px 5px 5px 5px; font-size: 24px; line-height: 28px'>";
-                    d += "</div>";
-                    show_modal(d)
-                } else {
-                    show_json(info.list)
-                }
-            }
-        }
         if (info.type == "reload") {
             var a = future_s(10);
+            //TODO
             /*window.localStorage.setItem("reload" + server_region + server_identifier, JSON.stringify({
                 time: a,
                 ip: info.ip,
                 port: "" + info.port
             }))*/
         }
-        if (info.type == "friends") {
-            //load_friends(info)
-        }
+
         if (in_arr(info.type, ["ui_log", "message"])) {
             if (info.color) {
                 add_log(info.message, info.color)
@@ -2238,39 +1789,8 @@ function init_fx() {
         return
     }
     window.fx_init = 1;
-    sounds.fx_explosion = new Howl({src: ["/sounds/fx/EXPLOSION_Short_Kickback_Crackle_stereo.wav"], volume: 0.4,});
-    sounds.coin_collect = new Howl({src: ["/sounds/fx/COINS_Rattle_03_mono.wav"], volume: 0.4,});
-    sounds.hit_8bit = new Howl({src: ["/sounds/fx/8BIT_RETRO_Hit_Bump_Noise_mono.wav"], volume: 0.4,});
-    sounds.magic_8bit = new Howl({src: ["/sounds/fx/8BIT_RETRO_Fire_Blaster_Short_mono.wav"], volume: 0.4,});
-    sounds.use_8bit = new Howl({src: ["/sounds/fx/VideoGameSFX_blip_07.wav"], volume: 0.4,});
-    sounds.chat = new Howl({src: ["/sounds/fx/UI_Beep_Double_Quick_Smooth_stereo.wav"], volume: 0.4,})
 }
 function init_music() {
-    if (window.music_init) {
-        return
-    }
-    window.music_init = 1;
-    sounds.christmas = new Howl({
-        src: ["/sounds/loops/christmas.ogg"],
-        volume: 0.4 * music_level,
-        autoplay: false,
-        loop: true,
-    });
-    if (xmas_tunes) {
-        return
-    }
-    sounds.horror01 = new Howl({
-        src: ["/sounds/loops/horror_01_loop.ogg", "/sounds/loops/horror_01_loop.wav"],
-        volume: 0.4 * music_level,
-        autoplay: false,
-        loop: true,
-    });
-    sounds.rpg08 = new Howl({
-        src: ["/sounds/loops/rpg_08_loop.ogg", "/sounds/loops/rpg_08_loop.wav"],
-        volume: 0.4 * music_level,
-        autoplay: false,
-        loop: true,
-    })
 }
 var current_music = null;
 function reflect_music() {
@@ -2280,7 +1800,6 @@ var BACKUP = {};
 function reload_data() {
     BACKUP.maps = G.maps;
     prop_cache = {};
-    //$.getScript("/data.js?reload=1&timestamp=" + (new Date().getTime()))
 }
 function apply_backup() {
     G.maps = BACKUP.maps;

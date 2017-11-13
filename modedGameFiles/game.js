@@ -1,7 +1,7 @@
 var fs = require("fs")
 eval(fs.readFileSync('modedGameFiles/common_functions.js') + '');
 eval(fs.readFileSync('modedGameFiles/functions.js') + '');
-var SocketServer = require("bot-web-interface");
+var Socket = require("socket.io-client");
 
 var u_item = null
     , u_scroll = null
@@ -100,42 +100,7 @@ var height = 1080;
 var frame_ms;
 
 setInterval(function () {
-    /*
-     if (reload_state) {
-     try {
-     var c = window.localStorage.getItem("reload" + server_region + server_identifier);
-     if (c) {
-     c = JSON.parse(c);
-     c.time = new Date(c.time);
-     if (new Date() < c.time) {
-     if (reload_state != "synced") {
-     var b = {ip: c.ip, port: c.port, code: code_to_load, mstand: mstand_to_load};
-     window.localStorage.setItem("character_" + real_id, JSON.stringify(b));
-     add_log("Reload Synced", colors.serious_green)
-     }
-     reload_state = "synced"
-     }
-     if (reload_state == "synced") {
-     reload_timer = c.time
-     }
-     }
-     } catch (d) {
-     console.log(d)
-     }
-     if (reload_state == "start") {
-     reload_state = "schedule", reload_timer = future_s(45 + parseInt(Math.random() * 25));
-     add_log("First Echo In " + parseInt(-ssince(reload_timer)) + " Seconds", "gray")
-     }
-     if (reload_state == "schedule" && new Date() > reload_timer) {
-     api_call("can_reload", {region: server_region, pvp: is_pvp || "", name: server_identifier});
-     add_log("Echo Sent", "gray");
-     reload_timer = future_s(20 + parseInt(Math.random() * 20))
-     }
-     if (reload_state == "synced" && new Date() > reload_timer) {
-     reload_state = false;
-     window.location = window.location.origin + "?load=" + real_id + "&times=" + (parseInt(reload_times) + 1)
-     }
-     }*/
+
     if (!game_loaded) {
         return
     }
@@ -196,7 +161,6 @@ function log_in(a, c, b) {
     }
     clear_game_logs();
     add_log("Connecting ...");
-    console.log({user: a, character: c, auth: b, width: screen.width, height: screen.height, scale: scale});
     socket.emit("auth", {user: a, character: c, auth: b, width: screen.width, height: screen.height, scale: scale, bot:"12345"})
 }
 
@@ -486,7 +450,7 @@ function sync_entity(c, a) {
                 y: a.going_y
             }) / (simple_distance(a, {x: a.going_x, y: a.going_y}) + EPS);
         if (b > 1.25 && log_flags.timers) {
-            console.log(c.id + " speedm: " + b)
+            //console.log(c.id + " speedm: " + b)
         }
         c.moving = true;
         c.abs = false;
@@ -576,10 +540,12 @@ function on_disappear(a) {
         }
     }
 }
+
 var asp_skip = {};
 ["x", "y", "vx", "vy", "moving", "abs", "going_x", "going_y", "from_x", "from_y", "width", "height", "type", "events", "angle", "skin"].forEach(function (a) {
     asp_skip[a] = true
 });
+
 function adopt_soft_properties(a, b) {
     if (a.me) {
         if (a.moving && a.speed && b.speed && a.speed != b.speed) {
@@ -647,111 +613,11 @@ function reposition_ui() {
 function update_overlays() {
 
 }
+
 function on_load_progress(a, b) {
     //$("#progressui").html(round(a.progress) + "%")
 }
-/*
- function the_game(c) {
- width = $(window).width();
- height = $(window).height();
- if (bowser.mac && bowser.firefox) {
- renderer = new PIXI.CanvasRenderer(width, height, {antialias: antialias, transparent: false})
- } else {
- if (retina_mode) {
- renderer = new PIXI.autoDetectRenderer(width, height, {
- antialias: antialias,
- transparent: false,
- resolution: window.devicePixelRatio,
- autoResize: true
- })
- } else {
- if (force_webgl) {
- renderer = new PIXI.WebGLRenderer(width, height, {antialias: antialias, transparent: false})
- } else {
- if (force_canvas) {
- renderer = new PIXI.CanvasRenderer(width, height, {antialias: antialias, transparent: false})
- } else {
- renderer = new PIXI.autoDetectRenderer(width, height, {antialias: antialias, transparent: false})
- }
- }
- }
- }
- if (high_precision) {
- PIXI.PRECISION.DEFAULT = PIXI.PRECISION.HIGH
- }
- if (renderer.type == PIXI.RENDERER_TYPE.WEBGL) {
- console.log("WebGL Mode")
- } else {
- console.log("Canvas Mode")
- }
- renderer.plugins.interaction.cursorStyles.help = "help";
- renderer.plugins.interaction.cursorStyles.crosshair = "crosshair";
- if (!bot_mode) {
- document.body.appendChild(renderer.view)
- }
- $("canvas").css("position", "fixed").css("top", "0px").css("left", "0px").css("z-index", 1);
- stage = new PIXI.Container();
- inner_stage = new PIXI.Container();
- if (bw_mode) {
- var b = new PIXI.filters.ColorMatrixFilter();
- stage.filters = [b];
- b.desaturate()
- }
- stage.addChild(inner_stage);
- if (PIXI.DisplayList) {
- if (window.inner_stage) {
- inner_stage.displayList = new PIXI.DisplayList()
- } else {
- stage.displayList = new PIXI.DisplayList()
- }
- map_layer = new PIXI.DisplayGroup(0, true);
- text_layer = new PIXI.DisplayGroup(3, true);
- chest_layer = new PIXI.DisplayGroup(2, true);
- monster_layer = new PIXI.DisplayGroup(1, function (e) {
- var d = 0;
- if (e.stand) {
- d = -3
- }
- if ("real_y" in e) {
- e.zOrder = -e.real_y + d + (e.y_disp || 0)
- } else {
- e.zOrder = -e.position.y + d + (e.y_disp || 0)
- }
- });
- player_layer = monster_layer;
- chest_layer = monster_layer
- }
- frame_ms = 16;
- C = PIXI.utils.BaseTextureCache;
- FC = {};
- D = {};
- T = {};
- loader = PIXI.loader;
- loader.on("progress", on_load_progress);
- for (name in G.animations) {
- loader.add(G.animations[name].file)
- }
- for (name in G.tilesets) {
- loader.add(G.tilesets[name])
- }
- for (name in G.sprites) {
- var a = G.sprites[name];
- if (a.skip) {
- continue
- }
- loader.add(a.file)
- }
- process_game_data();
- if (mode.bitmapfonts) {
- loader.add("/css/fonts/m5x7.xml")
- }
- if (!c) {
- init_socket()
- } else {
- init_demo()
- }
- }
- */
+
 function init_demo() {
     is_demo = 1;
     current_map = "shellsisland";
@@ -761,9 +627,24 @@ function init_demo() {
 }
 function init_socket() {
 
+    socket = new Socket("http://"+ip+":"+port, {
+            autoConnect: false,
+            extraHeaders: {
+                "user-agent": "AdventureLandBo: (v1.0.0)",
+                referer: "http://adventure.land/",
+                "accept-language": "en-US,en;q=0.5"
+            }
+        });
+
+    socket.on("connect",function(){
+        console.log("Socket connection established");
+    })
+
+
+
     var original_onevent = socket.onevent;
     var original_emit = socket.emit;
-    7
+
 
     socket.emit = function (packet) {
         var is_transport = in_arr(arguments && arguments["0"], ["transport", "enter", "leave"]);
@@ -801,6 +682,7 @@ function init_socket() {
             load_game()
         } else {
             create_map();
+            console.log("loaded");
             socket.emit("loaded", {success: 1, width: screen.width, height: screen.height, scale: scale})
         }
         new_map_logic("welcome", data)
@@ -881,18 +763,7 @@ function init_socket() {
         new_map_logic("start", data);
         new_game_logic();
 
-        var callbackId = Math.round(Math.random() * 100000000000 + 12007144706612636761);
-        var callbackStart = Math.round(Math.random() * 10000) + 1494359179004;
-        var callbackCount = callbackStart + 1;
-        setInterval(function () {
-            if (game_loaded) {
-                callbackCount++;
-                var options = {
-                    url: 'http://' + server_addr + ':' + (+port + 40) + '/character?checkin=1&ipass=' + ipass + '&id=' + character.id + '&callback=jQuery' + callbackId + '_' + callbackStart + '&_=' + callbackCount
-                };
-                request(options);
-            }
-        }, 30000);
+        httpWrapper.checkIn(ip,port,ipass,character.id);
 
         if (character.ctype == "mage") {
             skill_timeout("burst", 10000)
@@ -917,7 +788,6 @@ function init_socket() {
                 going_x: data.x,
                 going_y: data.y
             })) {
-            add_log("Location corrected", "gray");
             console.log("Character correction");
             character.real_x = parseFloat(data.x);
             character.real_y = parseFloat(data.y);
@@ -1253,9 +1123,7 @@ function init_socket() {
     socket.on("chest_opened", function (data) {
         draw_trigger(function () {
             if (chests[data.id]) {
-                destroy_sprite(chests[data.id]);
                 delete chests[data.id];
-                sfx("coins")
             }
         })
     });
@@ -1295,7 +1163,7 @@ function init_socket() {
     });
     socket.on("drop", function (data) {
         draw_trigger(function () {
-            chest = add_chest(data)
+            add_chest(data)
         })
     });
     socket.on("reopen", function (data) {
@@ -2135,16 +2003,7 @@ function retile_the_map() {
             }
         }
     } else {
-        if (M["default"]) {
-            if (!window.default_tiling) {
-                default_tiling = new PIXI.extras.TilingSprite(M["default"][5], floor((B - k) / 32) * 32 + 32, floor((A - g) / 32) * 32 + 32)
-            }
-            default_tiling.x = floor(k / M["default"][3]) * M["default"][3];
-            default_tiling.y = floor(g / M["default"][4]) * M["default"][4];
-            default_tiling.textures = [M["default"][5], M["default"][6], M["default"][7]];
-            map.addChild(default_tiling);
-            map_tiles.push(default_tiling)
-        }
+
     }
     for (var q = 0; q < M.placements.length; q++) {
         var E = M.placements[q];
@@ -2291,7 +2150,6 @@ function draw(a, b) {
     stop_timer("draw", "draw_entities");
     position_map();
     call_code_function("on_draw");
-    //retile_the_map();
     stop_timer("draw", "retile");
     if (character) {
         update_sprite(character)
@@ -2305,12 +2163,8 @@ function draw(a, b) {
         exchange_animation_logic()
     }
     stop_timer("draw", "uis");
-    //tint_logic();
     draw_timeouts_logic();
     stop_timer("draw", "before_render");
-    //if (!b && !is_hidden() && !stop_rendering) {
-    //    renderer.render(stage)
-    //}
     stop_timer("draw", "after_render");
     if (!b) {
         setTimeout(function () {
@@ -2322,28 +2176,3 @@ function draw(a, b) {
 function cut(number){
     return Math.floor(number*100)/100;
 }
-
-SocketServer.setStructure([
-    {name: "name", type: "text", label: "name"},
-    {name: "inv", type: "text", label: "Inventory"},
-    {name: "level", type: "text", label: "Level"},
-    {name: "xp", type: "progressBar", label: "Experience", options:{color:"green"}},
-    {name: "health", type: "progressBar", label: "Health", options:{color:"red"}},
-    {name: "mana", type: "progressBar", label: "Mana",     options:{color:"blue"}},
-    {name: "status", type: "text", label: "Status"},
-]);
-
-SocketServer.registerDatSource(function () {
-    if (character)
-        return {
-            name: character.id,
-            level: character.level,
-            inv: character.items.length+"/"+42,
-            xp: cut(100* character.xp / character.max_xp),
-            health: cut(100*character.hp/character.max_hp),
-            mana: cut(100* character.mp/character.max_mp),
-            status: "online"
-        }
-    else
-        return {};
-});

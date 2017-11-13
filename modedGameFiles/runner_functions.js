@@ -33,9 +33,6 @@ function activate(num) // activates an item, likely a booster, in the num-th inv
 
 function shift(num,name) // shifts an item, likely a booster, in the num-th inventory slot
 {
-    // shift(0,'xpbooster')
-    // shift(0,'luckbooster')
-    // shift(0,'goldbooster')
     parent.shift(num,name);
 }
 
@@ -606,41 +603,12 @@ var game={
 
 function preview_item(def,args)
 {
-    //PLANNED Improvements:
-    //- Importing a custom thumbnail
-    //- Drafting custom item abilities
-    // Email me or create an issue if you need these features (if you want to suggest new items) [20/03/17]
-    if(!args) args={};
-    var html="";
-    var styles="vertical-align: top; margin: 10px";
-    var name=def.id||args.id||"staff";
-    parent.prop_cache={}; // bust the item cache
-    if(def.compound || def.upgrade)
-    {
-        for(var level=0;level<=10;level++)
-            html+=parent.render_item("html",{item:def,name:name,styles:styles,actual:{name:name,level:level},sell:true,thumbnail:args.thumbnail});
-    }
-    else
-    {
-        html+=parent.render_item("html",{item:def,name:name,thumbnail:args.thumbnail});
-    }
-    html+="<div style='margin: 10px; border: 5px solid gray; padding: 4px'>"+parent.json_to_html(def)+"</div>";
-    parent.show_modal(html);
-    parent.prop_cache={};
 }
 
 function load_code(name,onerror) // onerror can be a function that will be executed if load_code fails
 {
+    throw new Error("not implemented yet");
     return;
-    if(!onerror) onerror=function(){ game_log("load_code: Failed to load","#E13758"); }
-    var xhrObj = new XMLHttpRequest();
-    xhrObj.open('GET',"/code.js?name="+encodeURIComponent(name)+"&timestamp="+(new Date().getTime()), false);
-    xhrObj.send('');
-    var library=document.createElement("script");
-    library.type="text/javascript";
-    library.text=xhrObj.responseText;
-    library.onerror=onerror;
-    document.getElementsByTagName("head")[0].appendChild(library);
 }
 
 var smart={
@@ -816,7 +784,6 @@ function bfs()
         });
 
         start++;
-        if(mssince(timer)>(!parent.is_hidden()&&40||500)) return;
     }
 
     if(result===null) result=best,optimal=false;
@@ -834,7 +801,6 @@ function bfs()
         if(optimal) game_log("Path found!","#C882D1");
         else game_log("Path found~","#C882D1");
         // game_log(queue.length);
-        parent.d_text("Yes!",character,{color:"#58D685"});
     }
 }
 
@@ -849,7 +815,7 @@ function start_pathfinding()
 
 function continue_pathfinding()
 {
-    bfs();
+    setTimeout(bfs,5);
 }
 
 function smart_move_logic()
@@ -864,7 +830,6 @@ function smart_move_logic()
         if(Math.random()<0.1)
         {
             move(character.real_x+Math.random()*0.0002-0.0001,character.real_y+Math.random()*0.0002-0.0001);
-            parent.d_text(shuffle(["Hmm","...","???","Definitely left","No right!","Is it?","I can do this!","I think ...","What If","Should be","I'm Sure","Nope","Wait a min!","Oh my"])[0],character,{color:shuffle(["#68B3D1","#D06F99","#6ED5A3","#D2CF5A"])[0]});
         }
         continue_pathfinding();
     }
