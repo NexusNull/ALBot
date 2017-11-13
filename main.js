@@ -16,7 +16,7 @@ var bots = userData.bots;
 async function main() {
     var result = await httpWrapper.login(login.email, login.password);
     var characters = await httpWrapper.getCharacters();
-    var userAuth = httpWrapper.getUserAuth();
+    var userAuth = await httpWrapper.getUserAuth();
 
     if (!result)
         throw new Error("Login failed");
@@ -71,14 +71,25 @@ async function main() {
                     }
             }
     }
-    console.log(await httpWrapper.getUserAuth());
 
+    let serverList = await httpWrapper.getServerList();
 
     //Checks are done, starting bots.
-    for (var i = 0; i < bots.length; i++) {
-        var game = new Game("54.169.213.59", 8090, httpWrapper.userId, bots[i].characterId, httpWrapper.userAuth, httpWrapper, bots[i].runScript);
+    for (let i = 0; i < bots.length; i++) {
+        let ip = "54.169.213.59";
+        let port = 8090;
+        for(let j=0;j<serverList.length;j++){
+            let server = serverList[j];
+            if(bots[i].server === server.region+" "+server.name){
+                ip = server.ip;
+                port = server.port;
+            }
+        }
+
+        let game = new Game(ip, port, httpWrapper.userId, bots[i].characterId, httpWrapper.userAuth, httpWrapper, bots[i].runScript);
         game.start();
     }
+
 }
 async function sleep(ms){
     return new Promise(function(resolve){

@@ -106,7 +106,28 @@ HttpWrapper.prototype.getCharacters = async function () {
 };
 
 HttpWrapper.prototype.getServerList = async function () {
+    var self = this;
+    return new Promise(async function (resolve, reject) {
+        var options = {
+            url: "http://adventure.land/api/get_servers",
+            method: "POST",
+            headers: {
+                "user-agent": "AdventureLandBot: (v1.0.0)",
+                "x-requested-with": "XMLHttpRequest",
+                cookie: "auth=" + self.sessionCookie
+            },
+            form: {
+                method: "get_servers"
+            }
+        };
 
+        let data = JSON.parse(await request(options));
+
+        if (data[0].type === "success")
+            resolve(data[0].message);
+        else
+            reject();
+    })
 };
 
 HttpWrapper.prototype.checkLogin = async function () {
@@ -135,13 +156,13 @@ HttpWrapper.prototype.checkIn = function (ip, port, ipass, characterId) {
     var callbackId = Math.round(Math.random() * 100000000000 + 12007144706612636761);
     var callbackStart = Math.round(Math.random() * 10000) + 1494359179004;
     var callbackCount = callbackStart + 1;
-    setInterval(async function(){
+    setInterval(async function () {
         callbackCount++;
         var options = {
             url: 'http://' + ip + ':' + (+port + 40) + '/character?checkin=1&ipass=' + ipass + '&id=' + characterId + '&callback=jQuery' + callbackId + '_' + callbackStart + '&_=' + callbackCount
         };
         await request(options);
-    },30000);
+    }, 30000);
 };
 
 module.exports = HttpWrapper;
