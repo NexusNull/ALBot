@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Patric Wellershaus",
-  "license": "ISC",
+  "license": "GNU GPLv3.0",
   "dependencies": {
     "bot-web-interface": "git+https://github.com/Fansana/bot-web-interface.git",
     "cheerio": "^0.22.0",
