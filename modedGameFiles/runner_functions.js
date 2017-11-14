@@ -227,33 +227,24 @@ function trade_buy(target,trade_slot) // target needs to be an actual player
 
 function upgrade(item_num,scroll_num,offering_num) //number of the item and scroll on the show_json(character.items) array - 0 to N-1
 {
-    parent.u_item=item_num;
-    parent.u_scroll=scroll_num;
-    parent.u_offering=offering_num;
-    parent.upgrade();
+    parent.upgrade(item_num,scroll_num,offering_num);
 }
 
 function compound(item0,item1,item2,scroll_num,offering_num) // for example -> compound(0,1,2,6) -> 3 items in the first 3 slots, scroll at the 6th spot
 {
-    parent.c_items=[item0,item1,item2];
-    parent.c_last=3;
-    parent.c_scroll=scroll_num;
-    parent.c_offering=offering_num;
-    parent.compound();
+    parent.compound(item0,item1,item2,scroll_num,offering_num);
 }
 
 function craft(i0,i1,i2,i3,i4,i5,i6,i7,i8)
-// for example -> craft(null,0,null,null,1,null,null,2,null)
-// sends 3 items to be crafted, the 0th, 1st, 2nd items in your inventory, and it places them all in the middle column of crafting
+
 {
-    parent.cr_items=[i0,i1,i2,i3,i4,i5,i6,i7,i8];
-    parent.craft();
+    parent.craft(i0,i1,i2,i3,i4,i5,i6,i7,i8);
 }
 
 function exchange(item_num)
 {
-    parent.e_item=item_num;
-    parent.exchange(1);
+
+    parent.exchange(item_num, 1);
 }
 
 function say(message) // please use responsibly, thank you! :)

@@ -713,7 +713,7 @@ function open_merchant(a) {
 function close_merchant() {
     socket.emit("merchant", {close: 1})
 }
-function upgrade() {
+function upgrade(u_item,u_scroll,u_offering) {
     if (u_item == null || (u_scroll == null && u_offering == null)) {
         d_text("INVALID", character)
     } else {
@@ -746,6 +746,7 @@ var exccolorsl = ["#CD6F1A", "#A95C15"];
 var exccolorsg = ["#EFD541", "#9495AC"];
 var exccolorsc = ["#C82F17", "#EBECEE"];
 var exccolorssea = ["#24A7CB", "#EBECEE"];
+
 function exchange_animation_logic() {
     var a = exccolors1;
     if (exchange_type == "leather") {
@@ -765,7 +766,7 @@ function exchange_animation_logic() {
         exclast++
     }
 }
-function exchange(a) {
+function exchange(e_item, a) {
     var b = 3000;
     if (a) {
         socket.emit("exchange", {item_num: e_item, q: character.items[e_item].q});
@@ -794,20 +795,20 @@ function exchange(a) {
         }
     }
 }
-function compound() {
-    if (c_last != 3 || c_scroll == null) {
-        d_text("INVALID", character)
+function compound(item0,item1,item2,scroll_num,offering_num) {
+    if (scroll_num == null) {
+        console.log("INVALID")
     } else {
         socket.emit("compound", {
-            items: c_items,
-            scroll_num: c_scroll,
-            offering_num: c_offering,
-            clevel: (character.items[c_items[0]].level || 0)
-        })
+            items: [item0,item1,item2],
+            scroll_num: scroll_num,
+            offering_num: offering_num,
+            clevel: (character.items[item0].level || 0)
+        });
     }
 }
-function craft() {
-    var a = [], b = false;
+function craft(i0,i1,i2,i3,i4,i5,i6,i7,i8) {
+    var a = [i0,i1,i2,i3,i4,i5,i6,i7,i8], b = false;
     for (var c = 0; c < 9; c++) {
         if (cr_items[c] || cr_items[c] === 0) {
             b = true, a.push([c, cr_items[c]])
