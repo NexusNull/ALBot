@@ -6,7 +6,7 @@ function close(error) {
     process.exit(1);
 }
 
-var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, script) {
+var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, script, botKey) {
     var fs = require("fs")
     var cheerio = require("cheerio");
     var G = require("./gameData");
@@ -61,77 +61,78 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
     server_addr = ip;
     port = port;
     user_id = userId;
-    character_to_load =  characterId;
+    character_to_load = characterId;
     user_auth = socketAuth;
 
     init_socket();
 
-    this.start = function(){
-        setTimeout(function(){
+    this.start = function () {
+        setTimeout(function () {
             socket.emit("loaded", {success: 1, width: screen.width, height: screen.height, scale: scale})
             game_loaded = true;
 
 
-            socket.on("start",function(){
+            socket.on("start", function () {
                 var global = {
                     gameplay: gameplay,
-                    is_pvp:is_pvp,
-                    server_region:server_region,
+                    is_pvp: is_pvp,
+                    server_region: server_region,
                     server_identifier: server_identifier,
-                    G:G,
-                    character:character,
-                    activate:activate,
-                    shift:shift,
-                    use_skill:use_skill,
-                    can_use:can_use,
-                    socket:socket,
-                    current_map:current_map,
-                    add_log:add_log,
-                    ctarget:ctarget,
-                    send_target_logic:send_target_logic,
-                    distance:distance,
-                    is_disabled:is_disabled,
-                    transporting:transporting,
-                    player_attack:player_attack,
-                    monster_attack:monster_attack,
-                    player_heal:player_heal,
-                    buy:buy,
-                    sell:sell,
-                    trade:trade,
-                    trade_buy:trade_buy,
+                    G: G,
+                    character: character,
+                    activate: activate,
+                    shift: shift,
+                    use_skill: use_skill,
+                    can_use: can_use,
+                    socket: socket,
+                    current_map: current_map,
+                    add_log: add_log,
+                    ctarget: ctarget,
+                    send_target_logic: send_target_logic,
+                    distance: distance,
+                    is_disabled: is_disabled,
+                    transporting: transporting,
+                    player_attack: player_attack,
+                    monster_attack: monster_attack,
+                    player_heal: player_heal,
+                    buy: buy,
+                    sell: sell,
+                    trade: trade,
+                    trade_buy: trade_buy,
                     //u_item:u_item,
                     //u_scroll:u_scroll,
                     //u_offering:u_offering,
-                    upgrade:upgrade,
+                    upgrade: upgrade,
                     //c_items:c_items,
                     //c_last:c_last,
                     //c_scroll:c_scroll,
                     //c_offering:c_offering,
-                    compound:compound,
+                    compound: compound,
                     //cr_items:cr_items,
                     //craft:craft,
                     //e_item:e_item,
-                    exchange:exchange,
-                    say:say,
-                    map:map,
-                    calculate_move:calculate_move,
-                    M:M,
-                    chests:chests,
-                    entities:entities,
-                    calculate_vxy:calculate_vxy,
-                    show_json:show_json,
-                    next_potion:next_potion,
-                    send_code_message:send_code_message,
-                    drawings:drawings,
+                    exchange: exchange,
+                    say: say,
+                    map: map,
+                    calculate_move: calculate_move,
+                    M: M,
+                    chests: chests,
+                    entities: entities,
+                    calculate_vxy: calculate_vxy,
+                    show_json: show_json,
+                    next_potion: next_potion,
+                    send_code_message: send_code_message,
+                    drawings: drawings,
                     //code_buttons:code_buttons,
-                    show_modal:show_modal,
-                    prop_cache:prop_cache,
-                    next_attack:next_attack,
-                    bot_mode:true,
+                    show_modal: show_modal,
+                    prop_cache: prop_cache,
+                    next_attack: next_attack,
+                    bot_mode: true,
+                    botKey: botKey
                 };
 
-                Object.defineProperty(global,"entities",{
-                    get: function(){
+                Object.defineProperty(global, "entities", {
+                    get: function () {
                         return entities;
                     }
                 })
@@ -143,19 +144,19 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
                 console.log(data);
                 if ("Failed: ingame" == data) {
                     setTimeout(function () {
-                        console.log("Retrying for "+character_to_load);
+                        console.log("Retrying for " + character_to_load);
                         log_in(user_id, character_to_load, user_auth);
                     }, 30 * 1000);
                 } else if (/Failed: wait_(\d+)_seconds/g.exec(data) != null) {
                     let time = /Failed: wait_(\d+)_seconds/g.exec(data)[1];
                     setTimeout(function () {
-                        console.log("Retrying for "+character_to_load);
+                        console.log("Retrying for " + character_to_load);
                         log_in(user_id, character_to_load, user_auth);
                     }, time * 1000 + 1000);
                 }
             });
-            log_in(user_id,character_to_load,user_auth);
-        },500);
+            log_in(user_id, character_to_load, user_auth);
+        }, 500);
     };
 }
 

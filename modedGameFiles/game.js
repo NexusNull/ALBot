@@ -161,7 +161,7 @@ function log_in(a, c, b) {
     }
     clear_game_logs();
     add_log("Connecting ...");
-    socket.emit("auth", {user: a, character: c, auth: b, width: screen.width, height: screen.height, scale: scale, bot:"12345"})
+    socket.emit("auth", {user: a, character: c, auth: b, width: screen.width, height: screen.height, scale: scale, bot:botKey})
 }
 
 function disconnect() {

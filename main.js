@@ -9,7 +9,7 @@ var HttpWrapper = require("./HttpWrapper");
 var httpWrapper = new HttpWrapper();
 var fs = require("fs");
 var Game = require("./game");
-var userData = require("./userData.json")
+var userData = require("./userData.json");
 var login = userData.login;
 var bots = userData.bots;
 
@@ -22,7 +22,7 @@ async function main() {
         throw new Error("Login failed");
 
     if (userData.config.fetch) {
-        console.log("Populating config file with data.")
+        console.log("Populating config file with data.");
         userData.bots = [];
         for (let i = 0; i < characters.length; i++) {
             console.log(characters[i]);
@@ -34,7 +34,7 @@ async function main() {
             }
         }
         userData.config.fetch = false;
-        fs.writeFileSync("./userData.json", JSON.stringify(userData, null, 4))
+        fs.writeFileSync("./userData.json", JSON.stringify(userData, null, 4));
         process.exit();
     }
 
@@ -42,7 +42,6 @@ async function main() {
     if (!bots) {
         console.error("Missing field \"bots\" in userData.json");
     }
-
 
     for (let i = 0; i < bots.length; i++) {
         if (!(bots[i] && (bots[i].characterId || bots[i].characterName) && bots[i].runScript && bots[i].server))
@@ -86,7 +85,7 @@ async function main() {
             }
         }
 
-        let game = new Game(ip, port, httpWrapper.userId, bots[i].characterId, httpWrapper.userAuth, httpWrapper, bots[i].runScript);
+        let game = new Game(ip, port, httpWrapper.userId, bots[i].characterId, httpWrapper.userAuth, httpWrapper, bots[i].runScript, userData.config.botKey);
         game.start();
     }
 
