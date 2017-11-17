@@ -1405,7 +1405,7 @@ function init_socket() {
         if (!data.length) {
             add_log("No trade recorded yet.", "gray")
         }
-    })
+    });
     socket.open();
 }
 function player_click(a) {

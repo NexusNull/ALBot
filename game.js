@@ -12,7 +12,7 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
     var G = require("./gameData");
     var Executor = require("./Executor");
 
-    eval(fs.readFileSync('modedGameFiles/game.js')+'');
+    eval(fs.readFileSync('modedGameFiles/game.js') + '');
 
     var character_to_load;
     var first_entities = false;
@@ -70,9 +70,9 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
         setTimeout(function(){
             socket.emit("loaded", {success: 1, width: screen.width, height: screen.height, scale: scale})
             game_loaded = true;
-            log_in(user_id,character_to_load,user_auth);
-            setTimeout(function(){
 
+
+            socket.on("start",function(){
                 var global = {
                     gameplay: gameplay,
                     is_pvp:is_pvp,
@@ -129,6 +129,7 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
                     next_attack:next_attack,
                     bot_mode:true,
                 };
+
                 Object.defineProperty(global,"entities",{
                     get: function(){
                         return entities;
@@ -136,8 +137,25 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
                 })
                 var executor = new Executor(global, script);
                 executor.execute();
-            },3000);
-        },3000);
+            });
+
+            socket.on("game_error", function (data) {
+                console.log(data);
+                if ("Failed: ingame" == data) {
+                    setTimeout(function () {
+                        console.log("Retrying for "+character_to_load);
+                        log_in(user_id, character_to_load, user_auth);
+                    }, 30 * 1000);
+                } else if (/Failed: wait_(\d+)_seconds/g.exec(data) != null) {
+                    let time = /Failed: wait_(\d+)_seconds/g.exec(data)[1];
+                    setTimeout(function () {
+                        console.log("Retrying for "+character_to_load);
+                        log_in(user_id, character_to_load, user_auth);
+                    }, time * 1000 + 1000);
+                }
+            });
+            log_in(user_id,character_to_load,user_auth);
+        },500);
     };
 }
 
