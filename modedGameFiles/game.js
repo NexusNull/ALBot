@@ -116,7 +116,6 @@ setInterval(function () {
         pull_all_next = true
     }
     if (!is_hidden() && pull_all_next) {
-        console.log("pull_all_next triggered");
         pull_all_next = false;
         pull_all = true;
         future_entities = {players: {}, monsters: {}}
@@ -160,7 +159,15 @@ function log_in(a, c, b) {
     }
     clear_game_logs();
     add_log("Authing ...");
-    socket.emit("auth", {user: a, character: c, auth: b, width: screen.width, height: screen.height, scale: scale, bot:botKey+""})
+    socket.emit("auth", {
+        user: a,
+        character: c,
+        auth: b,
+        width: screen.width,
+        height: screen.height,
+        scale: scale,
+        bot: botKey + ""
+    })
 }
 
 function disconnect() {
@@ -448,9 +455,6 @@ function sync_entity(c, a) {
                 x: a.going_x,
                 y: a.going_y
             }) / (simple_distance(a, {x: a.going_x, y: a.going_y}) + EPS);
-        if (b > 1.25 && log_flags.timers) {
-            //console.log(c.id + " speedm: " + b)
-        }
         c.moving = true;
         c.abs = false;
         c.engaged_move = c.move_num;
@@ -627,19 +631,18 @@ function init_demo() {
 }
 function init_socket() {
 
-    socket = new Socket("http://"+ip+":"+port, {
-            autoConnect: false,
-            extraHeaders: {
-                "user-agent": "AdventureLandBo: (v1.0.0)",
-                referer: "http://adventure.land/",
-                "accept-language": "en-US,en;q=0.5"
-            }
-        });
-
-    socket.on("connect",function(){
-        console.log("Socket connection established");
+    socket = new Socket("http://" + ip + ":" + port, {
+        autoConnect: false,
+        extraHeaders: {
+            "user-agent": "AdventureLandBo: (v1.0.0)",
+            referer: "http://adventure.land/",
+            "accept-language": "en-US,en;q=0.5"
+        }
     });
 
+    socket.on("connect", function () {
+        console.log("Socket connection established");
+    });
 
 
     var original_onevent = socket.onevent;
@@ -683,7 +686,6 @@ function init_socket() {
             load_game()
         } else {
             create_map();
-            console.log("loaded");
             socket.emit("loaded", {success: 1, width: screen.width, height: screen.height, scale: scale})
         }
         new_map_logic("welcome", data)
@@ -727,7 +729,6 @@ function init_socket() {
         if (create) {
             create_map()
         }
-        console.log("create_map: " + mssince(cm_timer));
         pull_all = true;
         position_map();
         new_map_logic("map", data)
@@ -764,7 +765,7 @@ function init_socket() {
         new_map_logic("start", data);
         new_game_logic();
 
-        httpWrapper.checkIn(ip,port,ipass,character.id);
+        httpWrapper.checkIn(ip, port, ipass, character.id);
 
         if (character.ctype == "mage") {
             skill_timeout("burst", 10000)
@@ -815,16 +816,6 @@ function init_socket() {
         })
     });
     socket.on("game_log", function (data) {
-        draw_trigger(function () {
-            if (is_string(data)) {
-                ui_log(data, "gray")
-            } else {
-                if (data.sound) {
-                    sfx(data.sound)
-                }
-                ui_log(data.message, data.color)
-            }
-        })
     });
     socket.on("fx", function (data) {
         draw_trigger(function () {
@@ -834,9 +825,6 @@ function init_socket() {
         })
     });
     socket.on("online", function (data) {
-        draw_trigger(function () {
-            add_chat("", data.name + " is on " + data.server, "white")
-        })
     });
     socket.on("light", function (data) {
         if (data.affected) {
@@ -1122,11 +1110,9 @@ function init_socket() {
         reload_data()
     });
     socket.on("chest_opened", function (data) {
-        draw_trigger(function () {
-            if (chests[data.id]) {
-                delete chests[data.id];
-            }
-        })
+        if (chests[data.id]) {
+            delete chests[data.id];
+        }
     });
     socket.on("cm", function (data) {
         try {
@@ -1739,9 +1725,6 @@ function player_effects_logic(a) {
 function effects_logic(a) {
 }
 function add_character(e, d) {
-    if (log_game_events) {
-        console.log("add character " + e.id)
-    }
     var a = (d && manual_centering && 2) || 1;
     var c = {};
     adopt_soft_properties(c, e);
@@ -1890,7 +1873,6 @@ function create_map() {
         if (q.type == "full" || q.role == "citizen") {
             continue
         }
-        console.log("NPC: " + F.id);
         var l = add_npc(q, F.position, F.name, F.id);
         map_npcs.push(l);
         map_entities.push(l)
@@ -1899,7 +1881,6 @@ function create_map() {
     for (var A = 0; A < doors.length; A++) {
         var u = doors[A];
         var l = add_door(u);
-        console.log("Door: " + u);
         map_doors.push(l);
         map_entities.push(l)
     }
@@ -1907,7 +1888,6 @@ function create_map() {
     for (var A = 0; A < quirks.length; A++) {
         var z = quirks[A];
         var l = add_quirk(z);
-        console.log("Quirk: " + z);
         map_entities.push(l)
     }
     console.log("Map created: " + current_map);
@@ -1916,7 +1896,6 @@ function create_map() {
         animatables[s] = add_animatable(s, map_info.animatables[s]);
         map_entities.push(animatables[s])
     }
-    console.log("Map created: " + current_map)
 }
 function retile_the_map() {
     if (cached_map) {
@@ -2084,8 +2063,7 @@ function load_game(a) {
     console.log("Game loaded");
 
     socket.emit("loaded", {success: 1, width: screen.width, height: screen.height, scale: scale})
-    console.log(onLoad)
-    if(typeof onLoad === "function"){
+    if (typeof onLoad === "function") {
         onLoad();
     }
 }
@@ -2171,6 +2149,6 @@ function draw(a, b) {
     }
 
 };
-function cut(number){
-    return Math.floor(number*100)/100;
+function cut(number) {
+    return Math.floor(number * 100) / 100;
 }
