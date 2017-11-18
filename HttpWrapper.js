@@ -52,6 +52,13 @@ HttpWrapper.prototype.login = async function (email, password) {
                                         loginSuccessful = true;
                                     }
                                 }
+                            } else if(data[i].type === "ui_error"){
+                                if (typeof data[i].message === "string") {
+                                    if (data[i].message === "Wrong Password") {
+                                        console.log("Login failed.");
+                                        loginSuccessful = false;
+                                    }
+                                }
                             }
                         }
                     }
@@ -64,6 +71,8 @@ HttpWrapper.prototype.login = async function (email, password) {
                                 self.userId = match[1].split("-")[0];
                             }
                         }
+                    } else {
+                        process.exit(0)
                     }
                     resolve(loginSuccessful);
                 });

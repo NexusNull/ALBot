@@ -1,10 +1,10 @@
 {
     "config": {
         "fetch": true,
-         "botKey":1
+        "botKey":1
     },
     "login": {
         "email": "random@example.com",
         "password": "password123456"
-    },
+    }
 }
