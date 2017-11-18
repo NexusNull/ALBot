@@ -86,7 +86,6 @@ async function main() {
         }
 
         let game = new Game(ip, port, httpWrapper.userId, bots[i].characterId, httpWrapper.userAuth, httpWrapper, bots[i].runScript, userData.config.botKey);
-        game.start();
     }
 
 }

@@ -26,7 +26,6 @@ var skillmap = {
 }
     , skillbar = [];
 var settings_shown = 0;
-var window = {};
 var is_game = 1, is_server = 0, is_code = 0, is_pvp = 0, is_demo = 0, gameplay = "normal";
 var inception = new Date();
 var log_game_events = true;
@@ -52,7 +51,7 @@ var bw_mode = false, border_mode = false;
 var character_names = false;
 var hp_bars = true;
 var next_attack = new Date(), next_potion = new Date(), next_transport = new Date();
-window.last_interaction = new Date();
+var last_interaction = new Date();
 var afk_edge = 60, mm_afk = false;
 var last_drag_start = new Date();
 var last_npc_right_click = new Date();
@@ -61,7 +60,7 @@ var mouse_only = true;
 var show_names = 0;
 var the_code = "";
 var server_region = "EU", server_identifier = "I", server_name = "", ipass = "";
-var real_id = "", character = null, map = null, game_loaded = true, friends = [];
+var real_id = "", character = null, map = null, friends = [];
 var tints = [];
 var pull_all = false, pull_all_next = false,
     prepull_target_id = null;
@@ -122,7 +121,7 @@ setInterval(function () {
         pull_all = true;
         future_entities = {players: {}, monsters: {}}
     }
-    if (window.last_draw) {
+    if (last_draw) {
         if (code_run && mssince(last_draw) > 500) {
             draw(0, 1)
         } else {
@@ -131,13 +130,13 @@ setInterval(function () {
             }
         }
     }
-    mm_afk = (ssince(window.last_interaction) > afk_edge / 2);
+    mm_afk = (ssince(last_interaction) > afk_edge / 2);
     if (character) {
-        if (!character.afk && ssince(window.last_interaction) > afk_edge) {
+        if (!character.afk && ssince(last_interaction) > afk_edge) {
             character.afk = true;
             socket.emit("property", {afk: true})
         }
-        if (character.afk && ssince(window.last_interaction) <= afk_edge) {
+        if (character.afk && ssince(last_interaction) <= afk_edge) {
             character.afk = false;
             socket.emit("property", {afk: false})
         }
@@ -160,20 +159,20 @@ function log_in(a, c, b) {
         return
     }
     clear_game_logs();
-    add_log("Connecting ...");
-    socket.emit("auth", {user: a, character: c, auth: b, width: screen.width, height: screen.height, scale: scale, bot:botKey})
+    add_log("Authing ...");
+    socket.emit("auth", {user: a, character: c, auth: b, width: screen.width, height: screen.height, scale: scale, bot:botKey+""})
 }
 
 function disconnect() {
     var a = "DISCONNECTED", b = "Disconnected";
     game_loaded = false;
-    if (window.disconnect_reason == "limits") {
+    if (disconnect_reason == "limits") {
         a = "REJECTED";
         add_log("Oops. You exceeded the limitations.", "#83BDCF");
         add_log("You can use one character on a normal server, one additional character on a PVP server and one merchant.", "#CF888A")
     } else {
-        if (window.disconnect_reason) {
-            add_log("Disconnect Reason: " + window.disconnect_reason, "gray")
+        if (disconnect_reason) {
+            add_log("Disconnect Reason: " + disconnect_reason, "gray")
         }
     }
     /*if (character && (auto_reload == "on" || auto_reload == "auto" && (character.stand || code_run))) {
@@ -218,7 +217,7 @@ function position_map() {
     if (map.y != c) {
         map.y = c, b = true
     }
-    if (b && dtile_size && window.dtile) {
+    if (b && dtile_size && dtile) {
         dtile.x = round(map.real_x - width / (scale * 2));
         dtile.y = round(map.real_y - height / (scale * 2));
         dtile.x = ceil(dtile.x / (dtile_size / 1)) * (dtile_size / 1) - (dtile_size / 1);
@@ -475,6 +474,7 @@ function process_entities() {
             }
             try {
                 monster = entities[future_monster.id] = add_monster(future_monster);
+
             } catch (c) {
                 console.log("EMAIL HELLO@ADVENTURE.LAND WITH THIS: " + JSON.stringify(future_monster))
             }
@@ -638,7 +638,7 @@ function init_socket() {
 
     socket.on("connect",function(){
         console.log("Socket connection established");
-    })
+    });
 
 
 
@@ -678,6 +678,7 @@ function init_socket() {
         first_coords = true;
         first_x = data.x;
         first_y = data.y;
+
         if (!game_loaded) {
             load_game()
         } else {
@@ -1190,11 +1191,11 @@ function init_socket() {
     });
     socket.on("disconnect", function () {
         socket.destroy();
-        window.socket = null;
+        socket = null;
         disconnect()
     });
     socket.on("disconnect_reason", function (reason) {
-        window.disconnect_reason = reason
+        disconnect_reason = reason
     });
     socket.on("hit", function (data) {
         var entity = get_entity(data.id), owner = get_entity(data.hid);
@@ -1282,7 +1283,6 @@ function init_socket() {
     });
     var erec = 0;
     socket.on("entities", function (data) {
-
         if (data.type == "all") {
             if (!first_entities) {
                 first_entities = true;
@@ -1291,16 +1291,6 @@ function init_socket() {
         erec++;
         if (data.type == "all") {
             console.log("all entities " + new Date())
-        }
-        if (erec % 20 == 1) {
-        }
-        if (erec % 100 == 1 && window.pako) {
-            window.lastentities = data;
-            var rs = rough_size(data), ms;
-            var cs = new Date();
-            var enc = pako.deflate(msgpack.encode(data));
-            ms = mssince(cs);
-            console.log("entities%100 rough_size: " + rs + " enc_length: " + enc.length + " enc_in: " + ms + "ms")
         }
         if (character) {
             if (data.xy) {
@@ -2089,7 +2079,15 @@ function calculate_fps() {
 function load_game(a) {
     create_map();
     draw();
+
     game_loaded = true;
+    console.log("Game loaded");
+
+    socket.emit("loaded", {success: 1, width: screen.width, height: screen.height, scale: scale})
+    console.log(onLoad)
+    if(typeof onLoad === "function"){
+        onLoad();
+    }
 }
 
 function draw(a, b) {
@@ -2097,10 +2095,10 @@ function draw(a, b) {
         return
     }
     draws++;
-    if (window.last_draw) {
-        frame_ms = mssince(window.last_draw)
+    if (last_draw) {
+        frame_ms = mssince(last_draw)
     }
-    window.last_draw = new Date();
+    last_draw = new Date();
     start_timer("draw");
     draw_timeouts_logic(2);
     stop_timer("draw", "timeouts");

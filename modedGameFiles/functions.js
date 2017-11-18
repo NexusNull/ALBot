@@ -1735,61 +1735,15 @@ function handle_information(g) {
 }
 function add_alert(a) {
     console.log("caught exception: " + a);
-    if (is_sdk) {
-        alert(a)
-    }
 }
 function sfx(a) {
-    try {
-        if (!window.sound_sfx) {
-            return
-        }
-        if (a == "hit" || a == "monster_hit") {
-            sounds.hit_8bit.play()
-        }
-        if (a == "explosion") {
-            sounds.fx_explosion.play()
-        }
-        if (a == "coins") {
-            sounds.coin_collect.play()
-        }
-        if (a == "hp" || a == "mp") {
-            sounds.use_8bit.play()
-        }
-        if (a == "chat") {
-            sounds.chat.play()
-        }
-    } catch (b) {
-        add_alert(b)
-    }
+
 }
 function pcs(a) {
-    if (!window.sound_sfx) {
-        return
-    }
-    if (!a || a == 0) {
-        if (sounds.click) {
-            sounds.click.play()
-        }
-    }
-    if (a == "success" && sounds.success) {
-        sounds.success.play()
-    }
 }
 function init_sounds() {
-    sounds.click = new Howl({src: ["/sounds/effects/click_natural.wav"], volume: 0.5,});
-    if (sound_sfx) {
-        init_fx()
-    }
-    if (sound_music) {
-        init_music()
-    }
 }
 function init_fx() {
-    if (window.fx_init) {
-        return
-    }
-    window.fx_init = 1;
 }
 function init_music() {
 }

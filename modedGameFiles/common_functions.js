@@ -922,10 +922,10 @@ function in_arr(b, d) {
     return false
 }
 function c_round(a) {
-    if (window.floor_xy) {
+    if (floor_xy) {
         return Math.floor(a)
     }
-    if (!window.round_xy) {
+    if (!round_xy) {
         return a
     }
     return Math.round(a)

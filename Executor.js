@@ -6,7 +6,7 @@ var fs = require("fs")
 
 
 
-var Executor = function(global,file){
+var Executor = function(glob,file){
     var parent = {};
     var character = {};
     var G = {};
@@ -15,11 +15,12 @@ var Executor = function(global,file){
     eval(fs.readFileSync('modedGameFiles/common_functions.js')+'');
     eval(fs.readFileSync('modedGameFiles/runner_functions.js')+'');
 
-    parent = global;
-    character = global.character;
-    G = global.G;
+    parent = glob;
+    character = glob.character;
+    G = glob.G;
 
     this.execute = function(){
+        console.log("Executing "+file);
         eval(fs.readFileSync('CODE/'+file)+'');
     }
 }

@@ -1,7 +1,7 @@
 var reviving = false;
 var targetMonster = "crab";
 var fighting = false;
-
+console.log(parent.M);
 function find(name, level) {
     for (var i in character.items) {
         if (character.items[i] != null && character.items[i].name == name)

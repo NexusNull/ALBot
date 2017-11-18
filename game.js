@@ -12,8 +12,6 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
     var G = require("./gameData");
     var Executor = require("./Executor");
 
-    eval(fs.readFileSync('modedGameFiles/game.js') + '');
-
     var character_to_load;
     var first_entities = false;
     var inside = "selection";
@@ -43,121 +41,128 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
     var server_identifier = "";
     var server_name = "";
     var socket;
-    var request;
     var server_addr, port;
     var last_draw = new Date();
-
-    var entities = {},
-        future_entities = {
-            players: {},
-            monsters: {}
-        };
+    var M;
+    var entities = {}
+    var future_entities = {
+        players: {},
+        monsters: {}
+    };
     var character;
 
     var game = null;
 
     game = this;
-    var M;
     server_addr = ip;
     port = port;
     user_id = userId;
     character_to_load = characterId;
     user_auth = socketAuth;
+    var onLoad = function(){
+        log_in(user_id, character_to_load, user_auth);
+    }
+
+    eval(fs.readFileSync('modedGameFiles/game.js') + '');
 
     init_socket();
 
-    this.start = function () {
-        setTimeout(function () {
-            socket.emit("loaded", {success: 1, width: screen.width, height: screen.height, scale: scale})
-            game_loaded = true;
-
-
-            socket.on("start", function () {
-                var global = {
-                    gameplay: gameplay,
-                    is_pvp: is_pvp,
-                    server_region: server_region,
-                    server_identifier: server_identifier,
-                    G: G,
-                    character: character,
-                    activate: activate,
-                    shift: shift,
-                    use_skill: use_skill,
-                    can_use: can_use,
-                    socket: socket,
-                    current_map: current_map,
-                    add_log: add_log,
-                    ctarget: ctarget,
-                    send_target_logic: send_target_logic,
-                    distance: distance,
-                    is_disabled: is_disabled,
-                    transporting: transporting,
-                    player_attack: player_attack,
-                    monster_attack: monster_attack,
-                    player_heal: player_heal,
-                    buy: buy,
-                    sell: sell,
-                    trade: trade,
-                    trade_buy: trade_buy,
-                    //u_item:u_item,
-                    //u_scroll:u_scroll,
-                    //u_offering:u_offering,
-                    upgrade: upgrade,
-                    //c_items:c_items,
-                    //c_last:c_last,
-                    //c_scroll:c_scroll,
-                    //c_offering:c_offering,
-                    compound: compound,
-                    //cr_items:cr_items,
-                    //craft:craft,
-                    //e_item:e_item,
-                    exchange: exchange,
-                    say: say,
-                    map: map,
-                    calculate_move: calculate_move,
-                    M: M,
-                    chests: chests,
-                    entities: entities,
-                    calculate_vxy: calculate_vxy,
-                    show_json: show_json,
-                    next_potion: next_potion,
-                    send_code_message: send_code_message,
-                    drawings: drawings,
-                    //code_buttons:code_buttons,
-                    show_modal: show_modal,
-                    prop_cache: prop_cache,
-                    next_attack: next_attack,
-                    bot_mode: true,
-                    botKey: botKey
-                };
-
-                Object.defineProperty(global, "entities", {
-                    get: function () {
-                        return entities;
-                    }
-                })
-                var executor = new Executor(global, script);
-                executor.execute();
-            });
-
-            socket.on("game_error", function (data) {
-                console.log(data);
-                if ("Failed: ingame" == data) {
-                    setTimeout(function () {
-                        console.log("Retrying for " + character_to_load);
-                        log_in(user_id, character_to_load, user_auth);
-                    }, 30 * 1000);
-                } else if (/Failed: wait_(\d+)_seconds/g.exec(data) != null) {
-                    let time = /Failed: wait_(\d+)_seconds/g.exec(data)[1];
-                    setTimeout(function () {
-                        console.log("Retrying for " + character_to_load);
-                        log_in(user_id, character_to_load, user_auth);
-                    }, time * 1000 + 1000);
-                }
-            });
-            log_in(user_id, character_to_load, user_auth);
-        }, 500);
+    var glob = {
+        gameplay: gameplay,
+        is_pvp: is_pvp,
+        server_region: server_region,
+        server_identifier: server_identifier,
+        G: G,
+        activate: activate,
+        shift: shift,
+        use_skill: use_skill,
+        can_use: can_use,
+        socket: socket,
+        current_map: current_map,
+        add_log: add_log,
+        ctarget: ctarget,
+        send_target_logic: send_target_logic,
+        distance: distance,
+        is_disabled: is_disabled,
+        transporting: transporting,
+        player_attack: player_attack,
+        monster_attack: monster_attack,
+        player_heal: player_heal,
+        buy: buy,
+        sell: sell,
+        trade: trade,
+        trade_buy: trade_buy,
+        //u_item:u_item,
+        //u_scroll:u_scroll,
+        //u_offering:u_offering,
+        upgrade: upgrade,
+        //c_items:c_items,
+        //c_last:c_last,
+        //c_scroll:c_scroll,
+        //c_offering:c_offering,
+        compound: compound,
+        //cr_items:cr_items,
+        //craft:craft,
+        //e_item:e_item,
+        exchange: exchange,
+        say: say,
+        calculate_move: calculate_move,
+        chests: chests,
+        entities: entities,
+        calculate_vxy: calculate_vxy,
+        show_json: show_json,
+        next_potion: next_potion,
+        send_code_message: send_code_message,
+        drawings: drawings,
+        //code_buttons:code_buttons,
+        show_modal: show_modal,
+        prop_cache: prop_cache,
+        next_attack: next_attack,
+        bot_mode: true,
+        botKey: botKey
     };
+    Object.defineProperty(glob, "entities", {
+        get: function () {
+            return entities;
+        }
+    })
+    Object.defineProperty(glob, "character", {
+        get: function () {
+            return character;
+        }
+    })
+    Object.defineProperty(glob, "map", {
+        get: function () {
+            return map;
+        }
+    })
+    Object.defineProperty(glob, "M", {
+        get: function () {
+            return M;
+        }
+    })
+    socket.on("start", function () {
+        setTimeout(function () {
+            var executor = new Executor(glob, script);
+            executor.execute();
+        }, 3000)
+    });
+
+    socket.on("game_error", function (data) {
+        if ("Failed: ingame" == data) {
+            setTimeout(function () {
+                console.log("Retrying for " + character_to_load);
+                log_in(user_id, character_to_load, user_auth);
+            }, 30 * 1000);
+        } else if (/Failed: wait_(\d+)_seconds/g.exec(data) != null) {
+            let time = /Failed: wait_(\d+)_seconds/g.exec(data)[1];
+            setTimeout(function () {
+                console.log("Retrying for " + character_to_load);
+                log_in(user_id, character_to_load, user_auth);
+            }, time * 1000 + 1000);
+        }
+    });
+
 }
 
 module.exports = Game;
