@@ -25,6 +25,7 @@ var skillmap = {
     }
 }
     , skillbar = [];
+var disconnect_reason = "";
 var settings_shown = 0;
 var is_game = 1, is_server = 0, is_code = 0, is_pvp = 0, is_demo = 0, gameplay = "normal";
 var inception = new Date();
@@ -182,33 +183,9 @@ function disconnect() {
             add_log("Disconnect Reason: " + disconnect_reason, "gray")
         }
     }
-    /*if (character && (auto_reload == "on" || auto_reload == "auto" && (character.stand || code_run))) {
-     auto_reload = true;
-     mstand_to_load = character.stand || null;
-     code_to_load = null;
-     if (code_run) {
-     code_to_load = codemirror_render.getValue()
-     }
-     b = "Reloading";
-     add_log("Auto Reload Active", colors.serious_red);
-     reload_state = "start"
-     }
-     $("body").children().each(function () {
-     if (this.tagName != "CANVAS" && this.id != "bottomrightcorner" && this.id != "bottomleftcorner2") {
-     $(this).remove()
-     } else {
-     if (this.id == "bottomrightcorner" || this.id == "bottomleftcorner2") {
-     this.style.zIndex = 2000
-     }
-     }
-     });
-     $("body").append("<div style='position: fixed; top: 0px; left: 0px; right: 0px; bottom: 0px; z-index: 999; background: rgba(0,0,0,0.85); text-align: center'><div onclick='refresh_page()' class='gamebutton clickable' style='margin-top: " + (round(height / 2) - 10) + "px'>" + a + "</div></div>");
-     if (character) {
-     $("title").html(b + " - " + character.name)
-     }
-     */
+
     if (socket) {
-        socket = null, socket.disconnect()
+        socket.disconnect();
     }
 }
 function position_map() {
@@ -1176,11 +1153,11 @@ function init_socket() {
     socket.on("end", function (data) {
     });
     socket.on("disconnect", function () {
-        socket.destroy();
-        socket = null;
         disconnect()
     });
     socket.on("disconnect_reason", function (reason) {
+
+        console.log(disconnect_reason,reason);
         disconnect_reason = reason
     });
     socket.on("hit", function (data) {
