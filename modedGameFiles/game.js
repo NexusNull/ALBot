@@ -176,13 +176,14 @@ function disconnect() {
     game_loaded = false;
     if (disconnect_reason == "limits") {
         a = "REJECTED";
-        add_log("Oops. You exceeded the limitations.", "#83BDCF");
+        add_log("Oops. You exceeded the limitations.");
         add_log("You can use one character on a normal server, one additional character on a PVP server and one merchant.", "#CF888A")
+    } else if (disconnect_reason) {
+        add_log("Disconnect Reason: " + disconnect_reason)
     } else {
-        if (disconnect_reason) {
-            add_log("Disconnect Reason: " + disconnect_reason, "gray")
-        }
+        add_log("Disconnected with unknown reason");
     }
+
 
     if (socket) {
         socket.disconnect();
@@ -1157,7 +1158,7 @@ function init_socket() {
     });
     socket.on("disconnect_reason", function (reason) {
 
-        console.log(disconnect_reason,reason);
+        console.log(disconnect_reason, reason);
         disconnect_reason = reason
     });
     socket.on("hit", function (data) {
