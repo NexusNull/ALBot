@@ -87,8 +87,8 @@ async function main() {
 
         let game = new Game(ip, port, httpWrapper.userId, bots[i].characterId, httpWrapper.userAuth, httpWrapper, bots[i].runScript, userData.config.botKey);
     }
-
 }
+
 async function sleep(ms){
     return new Promise(function(resolve){
         setTimeout(resolve,ms);
