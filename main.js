@@ -73,8 +73,8 @@ async function main() {
     }
 
     let serverList = await httpWrapper.getServerList();
-    if(userData.config.startWebInterface){
-        botWebInterface.startOnPort(81);
+    if(userData.config.botWebInterface.start){
+        botWebInterface.startOnPort(userData.config.botWebInterface.port);
         botWebInterface.SocketServer.getPublisher().setStructure([
             {name: "name", type: "text", label: "name"},
             {name: "inv", type: "text", label: "Inventory"},
