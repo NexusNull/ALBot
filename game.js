@@ -1,6 +1,9 @@
 /**
  * Created by nexus on 03/04/17.
  */
+
+var BotWebInterface = require("bot-web-interface");
+
 function close(error) {
     console.error(error);
     process.exit(1);
@@ -59,7 +62,7 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
     user_id = userId;
     character_to_load = characterId;
     user_auth = socketAuth;
-    var onLoad = function(){
+    var onLoad = function () {
         log_in(user_id, character_to_load, user_auth);
     }
 
@@ -143,6 +146,27 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
     })
     socket.on("start", function () {
         setTimeout(function () {
+            BotWebInterface.SocketServer.getPublisher().createInterface().setDataSource(function () {
+                var targetName = "nothing";
+                if(character.target && entities[character.target]){
+                    if(entities[character.target].player){
+                        targetName = entities[character.target].id
+                    } else {
+                        targetName = entities[character.target].mtype;
+                    }
+                }
+
+                return {
+                    name: character.id,
+                    level: character.level,
+                    inv: character.isize-character.esize+" / "+character.isize,
+                    xp: Math.floor(character.xp*10000 / character.max_xp)/100,
+                    health: Math.floor(character.hp*10000 / character.max_hp)/100,
+                    mana: Math.floor(character.mp*10000 / character.max_mp)/100,
+                    target: targetName,
+                    status: character.rip?"Dead":"Alive",
+                }
+            });
             var executor = new Executor(glob, script);
             executor.execute();
         }, 3000)

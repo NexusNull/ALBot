@@ -7,6 +7,7 @@ process.on('uncaughtException', function (exception) {
 
 var HttpWrapper = require("./HttpWrapper");
 var httpWrapper = new HttpWrapper();
+var botWebInterface = require("bot-web-interface");
 var fs = require("fs");
 var Game = require("./game");
 var userData = require("./userData.json");
@@ -72,6 +73,23 @@ async function main() {
     }
 
     let serverList = await httpWrapper.getServerList();
+    if(userData.config.startWebInterface){
+        botWebInterface.startOnPort(81);
+        botWebInterface.SocketServer.getPublisher().setStructure([
+            {name: "name", type: "text", label: "name"},
+            {name: "inv", type: "text", label: "Inventory"},
+            {name: "level", type: "text", label: "Level"},
+            {name: "xp", type: "progressBar", label: "Experience", options:{color:"green"}},
+            {name: "health", type: "progressBar", label: "Health", options:{color:"red"}},
+            {name: "mana", type: "progressBar", label: "Mana",     options:{color:"blue"}},
+            {name: "target", type:"text", label:"Target"},
+            {name: "status", type: "text", label: "Status"},
+
+        ]);
+    }
+
+
+
 
     //Checks are done, starting bots.
     for (let i = 0; i < bots.length; i++) {

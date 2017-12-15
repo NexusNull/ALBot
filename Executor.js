@@ -18,7 +18,6 @@ var Executor = function(glob,file){
     parent = glob;
     character = glob.character;
     G = glob.G;
-
     this.execute = function(){
         console.log("Executing "+file);
         eval(fs.readFileSync('CODE/'+file)+'');

@@ -1,7 +1,8 @@
 {
     "config": {
         "fetch": true,
-        "botKey":1
+        "botKey":1,
+        "startWebInterface":false
     },
     "login": {
         "email": "random@example.com",
