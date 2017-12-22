@@ -3,6 +3,8 @@
  */
 
 var BotWebInterface = require("bot-web-interface");
+var LocalStorage = require('node-localstorage').LocalStorage;
+localStorage = new LocalStorage('./localStorage');
 
 function close(error) {
     console.error(error);
@@ -71,6 +73,7 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
     init_socket();
 
     var glob = {
+        localStorage:localStorage,
         gameplay: gameplay,
         is_pvp: is_pvp,
         server_region: server_region,

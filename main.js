@@ -88,9 +88,6 @@ async function main() {
         ]);
     }
 
-
-
-
     //Checks are done, starting bots.
     for (let i = 0; i < bots.length; i++) {
         let ip = "54.169.213.59";
