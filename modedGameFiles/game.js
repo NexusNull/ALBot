@@ -609,10 +609,10 @@ function init_demo() {
 }
 function init_socket() {
 
-    socket = new Socket("http://" + ip + ":" + port, {
+    socket = new Socket("http://" + server_addr + ":" + port, {
         autoConnect: false,
         extraHeaders: {
-            "user-agent": "AdventureLandBo: (v1.0.0)",
+            "user-agent": "AdventureLandBot: (v1.0.0)",
             referer: "http://adventure.land/",
             "accept-language": "en-US,en;q=0.5"
         }
@@ -743,7 +743,16 @@ function init_socket() {
         new_map_logic("start", data);
         new_game_logic();
 
-        httpWrapper.checkIn(ip, port, ipass, character.id);
+        var callbackId;
+        var callbackStart;
+        var callbackCount;
+        setInterval(function () {
+            callbackCount = callbackCount?callbackCount++:callbackStart;
+            callbackId = Math.round(Math.random() * 100000000000 + 12007144706612636761);
+            callbackStart = Math.round(Math.random() * 10000) + 1494359179004;
+            httpWrapper.checkIn(server_addr, port, ipass, character.id, callbackId, callbackStart, callbackCount);
+        }, 30000);
+
 
         if (character.ctype == "mage") {
             skill_timeout("burst", 10000)
@@ -1254,7 +1263,7 @@ function init_socket() {
         }
         erec++;
         if (data.type == "all") {
-            console.log("all entities " + new Date())
+            //console.log("all entities " + new Date())
         }
         if (character) {
             if (data.xy) {
@@ -1321,10 +1330,6 @@ function init_socket() {
             } else {
                 add_log(data.message, "#703987")
             }
-        }
-        render_party(data.list || []);
-        if (party_list.length == 0 && (data.list || []).length && !in_arr("party", cwindows)) {
-            open_chat_window("party")
         }
         party_list = data.list || []
     });

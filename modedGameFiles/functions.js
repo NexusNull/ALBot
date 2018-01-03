@@ -577,16 +577,15 @@ function sell(a, b) {
     }
     socket.emit("sell", {num: a, quantity: b});
 }
-function call_code_function(c, b, a, f) {
+function call_code_function(functionName, b, a, f) {
     try {
-        get_code_function(c)(b, a, f)
+        get_code_function(functionName)(b, a, f)
     } catch (d) {
-        add_log(c + " " + d, "#E13758")
+        add_log(functionName + " " + d, "#E13758")
     }
 }
 function get_code_function(a) {
-    return code_active || (function () {
-        })
+    return code_active && sandbox && sandbox[a] || (function () {})
 }
 function private_say(a, c, b) {
     socket.emit("say", {message: c, code: b, name: a})

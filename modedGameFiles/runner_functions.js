@@ -1,6 +1,5 @@
 //#NOTE: If you want to see a new function/feature, just request it at: https://github.com/kaansoral/adventureland/issues
-var character=parent.character;
-var G=parent.G; // Game data
+
 var safeties=true;
 
 server={

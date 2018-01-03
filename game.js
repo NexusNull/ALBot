@@ -12,10 +12,43 @@ function close(error) {
 }
 
 var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, script, botKey) {
+    this.ip = ip;
+    this.port = port;
+    this.userId = userId;
+    this.characterId = characterId;
+    this.socketAuth = socketAuth;
+    this.httpWrapper = httpWrapper;
+    this.script = script;
+    this.botKey = botKey;
+    this.excutor = null;
+    this.interface = null;
+    this.events = {};
+    this.socket = null;
+}
+
+Game.prototype.init = function(){
+    let self = this;
     var fs = require("fs")
     var cheerio = require("cheerio");
     var G = require("./gameData");
     var Executor = require("./Executor");
+
+    this.proxTimeout = setTimeout;
+    this.proxInterval = setInterval;
+    this.intervals = [];
+    this.timeouts = [];
+    setTimeout = function () {
+        let i = self.proxTimeout.apply(this, arguments);
+        self.timeouts.push(i);
+        return i;
+    };
+    setInterval = function () {
+        let i = self.proxInterval.apply(this, arguments);
+        self.intervals.push(i);
+        return i;
+    };
+
+
 
     var character_to_load;
     var first_entities = false;
@@ -58,12 +91,17 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
 
     var game = null;
 
+    var httpWrapper = this.httpWrapper;
+    var script = this.script;
+    var botKey = this.botKey;
+    var sandbox;
+
     game = this;
-    server_addr = ip;
-    port = port;
-    user_id = userId;
-    character_to_load = characterId;
-    user_auth = socketAuth;
+    server_addr = this.ip;
+    port = this.port;
+    user_id = this.userId;
+    character_to_load = this.characterId;
+    user_auth = this.socketAuth;
     var onLoad = function () {
         log_in(user_id, character_to_load, user_auth);
     }
@@ -71,6 +109,7 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
     eval(fs.readFileSync('modedGameFiles/game.js') + '');
 
     init_socket();
+    this.socket = socket;
 
     var glob = {
         localStorage:localStorage,
@@ -98,18 +137,8 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
         sell: sell,
         trade: trade,
         trade_buy: trade_buy,
-        //u_item:u_item,
-        //u_scroll:u_scroll,
-        //u_offering:u_offering,
         upgrade: upgrade,
-        //c_items:c_items,
-        //c_last:c_last,
-        //c_scroll:c_scroll,
-        //c_offering:c_offering,
         compound: compound,
-        //cr_items:cr_items,
-        //craft:craft,
-        //e_item:e_item,
         exchange: exchange,
         say: say,
         calculate_move: calculate_move,
@@ -120,7 +149,6 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
         next_potion: next_potion,
         send_code_message: send_code_message,
         drawings: drawings,
-        //code_buttons:code_buttons,
         show_modal: show_modal,
         prop_cache: prop_cache,
         next_attack: next_attack,
@@ -130,6 +158,22 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
     Object.defineProperty(glob, "entities", {
         get: function () {
             return entities;
+        }
+    })
+    Object.defineProperty(glob, "code_active", {
+        get: function () {
+            return code_active;
+        },
+        set: function(value){
+            code_active = value;
+        }
+    })
+    Object.defineProperty(glob, "sandbox", {
+        get: function () {
+            return sandbox;
+        },
+        set: function(value){
+            sandbox = value;
         }
     })
     Object.defineProperty(glob, "character", {
@@ -147,9 +191,11 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
             return M;
         }
     })
+    var executor = {};
     socket.on("start", function () {
         setTimeout(function () {
-            BotWebInterface.SocketServer.getPublisher().createInterface().setDataSource(function () {
+            self.interface = BotWebInterface.SocketServer.getPublisher().createInterface();
+            self.interface.setDataSource(function () {
                 var targetName = "nothing";
                 if(character.target && entities[character.target]){
                     if(entities[character.target].player){
@@ -170,11 +216,14 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
                     status: character.rip?"Dead":"Alive",
                 }
             });
-            var executor = new Executor(glob, script);
-            executor.execute();
+            self.executor = new Executor(glob, script);
+            self.executor.execute();
         }, 3000)
     });
-
+    socket.on("disconnect",function(){
+        self.emit("disconnected","nothing");
+        self.stop();
+    });
     socket.on("game_error", function (data) {
         if ("Failed: ingame" == data) {
             setTimeout(function () {
@@ -189,7 +238,50 @@ var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, scr
             }, time * 1000 + 1000);
         }
     });
+}
+/**
+ * Registeres an event in the game
+ * @param event string the name f the event
+ * @param callback function the function to be called
+ */
+Game.prototype.on = function(event,callback){
+    if(typeof event == "string" && typeof callback == "function"){
+        if(!this.events[event]){
+            this.events[event] = [];
+        }
+        this.events[event].push(callback);
+    } else {
+        if(typeof event != "string")
+            throw new Error("Event has to be a string")
+        if(typeof callback == "function")
+            throw new Error("Callback has to be a function")
+    }
+};
 
+Game.prototype.emit = function(event,arguments){
+    if(typeof event == "string"){
+        if(this.events[event]){
+            this.events[event].forEach(function(current){
+                current.apply(Array.from(arguments).slice(1))
+            });
+        }
+    }
+}
+
+Game.prototype.stop = function(){
+    if(this.executor)
+        this.executor.stop();
+    this.excutor = null;
+    if(typeof this.stopAllCallbacks == "function" )
+        this.stopAllCallbacks();
+    if(this.socket)
+        this.socket.close();
+    BotWebInterface.SocketServer.getPublisher().removeInterface(this.interface);
+}
+
+Game.prototype.stopAllCallbacks = function () {
+    this.intervals.forEach(clearInterval);
+    this.timeouts.forEach(clearTimeout);
 }
 
 module.exports = Game;

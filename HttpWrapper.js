@@ -52,7 +52,7 @@ HttpWrapper.prototype.login = async function (email, password) {
                                         loginSuccessful = true;
                                     }
                                 }
-                            } else if(data[i].type === "ui_error"){
+                            } else if (data[i].type === "ui_error") {
                                 if (typeof data[i].message === "string") {
                                     if (data[i].message === "Wrong Password") {
                                         console.log("Login failed.");
@@ -161,17 +161,19 @@ HttpWrapper.prototype.getUserAuth = async function () {
     });
 };
 
-HttpWrapper.prototype.checkIn = function (ip, port, ipass, characterId) {
-    var callbackId = Math.round(Math.random() * 100000000000 + 12007144706612636761);
-    var callbackStart = Math.round(Math.random() * 10000) + 1494359179004;
-    var callbackCount = callbackStart + 1;
-    setInterval(async function () {
-        callbackCount++;
-        var options = {
-            url: 'http://' + ip + ':' + (+port + 40) + '/character?checkin=1&ipass=' + ipass + '&id=' + characterId + '&callback=jQuery' + callbackId + '_' + callbackStart + '&_=' + callbackCount
-        };
-        await request(options);
-    }, 30000);
+HttpWrapper.prototype.checkIn = async function (ip, port, ipass, characterId, callbackId, callbackStart, callbackCount) {
+
+    var options = {
+        url: 'http://' + ip + ':' + (+port + 40) + '/character?checkin=1&ipass=' + ipass + '&id=' + characterId + '&callback=jQuery' + callbackId + '_' + callbackStart + '&_=' + callbackCount,
+        headers: {
+            "user-agent": "AdventureLandBot: (v1.0.0)"
+        }
+    };
+    try {
+        await  request(options);
+    } catch (e) {
+        console.log("Error on checkin: "+ e.message);
+    }
 };
 
 module.exports = HttpWrapper;

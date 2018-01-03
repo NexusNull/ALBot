@@ -84,7 +84,6 @@ async function main() {
             {name: "mana", type: "progressBar", label: "Mana",     options:{color:"blue"}},
             {name: "target", type:"text", label:"Target"},
             {name: "status", type: "text", label: "Status"},
-
         ]);
     }
 
@@ -99,8 +98,15 @@ async function main() {
                 port = server.port;
             }
         }
-
         let game = new Game(ip, port, httpWrapper.userId, bots[i].characterId, httpWrapper.userAuth, httpWrapper, bots[i].runScript, userData.config.botKey);
+        game.init();
+        game.on("disconnected",function(){
+            console.log("Lost connection restarting in 10 seconds");
+            game.stop();
+            setTimeout(function () {
+                game.init();
+            },1000*10)
+        });
     }
 }
 
