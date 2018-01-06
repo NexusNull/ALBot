@@ -4,6 +4,7 @@
 
 var BotWebInterface = require("bot-web-interface");
 var LocalStorage = require('node-localstorage').LocalStorage;
+var HttpWrapper = require("./httpWrapper");
 localStorage = new LocalStorage('./localStorage');
 
 function close(error) {
@@ -11,12 +12,13 @@ function close(error) {
     process.exit(1);
 }
 
-var Game = function (ip, port, userId, characterId, socketAuth, httpWrapper, script, botKey) {
+
+var Game = function (ip, port, characterId, script, botKey, httpWrapper) {
     this.ip = ip;
     this.port = port;
-    this.userId = userId;
+    this.userId = httpWrapper.userId;
     this.characterId = characterId;
-    this.socketAuth = socketAuth;
+    this.socketAuth = httpWrapper.userAuth;
     this.httpWrapper = httpWrapper;
     this.script = script;
     this.botKey = botKey;
@@ -32,22 +34,6 @@ Game.prototype.init = function(){
     var cheerio = require("cheerio");
     var G = require("./gameData");
     var Executor = require("./Executor");
-
-    this.proxTimeout = setTimeout;
-    this.proxInterval = setInterval;
-    this.intervals = [];
-    this.timeouts = [];
-    setTimeout = function () {
-        let i = self.proxTimeout.apply(this, arguments);
-        self.timeouts.push(i);
-        return i;
-    };
-    setInterval = function () {
-        let i = self.proxInterval.apply(this, arguments);
-        self.intervals.push(i);
-        return i;
-    };
-
 
 
     var character_to_load;
@@ -222,6 +208,7 @@ Game.prototype.init = function(){
     });
     socket.on("disconnect",function(){
         self.emit("disconnected","nothing");
+        process.send({status:"disconnected"});
         self.stop();
     });
     socket.on("game_error", function (data) {
@@ -269,19 +256,14 @@ Game.prototype.emit = function(event,arguments){
 }
 
 Game.prototype.stop = function(){
-    if(this.executor)
-        this.executor.stop();
-    this.excutor = null;
-    if(typeof this.stopAllCallbacks == "function" )
-        this.stopAllCallbacks();
     if(this.socket)
         this.socket.close();
     BotWebInterface.SocketServer.getPublisher().removeInterface(this.interface);
 }
 
-Game.prototype.stopAllCallbacks = function () {
-    this.intervals.forEach(clearInterval);
-    this.timeouts.forEach(clearTimeout);
-}
 
-module.exports = Game;
+
+var args = process.argv.slice(2);
+var httpWrapper = new HttpWrapper(args[0],args[1],args[2]);
+var game = new Game(args[3],args[4],args[5],args[6],args[7],httpWrapper);
+game.init();

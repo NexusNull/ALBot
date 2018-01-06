@@ -7,10 +7,10 @@ var request = require("request-promise-native");
  *
  * @constructor
  */
-var HttpWrapper = function () {
-    this.sessionCookie = "";
-    this.userAuth = "";
-    this.userId = 0;
+var HttpWrapper = function (sessionCookie, userAuth, userId) {
+    this.sessionCookie = sessionCookie?sessionCookie:"";
+    this.userAuth = userAuth?userAuth:"";
+    this.userId = userId?userId:0;
 };
 /**
  *
@@ -172,7 +172,7 @@ HttpWrapper.prototype.checkIn = async function (ip, port, ipass, characterId, ca
     try {
         await  request(options);
     } catch (e) {
-        console.log("Error on checkin: "+ e.message);
+        console.log("Error on checkin: " + e.message);
     }
 };
 

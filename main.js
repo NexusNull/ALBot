@@ -4,12 +4,11 @@ process.on('uncaughtException', function (exception) {
 
 });
 
-
-var HttpWrapper = require("./HttpWrapper");
+var child_process = require("child_process");
+var HttpWrapper = require("./httpWrapper");
 var httpWrapper = new HttpWrapper();
 var botWebInterface = require("bot-web-interface");
 var fs = require("fs");
-var Game = require("./game");
 var userData = require("./userData.json");
 var login = userData.login;
 var bots = userData.bots;
@@ -98,16 +97,21 @@ async function main() {
                 port = server.port;
             }
         }
-        let game = new Game(ip, port, httpWrapper.userId, bots[i].characterId, httpWrapper.userAuth, httpWrapper, bots[i].runScript, userData.config.botKey);
-        game.init();
-        game.on("disconnected",function(){
-            console.log("Lost connection restarting in 10 seconds");
-            game.stop();
-            setTimeout(function () {
-                game.init();
-            },1000*10)
-        });
+        var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId,ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
+        startGame(args);
     }
+}
+
+function startGame(args){
+    let childProcess = child_process.fork("./game", args,{
+        stdio:[0, 1, 2, 'ipc']
+    });
+    childProcess.on('message', (m) => {
+        if(m.status === "disconnected"){
+            childProcess.kill();
+            startGame(args);
+        }
+    });
 }
 
 async function sleep(ms){
