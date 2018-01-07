@@ -26,6 +26,7 @@ var Game = function (ip, port, characterId, script, botKey, httpWrapper) {
     this.interface = null;
     this.events = {};
     this.socket = null;
+    this.executor = null;
 }
 
 Game.prototype.init = function(){
@@ -34,7 +35,6 @@ Game.prototype.init = function(){
     var cheerio = require("cheerio");
     var G = require("./gameData");
     var Executor = require("./Executor");
-
 
     var character_to_load;
     var first_entities = false;
@@ -53,6 +53,7 @@ Game.prototype.init = function(){
         first_x = 0,
         first_y = 0;
 
+    var code_active = false;
     var current_map = "";
     var pull_all_next = false;
     var pull_all = false;
@@ -177,7 +178,7 @@ Game.prototype.init = function(){
             return M;
         }
     })
-    var executor = {};
+
     socket.on("start", function () {
         setTimeout(function () {
             self.interface = BotWebInterface.SocketServer.getPublisher().createInterface();
@@ -204,6 +205,7 @@ Game.prototype.init = function(){
             });
             self.executor = new Executor(glob, script);
             self.executor.execute();
+            code_active = true;
         }, 3000)
     });
     socket.on("disconnect",function(){

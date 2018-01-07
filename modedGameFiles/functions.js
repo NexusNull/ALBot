@@ -585,7 +585,7 @@ function call_code_function(functionName, b, a, f) {
     }
 }
 function get_code_function(a) {
-    return code_active && sandbox && sandbox[a] || (function () {})
+    return code_active && self.executor && self.executor.callbacks && self.executor.callbacks[a] || (function () {})
 }
 function private_say(a, c, b) {
     socket.emit("say", {message: c, code: b, name: a})
