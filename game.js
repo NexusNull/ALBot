@@ -2,7 +2,7 @@
  * Created by nexus on 03/04/17.
  */
 
-var BotWebInterface = require("bot-web-interface");
+
 var LocalStorage = require('node-localstorage').LocalStorage;
 var HttpWrapper = require("./httpWrapper");
 localStorage = new LocalStorage('./localStorage');
@@ -181,9 +181,8 @@ Game.prototype.init = function(){
     })
 
     socket.on("start", function () {
-        setTimeout(function () {
-            self.interface = BotWebInterface.SocketServer.getPublisher().createInterface();
-            self.interface.setDataSource(function () {
+        setTimeout(function(){
+            setInterval(function(){
                 var targetName = "nothing";
                 if(character.target && entities[character.target]){
                     if(entities[character.target].player){
@@ -192,18 +191,22 @@ Game.prototype.init = function(){
                         targetName = entities[character.target].mtype;
                     }
                 }
+                process.send({
+                    type:"bwiUpdate",
+                    data:{
+                        name: character.id,
+                        level: character.level,
+                        inv: character.isize-character.esize+" / "+character.isize,
+                        xp: Math.floor(character.xp*10000 / character.max_xp)/100,
+                        health: Math.floor(character.hp*10000 / character.max_hp)/100,
+                        mana: Math.floor(character.mp*10000 / character.max_mp)/100,
+                        target: targetName,
+                        status: character.rip?"Dead":"Alive",
+                    }
+                })
+            },800);
 
-                return {
-                    name: character.id,
-                    level: character.level,
-                    inv: character.isize-character.esize+" / "+character.isize,
-                    xp: Math.floor(character.xp*10000 / character.max_xp)/100,
-                    health: Math.floor(character.hp*10000 / character.max_hp)/100,
-                    mana: Math.floor(character.mp*10000 / character.max_mp)/100,
-                    target: targetName,
-                    status: character.rip?"Dead":"Alive",
-                }
-            });
+
             self.executor = new Executor(glob, script);
             self.executor.execute();
             code_active = true;
@@ -211,7 +214,7 @@ Game.prototype.init = function(){
     });
     socket.on("disconnect",function(){
         self.emit("disconnected","nothing");
-        process.send({status:"disconnected"});
+        process.send({type:"status", status:"disconnected"});
         self.stop();
     });
     socket.on("game_error", function (data) {

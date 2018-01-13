@@ -7,7 +7,7 @@ process.on('uncaughtException', function (exception) {
 var child_process = require("child_process");
 var HttpWrapper = require("./httpWrapper");
 var httpWrapper = new HttpWrapper();
-var botWebInterface = require("bot-web-interface");
+var BotWebInterface = require("bot-web-interface");
 var fs = require("fs");
 var userData = require("./userData.json");
 var login = userData.login;
@@ -72,16 +72,16 @@ async function main() {
     }
 
     let serverList = await httpWrapper.getServerList();
-    if(userData.config.botWebInterface.start){
-        botWebInterface.startOnPort(userData.config.botWebInterface.port);
-        botWebInterface.SocketServer.getPublisher().setStructure([
+    if (userData.config.botWebInterface.start) {
+        BotWebInterface.startOnPort(userData.config.botWebInterface.port);
+        BotWebInterface.SocketServer.getPublisher().setStructure([
             {name: "name", type: "text", label: "name"},
             {name: "inv", type: "text", label: "Inventory"},
             {name: "level", type: "text", label: "Level"},
-            {name: "xp", type: "progressBar", label: "Experience", options:{color:"green"}},
-            {name: "health", type: "progressBar", label: "Health", options:{color:"red"}},
-            {name: "mana", type: "progressBar", label: "Mana",     options:{color:"blue"}},
-            {name: "target", type:"text", label:"Target"},
+            {name: "xp", type: "progressBar", label: "Experience", options: {color: "green"}},
+            {name: "health", type: "progressBar", label: "Health", options: {color: "red"}},
+            {name: "mana", type: "progressBar", label: "Mana", options: {color: "blue"}},
+            {name: "target", type: "text", label: "Target"},
             {name: "status", type: "text", label: "Status"},
         ]);
     }
@@ -90,33 +90,41 @@ async function main() {
     for (let i = 0; i < bots.length; i++) {
         let ip = "54.169.213.59";
         let port = 8090;
-        for(let j=0;j<serverList.length;j++){
+        for (let j = 0; j < serverList.length; j++) {
             let server = serverList[j];
-            if(bots[i].server === server.region+" "+server.name){
+            if (bots[i].server === server.region + " " + server.name) {
                 ip = server.ip;
                 port = server.port;
             }
         }
-        var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId,ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
+        var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId, ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
         startGame(args);
     }
 }
 
-function startGame(args){
-    let childProcess = child_process.fork("./game", args,{
-        stdio:[0, 1, 2, 'ipc']
+function startGame(args) {
+    let childProcess = child_process.fork("./game", args, {
+        stdio: [0, 1, 2, 'ipc']
     });
+    var data = {};
+    var botInterface = BotWebInterface.SocketServer.getPublisher().createInterface();
+    botInterface.setDataSource(() => {
+        return data;
+    });
+
     childProcess.on('message', (m) => {
-        if(m.status === "disconnected"){
+        if (m.type === "status" && m.status === "disconnected") {
             childProcess.kill();
             startGame(args);
+        } else if(m.type === "bwiUpdate"){
+            data = m.data;
         }
     });
 }
 
-async function sleep(ms){
-    return new Promise(function(resolve){
-        setTimeout(resolve,ms);
+async function sleep(ms) {
+    return new Promise(function (resolve) {
+        setTimeout(resolve, ms);
     });
 }
 main();
