@@ -597,8 +597,20 @@ function preview_item(def,args)
 
 function load_code(name,onerror) // onerror can be a function that will be executed if load_code fails
 {
-    throw new Error("not implemented yet");
-    return;
+    console.log("Loading code '"+name+"'");
+    var res = request('GET',"http://adventure.land/code.js?name="+encodeURIComponent(name)+"&timestamp="+(new Date().getTime()),{
+        'headers': {
+            'user-agent': "AdventureLandBot: (v1.0.0)",
+            'cookie': "auth=" + parent.game.httpWrapper.sessionCookie
+        }
+    });
+
+    try{
+        (1,eval)(res.getBody("utf8"));
+    } catch(error){
+        (onerror||function(){console.log(error)})(error);
+    }
+
 }
 
 var smart={

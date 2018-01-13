@@ -167,6 +167,8 @@ function log_in(a, c, b) {
         width: screen.width,
         height: screen.height,
         scale: scale,
+        no_html: true,
+        no_graphics: true,
         bot: botKey + ""
     })
 }

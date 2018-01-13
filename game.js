@@ -140,7 +140,8 @@ Game.prototype.init = function(){
         prop_cache: prop_cache,
         next_attack: next_attack,
         bot_mode: true,
-        botKey: botKey
+        botKey: botKey,
+        game:this
     };
     Object.defineProperty(glob, "entities", {
         get: function () {
@@ -269,3 +270,4 @@ var args = process.argv.slice(2);
 var httpWrapper = new HttpWrapper(args[0],args[1],args[2]);
 var game = new Game(args[3],args[4],args[5],args[6],args[7],httpWrapper);
 game.init();
+//setInterval(console.log.bind(null,global),8000);
