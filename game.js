@@ -179,7 +179,15 @@ Game.prototype.init = function(){
             return M;
         }
     })
-
+    var damage = 0;
+    var damageStart = Date.now();
+    socket.on("hit",function(data){
+        if(data.hid && data.damage && character){
+            if(data.hid == character.id){
+                damage += data.damage;
+            }
+        }
+    })
     socket.on("start", function () {
         setTimeout(function(){
             setInterval(function(){
@@ -202,6 +210,7 @@ Game.prototype.init = function(){
                         mana: Math.floor(character.mp*10000 / character.max_mp)/100,
                         target: targetName,
                         status: character.rip?"Dead":"Alive",
+                        dps: Math.floor((damage*100000)/(Date.now()-damageStart))/100,
                     }
                 })
             },800);

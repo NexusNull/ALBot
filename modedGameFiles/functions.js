@@ -469,64 +469,64 @@ function h_shake() {
         setTimeout(b(c), a++ * 80)
     })
 }
-function set_direction(a, c) {
+function set_direction(entity, c) {
     var b = 70;
     if (c == "npc") {
         b = 45
     }
-    if (abs(a.angle) < b) {
-        a.direction = 2
+    if (abs(entity.angle) < b) {
+        entity.direction = 2
     } else {
-        if (abs(abs(a.angle) - 180) < b) {
-            a.direction = 1
+        if (abs(abs(entity.angle) - 180) < b) {
+            entity.direction = 1
         } else {
-            if (abs(a.angle + 90) < 90) {
-                a.direction = 3
+            if (abs(entity.angle + 90) < 90) {
+                entity.direction = 3
             } else {
-                a.direction = 0
+                entity.direction = 0
             }
         }
     }
-    if (c == "attack" && !a.me && is_monster(a)) {
-        if (a.direction == 0) {
-            a.real_y += 2, a.y_disp = 2
+    if (c == "attack" && entity && !entity.me && is_monster(entity)) {
+        if (entity.direction == 0) {
+            entity.real_y += 2, entity.y_disp = 2
         } else {
-            if (a.direction == 3) {
-                a.real_y -= 2, a.y_disp = -2
+            if (entity.direction == 3) {
+                entity.real_y -= 2, entity.y_disp = -2
             } else {
-                if (a.direction == 1) {
-                    a.real_x -= 2
+                if (entity.direction == 1) {
+                    entity.real_x -= 2
                 } else {
-                    a.real_x += 2
+                    entity.real_x += 2
                 }
             }
         }
         setTimeout(function () {
-            if (a.direction == 0) {
-                a.real_y -= 1, a.y_disp -= 1
+            if (entity.direction == 0) {
+                entity.real_y -= 1, entity.y_disp -= 1
             } else {
-                if (a.direction == 3) {
-                    a.real_y += 1, a.y_disp += 1
+                if (entity.direction == 3) {
+                    entity.real_y += 1, entity.y_disp += 1
                 } else {
-                    if (a.direction == 1) {
-                        a.real_x += 1
+                    if (entity.direction == 1) {
+                        entity.real_x += 1
                     } else {
-                        a.real_x -= 1
+                        entity.real_x -= 1
                     }
                 }
             }
         }, 60);
         setTimeout(function () {
-            if (a.direction == 0) {
-                a.real_y -= 1, a.y_disp -= 1
+            if (entity.direction == 0) {
+                entity.real_y -= 1, entity.y_disp -= 1
             } else {
-                if (a.direction == 3) {
-                    a.real_y += 1, a.y_disp += 1
+                if (entity.direction == 3) {
+                    entity.real_y += 1, entity.y_disp += 1
                 } else {
-                    if (a.direction == 1) {
-                        a.real_x += 1
+                    if (entity.direction == 1) {
+                        entity.real_x += 1
                     } else {
-                        a.real_x -= 1
+                        entity.real_x -= 1
                     }
                 }
             }
@@ -795,7 +795,7 @@ function exchange(e_item, a) {
     }
 }
 function compound(item0,item1,item2,scroll_num,offering_num) {
-    if (scroll_num == null) {
+    if (scroll_num == null || typeof item0 === "undefined" || typeof item1 === "undefined"||typeof item2 === "undefined") {
         console.log("INVALID")
     } else {
         socket.emit("compound", {
@@ -1238,14 +1238,14 @@ function rotated_texture(j, a, g) {
 function drag_logic() {
 }
 function draw_timeouts_logic(f) {
-    var currentDate = new Date(), a = [];
+    var currentDate = new Date(), indices = [];
     for (var i = 0; i < draw_timeouts.length; i++) {
         var timeout = draw_timeouts[i];
         if (f && f == 2 && timeout[2] != 2) {
             continue
         }
         if (currentDate >= timeout[1]) {
-            a.push(i);
+            indices.push(i);
             try {
                 timeout[0]()
             } catch (d) {
@@ -1253,8 +1253,8 @@ function draw_timeouts_logic(f) {
             }
         }
     }
-    if (a) {
-        delete_indices(draw_timeouts, a)
+    if (indices) {
+        delete_indices(draw_timeouts, indices)
     }
 }
 function draw_timeout(c, b, a) {

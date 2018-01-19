@@ -531,7 +531,7 @@ var asp_skip = {};
 });
 
 function adopt_soft_properties(a, b) {
-    if (a.me) {
+    if (a && a.me) {
         if (a.moving && a.speed && b.speed && a.speed != b.speed) {
             a.speed = b.speed;
             calculate_vxy(a)
@@ -1206,7 +1206,7 @@ function init_socket() {
                                 if (data.anim == "curse") {
                                     d_line(owner, entity, {color: "curse"}), start_animation(entity, "curse")
                                 } else {
-                                    if (owner.me) {
+                                    if (owner && owner.me) {
                                         if (sd_lines) {
                                             d_line(owner, entity, {color: "my_hit"})
                                         }

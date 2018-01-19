@@ -17,6 +17,7 @@
     "promise": "^7.1.1",
     "request": "^2.81.0",
     "request-promise-native": "^1.0.5",
-    "socket.io-client": "^1.7.3"
+    "socket.io-client": "^1.7.3",
+    "sync-request": "^4.1.0"
   }
 }

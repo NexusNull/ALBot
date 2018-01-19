@@ -83,6 +83,8 @@ async function main() {
             {name: "mana", type: "progressBar", label: "Mana", options: {color: "blue"}},
             {name: "target", type: "text", label: "Target"},
             {name: "status", type: "text", label: "Status"},
+            {name: "dps", type: "text", label: "DPS"},
+
         ]);
     }
 
