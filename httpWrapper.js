@@ -86,31 +86,10 @@ HttpWrapper.prototype.getCharacters = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
         var characters = [];
-        var html = await request({url: "http://adventure.land", headers: {cookie: "auth=" + self.sessionCookie}});
-        var $ = cheerio.load(html);
-
-        let menu = $(".loginorselection>.menu>.gamebutton");
-        for (let i = 0; i < (menu.length - 1); i++) {
-            let element = menu[i];
-            if (element.name == "div") {
-
-                let characterId = /log_in.*'(\d*)'/.exec(element.attribs.onclick)[1];
-                let characterName = element.children[2].data.toString().replace(/\t/g, "").replace(/\n/g, "");
-                let characterLevel = parseInt(element.children[6].data.toString().replace(/\t/g, "").replace(/\n/g, "").replace("Lv.", ""));
-                let characterClass = element.children[7].children[0].data;
-                let characterStatus = element.children[3].children[0].data;
-
-                characters.push({
-                    name: characterName,
-                    id: characterId,
-                    level: characterLevel,
-                    class: characterClass,
-                    status: characterStatus
-                });
-
-            }
-        }
-        resolve(characters);
+        var html = await request.post({url: "http://adventure.land/api/servers_and_characters", headers: {cookie: "auth=" + self.sessionCookie}, formData:{method:"servers_and_characters", arguments:"{}"}});
+        let data = JSON.parse(html)[0];
+        console.log(data.characters)
+        resolve(data.characters);
     })
 };
 
