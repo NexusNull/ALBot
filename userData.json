@@ -1,6 +1,6 @@
 {
     "config": {
-        "fetch": false,
+        "fetch": true,
         "botKey": 1,
         "botWebInterface": {
             "start": true,
