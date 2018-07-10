@@ -13,7 +13,7 @@ function close(error) {
 }
 
 
-var Game = function (ip, port, characterId, script, botKey, httpWrapper) {
+var Game = function (ip, port, characterId, script, botKey, G, httpWrapper) {
     this.ip = ip;
     this.port = port;
     this.userId = httpWrapper.userId;
@@ -27,13 +27,15 @@ var Game = function (ip, port, characterId, script, botKey, httpWrapper) {
     this.events = {};
     this.socket = null;
     this.executor = null;
+    this.G = G
+
 }
 
-Game.prototype.init = function(){
+Game.prototype.init = function () {
     let self = this;
     var fs = require("fs")
     var cheerio = require("cheerio");
-    var G = require("./gameData");
+    var G = this.G;
     var Executor = require("./Executor");
 
     var character_to_load;
@@ -99,7 +101,7 @@ Game.prototype.init = function(){
     this.socket = socket;
 
     var glob = {
-        localStorage:localStorage,
+        localStorage: localStorage,
         gameplay: gameplay,
         is_pvp: is_pvp,
         server_region: server_region,
@@ -141,7 +143,7 @@ Game.prototype.init = function(){
         next_attack: next_attack,
         bot_mode: true,
         botKey: botKey,
-        game:this
+        game: this
     };
     Object.defineProperty(glob, "entities", {
         get: function () {
@@ -152,7 +154,7 @@ Game.prototype.init = function(){
         get: function () {
             return code_active;
         },
-        set: function(value){
+        set: function (value) {
             code_active = value;
         }
     })
@@ -160,7 +162,7 @@ Game.prototype.init = function(){
         get: function () {
             return sandbox;
         },
-        set: function(value){
+        set: function (value) {
             sandbox = value;
         }
     })
@@ -181,39 +183,39 @@ Game.prototype.init = function(){
     })
     var damage = 0;
     var damageStart = Date.now();
-    socket.on("hit",function(data){
-        if(data.hid && data.damage && character){
-            if(data.hid == character.id){
+    socket.on("hit", function (data) {
+        if (data.hid && data.damage && character) {
+            if (data.hid == character.id) {
                 damage += data.damage;
             }
         }
     })
     socket.on("start", function () {
-        setTimeout(function(){
-            setInterval(function(){
+        setTimeout(function () {
+            setInterval(function () {
                 var targetName = "nothing";
-                if(character.target && entities[character.target]){
-                    if(entities[character.target].player){
+                if (character.target && entities[character.target]) {
+                    if (entities[character.target].player) {
                         targetName = entities[character.target].id
                     } else {
                         targetName = entities[character.target].mtype;
                     }
                 }
                 process.send({
-                    type:"bwiUpdate",
-                    data:{
+                    type: "bwiUpdate",
+                    data: {
                         name: character.id,
                         level: character.level,
-                        inv: character.isize-character.esize+" / "+character.isize,
-                        xp: Math.floor(character.xp*10000 / character.max_xp)/100,
-                        health: Math.floor(character.hp*10000 / character.max_hp)/100,
-                        mana: Math.floor(character.mp*10000 / character.max_mp)/100,
+                        inv: character.isize - character.esize + " / " + character.isize,
+                        xp: Math.floor(character.xp * 10000 / character.max_xp) / 100,
+                        health: Math.floor(character.hp * 10000 / character.max_hp) / 100,
+                        mana: Math.floor(character.mp * 10000 / character.max_mp) / 100,
                         target: targetName,
-                        status: character.rip?"Dead":"Alive",
-                        dps: Math.floor((damage*100000)/(Date.now()-damageStart))/100,
+                        status: character.rip ? "Dead" : "Alive",
+                        dps: Math.floor((damage * 100000) / (Date.now() - damageStart)) / 100,
                     }
                 })
-            },800);
+            }, 800);
 
 
             self.executor = new Executor(glob, script);
@@ -221,9 +223,9 @@ Game.prototype.init = function(){
             code_active = true;
         }, 3000)
     });
-    socket.on("disconnect",function(){
-        self.emit("disconnected","nothing");
-        process.send({type:"status", status:"disconnected"});
+    socket.on("disconnect", function () {
+        self.emit("disconnected", "nothing");
+        process.send({type: "status", status: "disconnected"});
         self.stop();
     });
     socket.on("game_error", function (data) {
@@ -242,44 +244,47 @@ Game.prototype.init = function(){
     });
 }
 /**
- * Registeres an event in the game
+ * Register's an event in the game
  * @param event string the name f the event
  * @param callback function the function to be called
  */
-Game.prototype.on = function(event,callback){
-    if(typeof event == "string" && typeof callback == "function"){
-        if(!this.events[event]){
+Game.prototype.on = function (event, callback) {
+    if (typeof event == "string" && typeof callback == "function") {
+        if (!this.events[event]) {
             this.events[event] = [];
         }
         this.events[event].push(callback);
     } else {
-        if(typeof event != "string")
+        if (typeof event != "string")
             throw new Error("Event has to be a string")
-        if(typeof callback == "function")
+        if (typeof callback == "function")
             throw new Error("Callback has to be a function")
     }
 };
 
-Game.prototype.emit = function(event,arguments){
-    if(typeof event == "string"){
-        if(this.events[event]){
-            this.events[event].forEach(function(current){
+Game.prototype.emit = function (event, arguments) {
+    if (typeof event == "string") {
+        if (this.events[event]) {
+            this.events[event].forEach(function (current) {
                 current.apply(Array.from(arguments).slice(1))
             });
         }
     }
 }
 
-Game.prototype.stop = function(){
-    if(this.socket)
+Game.prototype.stop = function () {
+    if (this.socket)
         this.socket.close();
     BotWebInterface.SocketServer.getPublisher().removeInterface(this.interface);
 }
 
+async function main() {
+    let args = process.argv.slice(2);
+    let httpWrapper = new HttpWrapper(args[0], args[1], args[2]);
+    let gameData = await httpWrapper.getGameData();
+    let game = new Game(args[3], args[4], args[5], args[6], args[7], gameData, httpWrapper);
+    game.init();
+}
 
-
-var args = process.argv.slice(2);
-var httpWrapper = new HttpWrapper(args[0],args[1],args[2]);
-var game = new Game(args[3],args[4],args[5],args[6],args[7],httpWrapper);
-game.init();
+main();
 //setInterval(console.log.bind(null,global),8000);

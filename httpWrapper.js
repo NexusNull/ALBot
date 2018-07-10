@@ -1,8 +1,10 @@
 /**
  * Created by nexus on 15/05/17.
  */
-var cheerio = require("cheerio");
-var request = require("request-promise-native");
+const cheerio = require("cheerio");
+const request = require("request-promise-native");
+const util = require('util');
+const vm = require('vm');
 /**
  *
  * @constructor
@@ -121,7 +123,28 @@ HttpWrapper.prototype.getServerList = async function () {
 HttpWrapper.prototype.checkLogin = async function () {
 
 };
-
+HttpWrapper.prototype.getGameData = async function(){
+    var self = this;
+    return new Promise(async function (resolve, reject) {
+        try{
+            let code = await request({
+                url: "http://adventure.land/data.js",
+                headers: {
+                    "x-requested-with": "XMLHttpRequest",
+                    "Accept": "application/json, text/javascript, */*; q=0.01",
+                    "user-agent": "AdventureLandBot: (v1.0.0)",
+                    "cookie": "auth=" + self.sessionCookie,
+                }
+            });
+            let sandbox = {};
+            let context = vm.createContext(sandbox);
+            vm.runInContext(code,context);
+            resolve(sandbox.G)
+        } catch(e){
+            reject("Could not retrieve game data");
+        }
+    });
+};
 HttpWrapper.prototype.getUserAuth = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
@@ -141,7 +164,6 @@ HttpWrapper.prototype.getUserAuth = async function () {
 };
 
 HttpWrapper.prototype.checkIn = async function (ip, port, ipass, characterId, callbackId, callbackStart, callbackCount) {
-
     var options = {
         url: 'http://' + ip + ':' + (+port + 40) + '/character?checkin=1&ipass=' + ipass + '&id=' + characterId + '&callback=jQuery' + callbackId + '_' + callbackStart + '&_=' + callbackCount,
         headers: {

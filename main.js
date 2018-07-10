@@ -117,6 +117,7 @@ function startGame(args) {
     childProcess.on('message', (m) => {
         if (m.type === "status" && m.status === "disconnected") {
             childProcess.kill();
+            BotWebInterface.SocketServer.getPublisher().removeInterface(botInterface);
             startGame(args);
         } else if(m.type === "bwiUpdate"){
             data = m.data;

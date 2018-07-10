@@ -10,19 +10,5 @@
     "login": {
         "email": "random@example.com",
         "password": "password123456"
-    },
-    "bots": [
-        {
-            "characterName": "CooperBolton",
-            "characterId": "6747399047348224",
-            "runScript": "default.js",
-            "server": "EU I"
-        },
-        {
-            "characterName": "BoltonCopper",
-            "characterId": "5252833374896128",
-            "runScript": "default.js",
-            "server": "EU I"
-        }
-    ]
+    }
 }
