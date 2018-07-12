@@ -275,8 +275,7 @@ Game.prototype.emit = function (event, arguments) {
 Game.prototype.stop = function () {
     if (this.socket)
         this.socket.close();
-    BotWebInterface.SocketServer.getPublisher().removeInterface(this.interface);
-}
+};
 
 async function main() {
     let args = process.argv.slice(2);
@@ -287,4 +286,3 @@ async function main() {
 }
 
 main();
-//setInterval(console.log.bind(null,global),8000);
