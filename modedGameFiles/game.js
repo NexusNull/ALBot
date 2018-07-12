@@ -191,6 +191,7 @@ function disconnect() {
         socket.disconnect();
     }
 }
+
 function position_map() {
     if (character) {
         map.real_x = character.real_x, map.real_y = character.real_y
@@ -406,6 +407,7 @@ function reset_topleft() {
     rendered_target = ctarget;
     last_target_cid = ctarget && ctarget.cid
 }
+
 function sync_entity(c, a) {
     adopt_soft_properties(c, a);
     if (c.resync) {
@@ -432,9 +434,9 @@ function sync_entity(c, a) {
             }
         }
         b = simple_distance({x: c.real_x, y: c.real_y}, {
-                x: a.going_x,
-                y: a.going_y
-            }) / (simple_distance(a, {x: a.going_x, y: a.going_y}) + EPS);
+            x: a.going_x,
+            y: a.going_y
+        }) / (simple_distance(a, {x: a.going_x, y: a.going_y}) + EPS);
         c.moving = true;
         c.abs = false;
         c.engaged_move = c.move_num;
@@ -445,6 +447,7 @@ function sync_entity(c, a) {
         calculate_vxy(c, b)
     }
 }
+
 function process_entities() {
     for (var f in future_entities.monsters) {
         var future_monster = future_entities.monsters[f];
@@ -497,6 +500,7 @@ function process_entities() {
         sync_entity(d, a)
     }
 }
+
 function on_disappear(a) {
     if (future_entities.players[a.id]) {
         delete future_entities.players[a.id]
@@ -588,12 +592,14 @@ function adopt_soft_properties(a, b) {
         a.bank = a.user
     }
 }
+
 function reposition_ui() {
     if (character) {
         //$("#topmid").css("right", round(($("html").width() - $("#topmid").outerWidth()) / 2));
         //$("#bottommid").css("right", round(($("html").width() - $("#bottommid").outerWidth()) / 2))
     }
 }
+
 function update_overlays() {
 
 }
@@ -609,6 +615,7 @@ function init_demo() {
     reflect_music();
     load_game()
 }
+
 function init_socket() {
 
     socket = new Socket("http://" + server_addr + ":" + port, {
@@ -749,7 +756,7 @@ function init_socket() {
         var callbackStart;
         var callbackCount;
         setInterval(function () {
-            callbackCount = callbackCount?callbackCount++:callbackStart;
+            callbackCount = callbackCount ? callbackCount++ : callbackStart;
             callbackId = Math.round(Math.random() * 100000000000 + 12007144706612636761);
             callbackStart = Math.round(Math.random() * 10000) + 1494359179004;
             httpWrapper.checkIn(server_addr, port, ipass, character.id, callbackId, callbackStart, callbackCount);
@@ -866,155 +873,114 @@ function init_socket() {
         call_code_function("on_game_event", data)
     });
     socket.on("game_response", function (data) {
-        draw_trigger(function () {
-            var response = data.response || data;
-            if (response == "elixir") {
-                ui_log("Consumed the elixir", "gray")
-            } else {
-                if (response == "not_ready") {
-                    d_text("NOT READY", character)
-                } else {
-                    if (response == "no_mp") {
-                        d_text("NO MP", character)
+        var response = data.response || data;
+        if (in_arr(response, ["mistletoe_success", "leather_success", "candycane_success", "ornament_success", "seashell_success", "gemfragment_success"])) {
+        } else if (in_arr(response, ["buy_get_closer", "sell_get_closer", "trade_get_closer", "ecu_get_closer"])) {
+            console.log("Get closer", "gray")
+        } else {
+            switch (response) {
+                case "elixir":
+                    console.log("Consumed the elixir")
+                    break;
+                case "not_ready":
+                    console.log("NOT READY")
+                    break;
+                case "no_mp":
+                    console.log("NO MP")
+                    break;
+                case "exchange_full":
+                    console.log("NO SPACE");
+                    console.log("Inventory is full");
+                    break;
+                case "exchange_notenough":
+                    console.log("Need more");
+                    break;
+                case "cant_escape":
+                    console.log("CAN'T ESCAPE");
+                    break;
+                case "bank_opi":
+                    console.log("Bank connection in progress");
+                    transporting = false
+                    break;
+                case "bank_opx":
+                    if (data.name) {
+                        console.log(data.name + " is in the bank")
                     } else {
-                        if (response == "exchange_full") {
-                            d_text("NO SPACE", character);
-                            ui_log("Inventory is full", "gray");
-                            reopen()
-                        } else {
-                            if (response == "exchange_notenough") {
-                                d_text("NOT ENOUGH", character);
-                                ui_log("Need more", "gray");
-                                reopen()
-                            } else {
-                                if (in_arr(response, ["mistletoe_success", "leather_success", "candycane_success", "ornament_success", "seashell_success", "gemfragment_success"])) {
-                                    render_interaction(response)
-                                } else {
-                                    if (response == "cant_escape") {
-                                        d_text("CAN'T ESCAPE", character);
-                                        transporting = false
-                                    } else {
-                                        if (response == "cant_enter") {
-                                            ui_log("Can't enter", "gray");
-                                            transporting = false
-                                        } else {
-                                            if (response == "bank_opi") {
-                                                ui_log("Bank connection in progress", "gray");
-                                                transporting = false
-                                            } else {
-                                                if (response == "bank_opx") {
-                                                    if (data.name) {
-                                                        ui_log(data.name + " is in the bank", "gray")
-                                                    } else {
-                                                        ui_log("Bank is busy right now", "gray")
-                                                    }
-                                                    transporting = false
-                                                } else {
-                                                    if (response == "transport_failed") {
-                                                        transporting = false
-                                                    } else {
-                                                        if (response == "loot_failed") {
-                                                            ui_log("Can't loot", "gray")
-                                                        } else {
-                                                            if (response == "transport_cant_reach") {
-                                                                ui_log("Can't reach", "gray");
-                                                                transporting = false
-                                                            } else {
-                                                                if (response == "destroyed") {
-                                                                    ui_log("Destroyed " + G.items[data.name].name, "gray")
-                                                                } else {
-                                                                    if (response == "buy_get_closer" || response == "sell_get_closer" || response == "trade_get_closer" || response == "ecu_get_closer") {
-                                                                        ui_log("Get closer", "gray")
-                                                                    } else {
-                                                                        if (response == "cant_reach") {
-                                                                            ui_log("Can't reach", "gray")
-                                                                        } else {
-                                                                            if (response == "no_item") {
-                                                                                ui_log("No item provided", "gray")
-                                                                            } else {
-                                                                                if (response == "op_unavailable") {
-                                                                                    add_chat("", "Operation unavailable", "gray")
-                                                                                } else {
-                                                                                    if (response == "send_no_space") {
-                                                                                        add_chat("", "No space on receiver", "gray")
-                                                                                    } else {
-                                                                                        if (response == "send_no_item") {
-                                                                                            add_chat("", "Nothing to send", "gray")
-                                                                                        } else {
-                                                                                            if (response == "signed_up") {
-                                                                                                ui_log("Signed Up!", "#39BB54")
-                                                                                            } else {
-                                                                                                if (response == "item_sent") {
-                                                                                                    add_chat("", "Item sent", "#6AB3FF")
-                                                                                                } else {
-                                                                                                    if (response == "item_received") {
-                                                                                                        var additional = "";
-                                                                                                        if (data.q > 1) {
-                                                                                                            additional = "(x" + data.q + ")"
-                                                                                                        }
-                                                                                                        add_chat("", "Received " + G.items[data.item].name + additional + " from " + data.name, "#6AB3FF")
-                                                                                                    } else {
-                                                                                                        if (response == "gold_sent") {
-                                                                                                            add_chat("", "Gold sent", colors.gold)
-                                                                                                        } else {
-                                                                                                            if (response == "gold_received") {
-                                                                                                                add_chat("", "Received " + to_pretty_num(data.gold) + " gold from " + data.name, colors.gold)
-                                                                                                            } else {
-                                                                                                                if (response == "friend_already") {
-                                                                                                                    add_chat("", "You are already friends", "gray")
-                                                                                                                } else {
-                                                                                                                    if (response == "friend_rleft") {
-                                                                                                                        add_chat("", "Player left the server", "gray")
-                                                                                                                    } else {
-                                                                                                                        if (response == "friend_rsent") {
-                                                                                                                            add_chat("", "Friend request sent", "#409BDD")
-                                                                                                                        } else {
-                                                                                                                            if (response == "friend_expired") {
-                                                                                                                                add_chat("", "Request expired", "#409BDD")
-                                                                                                                            } else {
-                                                                                                                                if (response == "friend_failed") {
-                                                                                                                                    add_chat("", "Friendship failed, reason: " + data.reason, "#409BDD")
-                                                                                                                                } else {
-                                                                                                                                    if (response == "craft_cant") {
-                                                                                                                                        ui_log("Can't craft", "gray")
-                                                                                                                                    } else {
-                                                                                                                                        if (response == "craft_atleast2") {
-                                                                                                                                            ui_log("You need to provide at least 2 items", "gray")
-                                                                                                                                        } else {
-                                                                                                                                            console.log("Missed game_response: " + response)
-                                                                                                                                        }
-                                                                                                                                    }
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                }
-                                                                                                            }
-                                                                                                        }
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        console.log("Bank is busy right now")
                     }
-                }
+                    transporting = false
+                    break;
+                case "transport_failed":
+                    transporting = false
+                    break;
+                case "loot_failed":
+                    console.log("Can't loot")
+                    break;
+                case "transport_cant_reach":
+                    console.log("Can't reach");
+                    transporting = false
+                    break;
+                case "destroyed":
+                    console.log("Destroyed " + G.items[data.name].name)
+                    break;
+                case "cant_reach":
+                    console.log("Can't reach")
+                    break;
+                case "no_item":
+                    console.log("No item provided")
+                    break;
+                case "op_unavailable":
+                    console.log("Operation unavailable")
+                    break;
+                case "send_no_space":
+                    console.log("No space on receiver")
+                    break;
+                case "send_no_item":
+                    console.log("Nothing to send")
+                    break;
+                case "signed_up":
+                    console.log("Signed Up!")
+                    break;
+                case "item_sent":
+                    console.log("Item sent")
+                    break;
+                case "item_received":
+                    var additional = "";
+                    if (data.q > 1) {
+                        additional = "(x" + data.q + ")"
+                    }
+                    console.log("Received " + G.items[data.item].name + additional + " from " + data.name)
+                    break;
+                case "gold_sent":
+                    console.log("Received " + to_pretty_num(data.gold) + " gold from " + data.name)
+                    break;
+                case "friend_already":
+                    console.log("You are already friends")
+                    break;
+                case "friend_rleft":
+                    console.log("Player left the server")
+                    break;
+                case "friend_rsent":
+                    console.log("Friend request sent")
+                    break;
+                case "friend_expired":
+                    console.log("Request expired")
+                    break;
+                case "friend_failed":
+                    console.log("Friendship failed, reason: " + data.reason)
+                    break;
+                case "craft_cant":
+                    console.log("Can't craft")
+                    break;
+                case "craft_atleast2":
+                    console.log("You need to provide at least 2 items")
+                    break;
+                default:
+                    console.log("Missed game_response: " + response)
+                    break;
             }
-        })
+
+        }
     });
     socket.on("tavern", function (data) {
     });
@@ -1369,6 +1335,7 @@ function init_socket() {
     });
     socket.open();
 }
+
 function player_click(a) {
     if (is_npc(this) && this.name == "Bean") {
         render_interaction("subscribe", this.party)
@@ -1377,6 +1344,7 @@ function player_click(a) {
     }
     a.stopPropagation()
 }
+
 function player_attack(a) {
     ctarget = this;
     direction_logic(character, ctarget);
@@ -1391,6 +1359,7 @@ function player_attack(a) {
         a.stopPropagation()
     }
 }
+
 function player_heal(a) {
     if (this != character) {
         ctarget = this
@@ -1409,6 +1378,7 @@ function player_heal(a) {
         a.stopPropagation()
     }
 }
+
 function player_right_click(b) {
     if (this.npc && this.id == "pvp") {
         if (this.allow) {
@@ -1451,6 +1421,7 @@ function player_right_click(b) {
         b.stopPropagation()
     }
 }
+
 function monster_click(a) {
     if (ctarget == this) {
         map_click(a)
@@ -1461,6 +1432,7 @@ function monster_click(a) {
         a.stopPropagation()
     }
 }
+
 function monster_attack(a) {
     ctarget = this;
     direction_logic(character, ctarget);
@@ -1475,6 +1447,7 @@ function monster_attack(a) {
         a.stopPropagation()
     }
 }
+
 function map_click(e) {
     var a = e.data.global.x, f = e.data.global.y;
     var d = a - width / 2, c = f - height / 2;
@@ -1504,8 +1477,10 @@ function map_click(e) {
     }
     topleft_npc = false
 }
+
 function map_click_release() {
 }
+
 function draw_entities() {
     for (entity in entities) {
         var a = entities[entity];
@@ -1555,6 +1530,7 @@ function draw_entities() {
         }
     }
 }
+
 function update_sprite(entity) {
     if (!entity || !entity.stype) {
         return
@@ -1673,6 +1649,7 @@ function update_sprite(entity) {
     //update_filters(entity);
     entity.updates += 1
 }
+
 function add_monster(d) {
     var monster = {};
     adopt_soft_properties(monster, d);
@@ -1696,19 +1673,25 @@ function add_monster(d) {
     }
     return monster
 }
+
 function update_filters(a) {
 }
+
 function start_filter(b, a) {
 }
+
 function stop_filter(b, a) {
 }
+
 function player_effects_logic(a) {
     if (a.me) {
         a.last_targets = a.targets
     }
 }
+
 function effects_logic(a) {
 }
+
 function add_character(e, d) {
     var a = (d && manual_centering && 2) || 1;
     var c = {};
@@ -1738,6 +1721,7 @@ function add_character(e, d) {
     }
     return c
 }
+
 function add_chest(c) {
     var a = {};
     a.x = round(c.x);
@@ -1749,6 +1733,7 @@ function add_chest(c) {
     a.cursor = "help";
     chests[c.id] = a;
 }
+
 function get_npc(b) {
     var a = null;
     map_npcs.forEach(function (c) {
@@ -1758,6 +1743,7 @@ function get_npc(b) {
     });
     return a
 }
+
 function add_npc(d, a, c, g) {
     var e = {};
     e.npc_id = g;
@@ -1787,6 +1773,7 @@ function add_npc(d, a, c, g) {
     }
     return e
 }
+
 function add_door(b) {
     var c = {};
     c.interactive = true;
@@ -1796,6 +1783,7 @@ function add_door(b) {
     c.type = "door";
     return c
 }
+
 function add_quirk(c) {
     var a = {};
     a.interactive = true;
@@ -1808,6 +1796,7 @@ function add_quirk(c) {
     a.type = "quirk";
     return a
 }
+
 function add_animatable(a, b) {
     var c = {};
     c.x = b.x;
@@ -1815,6 +1804,7 @@ function add_animatable(a, b) {
     c.type = "animatable";
     return c
 }
+
 function create_map() {
     if (map) {
         map = {};
@@ -1882,6 +1872,7 @@ function create_map() {
         map_entities.push(animatables[s])
     }
 }
+
 function retile_the_map() {
     if (cached_map) {
         if (dtile_size && (dtile_width < width || dtile_height < height)) {
@@ -2035,11 +2026,14 @@ function retile_the_map() {
     });
     console.log("retile_map ms: " + mssince(a) + " min_x: " + k + " max_x: " + B + " entities: " + map_tiles.length + " removed: " + m + " new: " + l)
 }
+
 var fps_counter = null, frames = 0, last_count = null, last_frame, fps = 0;
 var stop_rendering = false;
+
 function calculate_fps() {
 
 }
+
 function load_game(a) {
     create_map();
     draw();
@@ -2134,6 +2128,7 @@ function draw(a, b) {
     }
 
 };
+
 function cut(number) {
     return Math.floor(number * 100) / 100;
 }
