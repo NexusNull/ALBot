@@ -214,11 +214,7 @@ function position_map() {
         dtile.y = ceil(dtile.y / (dtile_size / 1)) * (dtile_size / 1) - (dtile_size / 1)
     }
     if (character) {
-        if (manual_centering) {
-            character.x = c_round(width / 2), character.y = c_round(height / 2)
-        } else {
-            character.x = c_round(character.real_x), character.y = c_round(character.real_y)
-        }
+        character.x = c_round(character.real_x), character.y = c_round(character.real_y)
     }
 }
 
@@ -539,60 +535,60 @@ var asp_skip = {};
     asp_skip[a] = true
 });
 
-function adopt_soft_properties(a, b) {
-    if (a && a.me) {
-        if (a.moving && a.speed && b.speed && a.speed != b.speed) {
-            a.speed = b.speed;
-            calculate_vxy(a)
+function adopt_soft_properties(entity, data) {
+    if (entity && entity.me) {
+        if (entity.moving && entity.speed && data.speed && entity.speed != data.speed) {
+            entity.speed = data.speed;
+            calculate_vxy(entity)
         }
-        if (b.abs) {
-            a.moving = false
+        if (data.abs) {
+            entity.moving = false
         }
-        a.bank = null
+        entity.bank = null
     }
-    if (a.type == "monster" && G.monsters[a.mtype]) {
-        var c = G.monsters[a.mtype];
+    if (entity.type == "monster" && G.monsters[entity.mtype]) {
+        var c = G.monsters[entity.mtype];
         [["speed", "speed"], ["hp", "hp"], ["max_hp", "hp"], ["mp", "mp"], ["max_mp", "mp"], ["attack", "attack"], ["xp", "xp"], ["frequency", "frequency"], ["heal", "heal"]].forEach(function (e) {
-            if (c[e[1]] !== undefined && (b[e[0]] === undefined || a[e[0]] === undefined)) {
-                a[e[0]] = c[e[1]]
+            if (c[e[1]] !== undefined && (data[e[0]] === undefined || entity[e[0]] === undefined)) {
+                entity[e[0]] = c[e[1]]
             }
         })
     }
-    if (a.type == "character" && a.skin && a.skin != c.skin && !a.rip) {
-        a.skin = c.skin;
+    if (entity.type == "character" && entity.skin && entity.skin != c.skin && !entity.rip) {
+        entity.skin = c.skin;
     }
-    for (prop in b) {
+    for (prop in data) {
         if (asp_skip[prop]) {
             continue
         }
-        a[prop] = b[prop]
+        entity[prop] = data[prop]
     }
-    if (a.slots) {
-        a.g10 = a.g9 = a.g8 = undefined;
-        for (var c in a.slots) {
-            if ((c == "chest" || c == "mainhand") && a.slots[c]) {
-                if (a.slots[c].level == 10) {
-                    a.g10 = true
+    if (entity.slots) {
+        entity.g10 = entity.g9 = entity.g8 = undefined;
+        for (var c in entity.slots) {
+            if ((c == "chest" || c == "mainhand") && entity.slots[c]) {
+                if (entity.slots[c].level == 10) {
+                    entity.g10 = true
                 }
-                if (a.slots[c].level == 9) {
-                    a.g9 = true
+                if (entity.slots[c].level == 9) {
+                    entity.g9 = true
                 }
-                if (a.slots[c].level == 8) {
-                    a.g8 = true
+                if (entity.slots[c].level == 8) {
+                    entity.g8 = true
                 }
             }
         }
-        if (a.g10) {
-            a.g9 = a.g8 = undefined
+        if (entity.g10) {
+            entity.g9 = entity.g8 = undefined
         }
-        if (a.g9) {
-            a.g8 = undefined
+        if (entity.g9) {
+            entity.g8 = undefined
         }
     }
-    if (a.me) {
-        a.bank = a.user
+    if (entity.me) {
+        entity.bank = entity.user
     }
-    a.last_ms = new Date();
+    entity.last_ms = new Date();
 }
 
 function reposition_ui() {
