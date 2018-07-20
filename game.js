@@ -278,11 +278,17 @@ Game.prototype.stop = function () {
 };
 
 async function main() {
-    let args = process.argv.slice(2);
-    let httpWrapper = new HttpWrapper(args[0], args[1], args[2]);
-    let gameData = await httpWrapper.getGameData();
-    let game = new Game(args[3], args[4], args[5], args[6], args[7], gameData, httpWrapper);
-    game.init();
+    try {
+        let args = process.argv.slice(2);
+        let httpWrapper = new HttpWrapper(args[0], args[1], args[2]);
+        let gameData = await httpWrapper.getGameData();
+        let game = new Game(args[3], args[4], args[5], args[6], args[7], gameData, httpWrapper);
+        game.init();
+    } catch (e) {
+        console.log(e)
+    }
+
 }
 
 main();
+

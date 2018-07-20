@@ -1,6 +1,9 @@
 var auto_api_methods = [], base_url =  "http://adventure.land";
 var sounds = {};
-var draw_timeouts = [], timers = {}, ping_sent = new Date(), modal_count = 0;
+var draw_timeouts = []
+    , timers = {}
+    , ping_sent = new Date()
+    , modal_count = 0;
 function is_hidden() {
     return false
 }
@@ -8,11 +11,15 @@ var last_id_sent = "";
 function send_target_logic() {
     if (ctarget && last_id_sent != ctarget.id) {
         last_id_sent = ctarget.id;
-        socket.emit("target", {id: ctarget.id})
+        socket.emit("target", {
+            id: ctarget.id
+        })
     }
     if (!ctarget && last_id_sent) {
         last_id_sent = "";
-        socket.emit("target", {id: ""})
+        socket.emit("target", {
+            id: ""
+        })
     }
 }
 function is_npc(a) {
@@ -181,50 +188,224 @@ function send_code_message(b, a) {
     if (!is_array(b)) {
         b = [b]
     }
-    socket.emit("cm", {to: b, message: JSON.stringify(a)})
+    socket.emit("cm", {
+        to: b,
+        message: JSON.stringify(a)
+    })
 }
-function use_skill(b, c) {
+function get_nearby_hostiles(a) {
+    var d = [];
+    if (!a) {
+        a = {}
+    }
+    if (!a.range) {
+        a.range = character && character.range || 12000
+    }
+    if (!a.limit) {
+        a.limit = 12
+    }
+    for (id in parent.entities) {
+        var b = parent.entities[id];
+        if (b.rip || b.invincible || b.npc) {
+            continue
+        }
+        if (b.party && character.party == b.party) {
+            continue
+        }
+        if (b.guild && character.guild == b.guild) {
+            continue
+        }
+        if (b.type == "character" && !(is_pvp || G.maps[character.map].pvp)) {
+            continue
+        }
+        if (in_arr(b.owner, parent.friends)) {
+            continue
+        }
+        var c = parent.distance(character, b);
+        if (c < a.range && d.length < a.limit) {
+            d.push(b),
+                b.c_dist = c
+        }
+    }
+    d.sort(function(g, f) {
+        return (g.c_dist > f.c_dist) ? 1 : ((f.c_dist > g.c_dist) ? -1 : 0)
+    });
+    return d
+}
+function use_skill(b, h, k) {
+    if (h && h.id) {
+        h = h.id
+    }
     if (b == "use_hp" || b == "hp") {
         use("hp")
     } else {
         if (b == "use_mp" || b == "mp") {
             use("mp")
         } else {
-            if (b == "use_town" || b == "town") {
-                if (character.rip) {
-                    socket.emit("respawn")
-                } else {
-                    socket.emit("town")
-                }
+            if (b == "stop") {
+                map_click({
+                    data: {
+                        global: {
+                            x: width / 2,
+                            y: Math.ceil(height / 2) + 0.01
+                        }
+                    }
+                });
+                socket.emit("stop");
+                code_eval_if_r("smart.moving=false")
             } else {
-                if (b == "charge") {
-                    socket.emit("ability", {name: "charge"})
-                } else {
-                    if (b == "light") {
-                        socket.emit("ability", {name: "light"})
+                if (b == "use_town" || b == "town") {
+                    if (character.rip) {
+                        socket.emit("respawn")
                     } else {
-                        if (b == "burst" && c) {
-                            socket.emit("ability", {name: "burst", id: c.id})
+                        socket.emit("town")
+                    }
+                } else {
+                    if (b == "cburst") {
+                        if (is_array(h)) {
+                            socket.emit("skill", {
+                                name: "cburst",
+                                targets: h
+                            })
                         } else {
-                            if (b == "taunt" && c) {
-                                socket.emit("ability", {name: "taunt", id: c.id})
+                            var g = get_nearby_hostiles({
+                                range: character.range - 2,
+                                limit: 12
+                            })
+                                , f = []
+                                , c = character.mp - 200
+                                , j = parseInt(c / g.length);
+                            g.forEach(function(l) {
+                                f.push([l.id, j])
+                            });
+                            socket.emit("skill", {
+                                name: "cburst",
+                                targets: f
+                            })
+                        }
+                    } else {
+                        if (b == "3shot") {
+                            if (is_array(h)) {
+                                socket.emit("skill", {
+                                    name: "3shot",
+                                    ids: h
+                                })
                             } else {
-                                if (b == "invis") {
-                                    socket.emit("ability", {name: "invis"})
+                                var g = get_nearby_hostiles({
+                                    range: character.range - 2,
+                                    limit: 3
+                                })
+                                    , a = [];
+                                g.forEach(function(l) {
+                                    a.push(l.id)
+                                });
+                                socket.emit("skill", {
+                                    name: "3shot",
+                                    ids: a
+                                })
+                            }
+                        } else {
+                            if (b == "5shot") {
+                                if (is_array(h)) {
+                                    socket.emit("skill", {
+                                        name: "5shot",
+                                        ids: h
+                                    })
                                 } else {
-                                    if (b == "supershot") {
-                                        socket.emit("ability", {name: "supershot", id: c.id})
+                                    var g = get_nearby_hostiles({
+                                        range: character.range - 2,
+                                        limit: 5
+                                    })
+                                        , a = [];
+                                    g.forEach(function(l) {
+                                        a.push(l.id)
+                                    });
+                                    socket.emit("skill", {
+                                        name: "5shot",
+                                        ids: a
+                                    })
+                                }
+                            } else {
+                                if (in_arr(b, ["invis", "partyheal", "darkblessing", "agitate", "cleave", "stomp", "charge", "light", "hardshell", "track", "warcry", "mcourage"])) {
+                                    socket.emit("skill", {
+                                        name: b
+                                    })
+                                } else {
+                                    if (in_arr(b, ["supershot", "quickpunch", "quickstab", "taunt", "curse", "burst", "4fingers", "magiport", "absorb", "mluck", "rspeed"])) {
+                                        socket.emit("skill", {
+                                            name: b,
+                                            id: h
+                                        })
                                     } else {
-                                        if (b == "curse" && c) {
-                                            socket.emit("ability", {name: "curse", id: c.id})
+                                        if (b == "pcoat") {
+                                            var d = item_position("poison");
+                                            if (d === undefined) {
+                                                add_log("You don't have a poison sack", "gray");
+                                                return
+                                            }
+                                            socket.emit("skill", {
+                                                name: "pcoat",
+                                                num: d
+                                            })
                                         } else {
-                                            if (b == "pcoat") {
-                                                var a = item_position("poison");
-                                                if (a === undefined) {
-                                                    add_log("You don't have a poison sack", "gray");
+                                            if (b == "revive") {
+                                                var d = item_position("essenceoflife");
+                                                if (d === undefined) {
+                                                    add_log("You don't have an essence", "gray");
                                                     return
                                                 }
-                                                socket.emit("ability", {name: "pcoat", num: a})
+                                                socket.emit("skill", {
+                                                    name: "revive",
+                                                    num: d,
+                                                    id: h
+                                                })
+                                            } else {
+                                                if (b == "poisonarrow") {
+                                                    var d = item_position("poison");
+                                                    if (d === undefined) {
+                                                        add_log("You don't have a poison sack", "gray");
+                                                        return
+                                                    }
+                                                    socket.emit("skill", {
+                                                        name: "poisonarrow",
+                                                        num: d,
+                                                        id: h
+                                                    })
+                                                } else {
+                                                    if (b == "shadowstrike" || b == "phaseout") {
+                                                        var d = item_position("shadowstone");
+                                                        if (d === undefined) {
+                                                            add_log("You don't have any shadow stones", "gray");
+                                                            return
+                                                        }
+                                                        socket.emit("skill", {
+                                                            name: b,
+                                                            num: d
+                                                        })
+                                                    } else {
+                                                        if (b == "blink") {
+                                                            socket.emit("skill", {
+                                                                name: "blink",
+                                                                x: h[0],
+                                                                y: h[1]
+                                                            })
+                                                        } else {
+                                                            if (b == "energize") {
+                                                                socket.emit("skill", {
+                                                                    name: "energize",
+                                                                    id: h,
+                                                                    mana: k
+                                                                })
+                                                            } else {
+                                                                if (b == "stack") {
+                                                                    on_skill("attack")
+                                                                } else {
+                                                                    add_log("Skill not found: " + b, "gray")
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -237,38 +418,432 @@ function use_skill(b, c) {
         }
     }
 }
+function on_skill(d, h) {
+    var a = keymap[d]
+        , c = a && a.name || a;
+    if (!a) {
+        return
+    }
+    if (a.type == "item") {
+        var b = -1;
+        for (i = character.items.length - 1; i >= 0; i--) {
+            if (character.items[i] && character.items[i].name == a.name) {
+                b = i;
+                break
+            }
+        }
+        if (b > 0) {
+            var g = character.items[b];
+            if (G.items[g.name].type == "stand") {
+                if (character.stand) {
+                    socket.emit("merchant", {
+                        close: 1
+                    })
+                } else {
+                    socket.emit("merchant", {
+                        num: b
+                    })
+                }
+            } else {
+                socket.emit("equip", {
+                    num: b
+                })
+            }
+        } else {
+            add_log("Item not found", "gray")
+        }
+    } else {
+        if (c == "attack") {
+            if (ctarget && ctarget.id) {
+                socket.emit("attack", {
+                    id: ctarget.id
+                })
+            } else {
+                add_log("No target", "gray")
+            }
+        } else {
+            if (c == "heal") {
+                if (ctarget && ctarget.id) {
+                    socket.emit("heal", {
+                        id: ctarget.id
+                    })
+                } else {
+                    add_log("No target", "gray")
+                }
+            } else {
+                if (c == "blink") {
+                    if (h) {
+                        blink_pressed = true
+                    }
+                    last_blink_pressed = new Date()
+                } else {
+                    if (c == "move_up") {
+                        next_minteraction = "up";
+                        setTimeout(arrow_movement_logic, 40)
+                    } else {
+                        if (c == "move_down") {
+                            next_minteraction = "down";
+                            setTimeout(arrow_movement_logic, 40)
+                        } else {
+                            if (c == "move_left") {
+                                next_minteraction = "left";
+                                setTimeout(arrow_movement_logic, 40)
+                            } else {
+                                if (c == "move_right") {
+                                    next_minteraction = "right";
+                                    setTimeout(arrow_movement_logic, 40)
+                                } else {
+                                    if (c == "esc") {
+                                        esc_pressed()
+                                    } else {
+                                        if (c == "travel") {
+                                            render_travel()
+                                        } else {
+                                            if (c == "gm") {
+                                                var f = [];
+                                                hide_modal();
+                                                f.push({
+                                                    button: "Jump",
+                                                    onclick: function() {
+                                                        socket.emit("gm", {
+                                                            action: "jump_list"
+                                                        })
+                                                    }
+                                                });
+                                                f.push({
+                                                    button: "Invincible",
+                                                    onclick: function() {
+                                                        socket.emit("gm", {
+                                                            action: "invincible"
+                                                        });
+                                                        hide_modal()
+                                                    }
+                                                });
+                                                f.push({
+                                                    button: "Mute",
+                                                    onclick: function() {
+                                                        hide_modal();
+                                                        get_input({
+                                                            button: "Mute",
+                                                            onclick: function() {
+                                                                socket.emit("gm", {
+                                                                    action: "mute",
+                                                                    id: $(".mglocx").val()
+                                                                });
+                                                                hide_modal()
+                                                            },
+                                                            input: "mglocx",
+                                                            placeholder: "Name",
+                                                            title: "Character"
+                                                        })
+                                                    }
+                                                });
+                                                f.push({
+                                                    button: "Jail",
+                                                    onclick: function() {
+                                                        hide_modal();
+                                                        get_input({
+                                                            button: "Jail",
+                                                            onclick: function() {
+                                                                socket.emit("gm", {
+                                                                    action: "jail",
+                                                                    id: $(".mglocx").val()
+                                                                });
+                                                                hide_modal()
+                                                            },
+                                                            input: "mglocx",
+                                                            placeholder: "Name",
+                                                            title: "Character"
+                                                        })
+                                                    }
+                                                });
+                                                get_input({
+                                                    no_wrap: true,
+                                                    elements: f
+                                                })
+                                            } else {
+                                                if (c == "interact") {
+                                                    npc_focus()
+                                                } else {
+                                                    if (c == "toggle_inventory") {
+                                                        render_inventory()
+                                                    } else {
+                                                        if (c == "toggle_character") {
+                                                            toggle_character()
+                                                        } else {
+                                                            if (c == "toggle_stats") {
+                                                                toggle_stats()
+                                                            } else {
+                                                                if (c == "open_snippet") {
+                                                                    show_snippet()
+                                                                } else {
+                                                                    if (c == "toggle_run_code") {
+                                                                        toggle_runner()
+                                                                    } else {
+                                                                        if (c == "toggle_code") {
+                                                                            toggle_code();
+                                                                            if (code) {
+                                                                                setTimeout(function() {
+                                                                                    try {
+                                                                                        codemirror_render.focus()
+                                                                                    } catch (j) {}
+                                                                                }, 1)
+                                                                            }
+                                                                        } else {
+                                                                            if (c == "snippet") {
+                                                                                code_eval(a.code)
+                                                                            } else {
+                                                                                if (c == "eval" || c == "pure_eval") {
+                                                                                    smart_eval(a.code)
+                                                                                } else {
+                                                                                    if (c == "magiport") {
+                                                                                        get_input({
+                                                                                            small: true,
+                                                                                            button: "Engage",
+                                                                                            onclick: function() {
+                                                                                                use_skill("magiport", $(".mglocx").val());
+                                                                                                hide_modal()
+                                                                                            },
+                                                                                            input: "mglocx",
+                                                                                            placeholder: "Name",
+                                                                                            title: "Magiport"
+                                                                                        })
+                                                                                    } else {
+                                                                                        use_skill(c, ctarget)
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+function on_skill_up(c) {
+    var a = keymap[c]
+        , b = a && a.name || a;
+    if (!a) {
+        return
+    }
+    if (a == "blink") {
+        blink_pressed = false;
+        last_blink_pressed = new Date()
+    }
+}
+function map_keys_and_skills() {
+    if (!skillbar.length) {
+        if (character.ctype == "warrior" || character.ctype == "rogue") {
+            skillbar = ["1", "2", "3", "Q", "R"]
+        } else {
+            if (character.ctype == "merchant") {
+                skillbar = ["1", "2", "3", "4", "5"]
+            } else {
+                skillbar = ["1", "2", "3", "4", "R"]
+            }
+        }
+    }
+    if (!Object.keys(keymap).length) {
+        if (character.ctype == "warrior") {
+            keymap = {
+                "1": "use_hp",
+                "2": "use_mp",
+                "3": "cleave",
+                "4": "stomp",
+                "5": "agitate",
+                Q: "taunt",
+                R: "charge"
+            }
+        } else {
+            if (character.ctype == "mage") {
+                keymap = {
+                    "1": "use_hp",
+                    "2": "use_mp",
+                    Q: "light",
+                    R: "burst",
+                    "6": "cburst",
+                    B: "blink",
+                    "7": "magiport"
+                }
+            } else {
+                if (character.ctype == "priest") {
+                    keymap = {
+                        "1": "use_hp",
+                        "2": "use_mp",
+                        R: "curse",
+                        "4": "partyheal",
+                        "8": "darkblessing",
+                        H: "heal"
+                    }
+                } else {
+                    if (character.ctype == "ranger") {
+                        keymap = {
+                            "1": "use_hp",
+                            "2": "use_mp",
+                            "3": "3shot",
+                            "5": "5shot",
+                            "6": "4fingers",
+                            R: "supershot"
+                        }
+                    } else {
+                        if (character.ctype == "rogue") {
+                            keymap = {
+                                "1": "use_hp",
+                                "2": "use_mp",
+                                "3": "quickpunch",
+                                "5": "quickstab",
+                                R: "invis",
+                                Q: "pcoat"
+                            }
+                        } else {
+                            if (character.ctype == "merchant") {
+                                keymap = {
+                                    "1": "use_hp",
+                                    "2": "use_mp",
+                                    "3": "mluck"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        keymap.A = "attack";
+        keymap.I = "toggle_inventory";
+        keymap.C = "toggle_character";
+        keymap.U = "toggle_stats";
+        keymap.S = "stop";
+        keymap["\\"] = "toggle_run_code";
+        keymap["\\2"] = "toggle_run_code";
+        keymap["-"] = "toggle_code";
+        keymap[","] = "open_snippet";
+        keymap.F = "interact";
+        keymap.UP = "move_up";
+        keymap.DOWN = "move_down";
+        keymap.LEFT = "move_left";
+        keymap.RIGHT = "move_right";
+        keymap.X = "use_town";
+        keymap["0"] = {
+            name: "snippet",
+            code: "say('Hola')"
+        };
+        keymap.L = {
+            name: "snippet",
+            code: "loot()"
+        };
+        keymap.ESC = "esc";
+        keymap.T = "travel";
+        keymap.TAB = {
+            name: "pure_eval",
+            code: "var list=get_nearby_hostiles(); if(list.length) ctarget=list[0];"
+        };
+        keymap.N = {
+            name: "pure_eval",
+            code: "options.show_names=!options.show_names;"
+        };
+        keymap.ENTER = {
+            name: "pure_eval",
+            code: "focus_chat()"
+        };
+        keymap.SPACE = {
+            name: "stand0",
+            type: "item"
+        }
+    }
+    for (name in keymap) {
+        if (keymap[name].keycode) {
+            K[keymap[name].keycode] = name
+        }
+    }
+}
+function move(a, f) {
+    var d = d
+        , b = calculate_move(M, character.real_x, character.real_y, parseFloat(a) || 0, parseFloat(f) || 0);
+    character.from_x = character.real_x;
+    character.from_y = character.real_y;
+    character.going_x = b.x;
+    character.going_y = b.y;
+    character.moving = true;
+    calculate_vxy(character);
+    var c = {
+        x: character.real_x,
+        y: character.real_y,
+        going_x: character.going_x,
+        going_y: character.going_y,
+        m: character.m
+    };
+    if (next_minteraction) {
+        c.key = next_minteraction,
+            next_minteraction = null
+    }
+    socket.emit("move", c)
+}
+function arrow_movement_logic() {
+    if (!window.character || !window.options.move_with_arrows) {
+        return
+    }
+    if (up_pressed && left_pressed) {
+        move(character.real_x - 50, character.real_y - 50)
+    } else {
+        if (up_pressed && right_pressed) {
+            move(character.real_x + 50, character.real_y - 50)
+        } else {
+            if (up_pressed) {
+                move(character.real_x, character.real_y - 50)
+            } else {
+                if (left_pressed && down_pressed) {
+                    move(character.real_x - 50, character.real_y + 50)
+                } else {
+                    if (left_pressed) {
+                        move(character.real_x - 50, character.real_y)
+                    } else {
+                        if (right_pressed && down_pressed) {
+                            move(character.real_x + 50, character.real_y + 50)
+                        } else {
+                            if (right_pressed) {
+                                move(character.real_x + 50, character.real_y)
+                            } else {
+                                if (down_pressed) {
+                                    move(character.real_x, character.real_y + 50)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+function focus_chat() {
+    if (inventory) {
+        return
+    }
+    $(":focus").blur();
+    if (last_say != "normal" && in_arr(last_say, cwindows) && !in_arr(last_say, docked)) {
+        $("#chati" + last_say).focus()
+    } else {
+        $("#chatinput").focus()
+    }
+}
 function gallery_click(a) {
-    return;
-    render_item("#topleftcornerdialog", {id: "buying" + a, item: G.items[a], name: a, buying: true})
+
 }
 function inventory_click(a) {
     return;
-    if (character.items[a]) {
-        if (character.items[a].name == "computer") {
-            return render_computer_network(".inventory-item")
-        }
-        render_item(".inventory-item", {
-            id: "citem" + a,
-            item: G.items[character.items[a].name],
-            name: character.items[a].name,
-            actual: character.items[a],
-            num: a
-        })
-    }
 }
 function slot_click(a) {
-    return;
-    if (ctarget && ctarget.slots && ctarget.slots[a]) {
-        dialogs_target = ctarget;
-        render_item("#topleftcornerdialog", {
-            id: "item" + a,
-            item: G.items[ctarget.slots[a].name],
-            name: ctarget.slots[a].name,
-            actual: ctarget.slots[a],
-            slot: a,
-            from_player: ctarget.id
-        })
-    }
 }
 function get_player(a) {
     var b = null;
@@ -283,7 +858,7 @@ function get_player(a) {
     return b
 }
 function get_entity(a) {
-    if (character && a == character.id) {
+    if (character && (a == character.id || a == character.name)) {
         return character
     }
     return entities[a]
@@ -303,6 +878,17 @@ function target_player(a) {
         return
     }
     ctarget = b
+}
+function travel_p(a) {
+    if (party[a] && party[a]["in"] == party[a].map) {
+        call_code_function("smart_move", {
+            x: party[a].x,
+            y: party[a].y,
+            map: party[a].map
+        })
+    } else {
+        add_log("Can't find " + a, "gray")
+    }
 }
 function party_click(a) {
     var b = null;
@@ -338,7 +924,9 @@ function attack_click() {
     }
 }
 function code_button_click(a) {
-    var d = $(a), f = d.data("id"), c = code_buttons[f].fn;
+    var d = $(a)
+        , f = d.data("id")
+        , c = code_buttons[f].fn;
     if (c) {
         document.getElementById("maincode").contentWindow.buttons[f].fn()
     }
@@ -348,16 +936,18 @@ function npc_focus() {
     if (!character) {
         return
     }
-    map_npcs.forEach(function (d) {
+    map_npcs.forEach(function(d) {
         b = distance(d, character);
         if (b < c) {
-            c = b, a = d
+            c = b,
+                a = d
         }
     });
-    map_doors.forEach(function (d) {
+    map_doors.forEach(function(d) {
         b = distance(d, character);
         if (b < c) {
-            c = b, a = d
+            c = b,
+                a = d
         }
     });
     if (a) {
@@ -365,6 +955,15 @@ function npc_focus() {
     } else {
         add_log("Nothing nearby", "gray")
     }
+}
+function locate_item(a) {
+    var c = 0;
+    for (var b = 0; b < character.items.length; b++) {
+        if (character.items[b] && character.items[b].name == a) {
+            c = b
+        }
+    }
+    return c
 }
 function show_configure() {
     add_log("Coming soon: Settings, Sounds, Music", "gray");
@@ -386,12 +985,67 @@ function transport_to(a, b) {
         add_log("Can't reach the desertland. Yet.", "gray");
         return
     }
-    socket.emit("transport", {to: a, s: b})
+    socket.emit("transport", {
+        to: a,
+        s: b
+    })
 }
-function show_snippet() {
-    return;
-
+function show_transports() {
 }
+function hide_transports() {
+}
+function eval_snippet() {
+}
+function show_snippet(b) {
+}
+function eval_character_snippet(a) {
+    a = a.toLowerCase();
+    character_code_eval(a, window["codemirror_render" + a].getValue())
+}
+function show_character_snippet(a) {
+}
+function get_active_characters() {
+    var a = {};
+    if (!character) {
+        return a
+    }
+    a[character.name] = "self";
+    //TODO implement method to receive active characters
+    return a
+}
+function character_code_eval(name, snippet) {
+    var rid = "ichar" + name.toLowerCase();
+    var weval = document.getElementById(rid) && document.getElementById(rid).contentWindow && document.getElementById(rid).contentWindow.eval;
+    if (!weval) {
+        add_log("Character not found!", "#993D42");
+        return undefined
+    }
+    if (document.getElementById(rid).contentWindow.code_active) {
+        document.getElementById(rid).contentWindow.call_code_function("eval", snippet)
+    } else {
+        if (document.getElementById(rid).contentWindow.code_run) {
+            add_log("CODE is warming up", "#DC9E48")
+        } else {
+            document.getElementById(rid).contentWindow.start_runner(0, "\nset_message('Snippet');\n" + snippet)
+        }
+    }
+}
+function character_window_eval(name, snippet) {
+    var rid = "ichar" + name.toLowerCase();
+    var weval = document.getElementById(rid) && document.getElementById(rid).contentWindow && document.getElementById(rid).contentWindow.eval;
+    if (!weval) {
+        add_log("Character not found!", "#993D42");
+        return undefined
+    }
+    var result = true;
+    try {
+        weval(snippet)
+    } catch (e) {
+        result = false
+    }
+    return result
+}
+function character_load_code() {}
 function code_eval(a) {
     throw new Error("code_eval is not supported.");
     if (code_active) {
@@ -404,18 +1058,22 @@ function code_eval(a) {
         }
     }
 }
+function code_travel(a) {
+    if (character.role == "gm") {
+        socket.emit("transport", {
+            to: a
+        })
+    } else {
+        code_eval("smart_move({map:'" + a + "'})")
+    }
+}
 function eval_snippet() {
-    throw new Error("eval_snippet is not supported.");
-    code_eval(codemirror_rewnder3.getValue())
 }
 function start_runner(a, b) {
-    throw new Error("start_runner is not supported.");
 }
 function stop_runner(a) {
-    throw new Error("stop_runner is not supported.");
 }
 function code_persistence_logic() {
-    throw new Error("code_persistence_logic is not supported.");
 }
 function toggle_runner() {
     if (code_run) {
@@ -445,7 +1103,6 @@ function load_code(a, b) {
     api_call("load_code", {name: a, run: "", log: b})
 }
 function toggle_code() {
-    throw new Error("toggle_code is not supported.");
 }
 function start_timer(a) {
 
@@ -561,6 +1218,19 @@ function trade_buy(d, c, a, b) {
     b = b || 1;
     socket.emit("trade_buy", {slot: d, id: c, rid: a, q: b});
 }
+function secondhand_buy(a) {
+    socket.emit("sbuy", {
+        rid: a
+    })
+}
+function buy_shells(a) {
+    if ((a * 15000000 / 100) > character.gold) {
+    } else {
+        socket.emit("buy_shells", {
+            gold: (a * 15000000 / 100)
+        });
+    }
+}
 function buy(a, b) {
     if (mssince(last_npc_right_click) < 100) {
         return
@@ -601,88 +1271,182 @@ function say(g, f) {
     last_say = "normal";
     if (g[0] == "/") {
         g = g.substr(1, 2000);
-        var d = g.split(" "), h = d.shift(), c = d.join(" ");
+        var d = g.split(" ")
+            , h = d.shift()
+            , c = d.join(" ");
         if (h == "help" || h == "list" || h == "") {
             add_chat("", "/list");
             add_chat("", "/guide");
             add_chat("", "/invite NAME");
             add_chat("", "/friend NAME");
-            add_chat("", "/whisper NAME things");
-            add_chat("", "/p things");
+            add_chat("", "/leave");
+            add_chat("", "/whisper NAME MESSAGE");
+            add_chat("", "/p MESSAGE");
             add_chat("", "/ping");
+            add_chat("", "/pause");
             add_chat("", "/eval CODE");
-            add_chat("", "/snippet")
+            add_chat("", "/snippet");
+            add_chat("", "/start CHARACTERNAME");
+            add_chat("", "/stop CHARACTERNAME");
+            add_chat("", "/stop");
+            add_chat("", "/stop invis");
+            add_chat("", "/stop teleport");
+            add_chat("", "/disconnect");
+            add_chat("", "/disconnect CHARACTERNAME");
+            if (is_electron) {
+                add_chat("", "/new_window")
+            }
         } else {
-            if (h == "p") {
-                party_say(c)
+            if (is_electron && (h == "new_window" || h == "window" || h == "newwindow")) {
+                window.open(base_url, "", {
+                    width: $(window).width(),
+                    height: $(window).height()
+                })
             } else {
-                if (h == "snippet") {
-                    show_snippet()
+                if (h == "start") {
+                    var b = c.split(" ")
+                        , a = b.shift();
+                    if (a) {
+                        start_character_runner(a)
+                    }
                 } else {
-                    if (h == "eval" || h == "execute") {
-                        code_eval(c)
+                    if (h == "leave") {
+                        socket.emit("party", {
+                            event: "leave"
+                        })
                     } else {
-                        if (h == "w" || h == "whisper") {
-                            var b = c.split(" "), a = b.shift(), c = b.join(" ");
-                            if (!a || !c) {
-                                add_chat("", "Format: /w NAME MESSAGE")
+                        if (h == "stop") {
+                            var b = c.split(" ")
+                                , a = b.shift();
+                            if (!a || a == "teleport") {
+                                use_skill("stop")
                             } else {
-                                private_say(a, c)
+                                if (a == "invis") {
+                                    socket.emit("stop", {
+                                        action: "invis"
+                                    })
+                                } else {
+                                    stop_character_runner(a)
+                                }
                             }
                         } else {
-                            if (h == "savecode") {
-                                var b = c.split(" "), j = b.shift(), a = b.join(" ");
-                                if (j.length && !parseInt(j)) {
-                                    add_chat("", "/savecode NUMBER NAME");
-                                    add_chat("", "NUMBER can be from 1 to 100")
+                            if (h == "disconnect") {
+                                var b = c.split(" ")
+                                    , a = b.shift();
+                                if (!a) {
+                                    window.location = base_url
                                 } else {
-                                    if (!j) {
-                                        j = 1
-                                    }
-                                    api_call("save_code", {code: codemirror_render.getValue(), slot: j, name: a})
+                                    api_call("disconnect_character", {
+                                        name: a
+                                    })
                                 }
                             } else {
-                                if (h == "loadcode" || h == "runcode") {
-                                    var b = c.split(" "), a = b.shift();
-                                    if (!a) {
-                                        a = 1
-                                    }
-                                    api_call("load_code", {name: a, run: (h == "runcode" && "1" || "")})
+                                if (h == "p") {
+                                    party_say(c)
                                 } else {
-                                    if (h == "ping") {
-                                        ping()
+                                    if (h == "pause") {
+                                        pause()
                                     } else {
-                                        if (h == "whisper") {
-                                            if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
-                                                private_say(ctarget.name, c)
-                                            } else {
-                                                add_chat("", "Target someone to whisper")
-                                            }
+                                        if (h == "snippet") {
+                                            show_snippet()
                                         } else {
-                                            if (h == "party" || h == "invite") {
-                                                var b = c.split(" "), a = b.shift();
-                                                if (a && a.length) {
-                                                    socket.emit("party", {event: "invite", name: a})
-                                                } else {
-                                                    if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
-                                                        socket.emit("party", {event: "invite", id: ctarget.id})
-                                                    } else {
-                                                        add_chat("", "Target someone to invite")
-                                                    }
-                                                }
+                                            if (h == "eval" || h == "execute") {
+                                                code_eval(c)
                                             } else {
-                                                if (h == "friend") {
-                                                    var b = c.split(" "), a = b.shift();
-                                                    if (a && a.length) {
-                                                        socket.emit("friend", {event: "request", name: a})
+                                                if (h == "w" || h == "whisper" || h == "pm") {
+                                                    var b = c.split(" ")
+                                                        , a = b.shift()
+                                                        , c = b.join(" ");
+                                                    if (!a || !c) {
+                                                        add_chat("", "Format: /w NAME MESSAGE")
                                                     } else {
-                                                        if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
-                                                            socket.emit("friend", {
-                                                                event: "request",
-                                                                name: ctarget.name
+                                                        private_say(a, c)
+                                                    }
+                                                } else {
+                                                    if (h == "savecode") {
+                                                        var b = c.split(" ")
+                                                            , j = b.shift()
+                                                            , a = b.join(" ");
+                                                        if (j.length && !parseInt(j)) {
+                                                            add_chat("", "/savecode NUMBER NAME");
+                                                            add_chat("", "NUMBER can be from 1 to 100")
+                                                        } else {
+                                                            if (!j) {
+                                                                j = 1
+                                                            }
+                                                            api_call("save_code", {
+                                                                code: codemirror_render.getValue(),
+                                                                slot: j,
+                                                                name: a
+                                                            })
+                                                        }
+                                                    } else {
+                                                        if (h == "loadcode" || h == "runcode") {
+                                                            var b = c.split(" ")
+                                                                , a = b.shift();
+                                                            if (!a) {
+                                                                a = 1
+                                                            }
+                                                            api_call("load_code", {
+                                                                name: a,
+                                                                run: (h == "runcode" && "1" || "")
                                                             })
                                                         } else {
-                                                            add_chat("", "Target someone to friend")
+                                                            if (h == "ping") {
+                                                                ping()
+                                                            } else {
+                                                                if (h == "whisper") {
+                                                                    if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
+                                                                        private_say(ctarget.name, c)
+                                                                    } else {
+                                                                        add_chat("", "Target someone to whisper")
+                                                                    }
+                                                                } else {
+                                                                    if (h == "party" || h == "invite") {
+                                                                        var b = c.split(" ")
+                                                                            , a = b.shift();
+                                                                        if (a && a.length) {
+                                                                            socket.emit("party", {
+                                                                                event: "invite",
+                                                                                name: a
+                                                                            })
+                                                                        } else {
+                                                                            if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
+                                                                                socket.emit("party", {
+                                                                                    event: "invite",
+                                                                                    id: ctarget.id
+                                                                                })
+                                                                            } else {
+                                                                                add_chat("", "Target someone to invite")
+                                                                            }
+                                                                        }
+                                                                    } else {
+                                                                        if (h == "friend") {
+                                                                            var b = c.split(" ")
+                                                                                , a = b.shift();
+                                                                            if (a && a.length) {
+                                                                                socket.emit("friend", {
+                                                                                    event: "request",
+                                                                                    name: a
+                                                                                })
+                                                                            } else {
+                                                                                if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
+                                                                                    socket.emit("friend", {
+                                                                                        event: "request",
+                                                                                        name: ctarget.name
+                                                                                    })
+                                                                                } else {
+                                                                                    add_chat("", "Target someone to friend")
+                                                                                }
+                                                                            }
+                                                                        } else {
+                                                                            if (h == "guide") {
+                                                                            } else {
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -697,20 +1461,34 @@ function say(g, f) {
             }
         }
     } else {
-        socket.emit("say", {message: g, code: f})
+        socket.emit("say", {
+            message: g,
+            code: f
+        })
     }
 }
 function activate(a) {
-    socket.emit("booster", {num: a, action: "activate"})
+    socket.emit("booster", {
+        num: a,
+        action: "activate"
+    })
 }
 function shift(a, b) {
-    socket.emit("booster", {num: a, action: "shift", to: b})
+    socket.emit("booster", {
+        num: a,
+        action: "shift",
+        to: b
+    })
 }
 function open_merchant(a) {
-    socket.emit("merchant", {num: a})
+    socket.emit("merchant", {
+        num: a
+    })
 }
 function close_merchant() {
-    socket.emit("merchant", {close: 1})
+    socket.emit("merchant", {
+        close: 1
+    })
 }
 function upgrade(u_item,u_scroll,u_offering) {
     if (u_item == null || (u_scroll == null && u_offering == null)) {
@@ -730,16 +1508,24 @@ function deposit(a) {
         return
     }
     a = a.replace_all(",", "").replace_all(".", "");
-    socket.emit("bank", {operation: "deposit", amount: parseInt(a)})
+    socket.emit("bank", {
+        operation: "deposit",
+        amount: parseInt(a)
+    })
 }
 function withdraw(a) {
     if (!G.maps[current_map].mount) {
         add_log("Not in the bank.", "gray");
         return;
     }
-    socket.emit("bank", {operation: "withdraw", amount: parseInt(a)})
+    socket.emit("bank", {
+        operation: "withdraw",
+        amount: parseInt(a)
+    })
 }
-var exchange_animations = false, last_excanim = new Date(), exclast = 0;
+var exchange_animations = false
+    , last_excanim = new Date()
+    , exclast = 0;
 var exccolors1 = ["#f1c40f", "#f39c12", "#e74c3c", "#c0392b", "#8e44ad", "#9b59b6", "#2980b9", "#3498db", "#1abc9c"];
 var exccolorsl = ["#CD6F1A", "#A95C15"];
 var exccolorsg = ["#EFD541", "#9495AC"];
@@ -776,7 +1562,10 @@ function exchange(e_item, a) {
             if (!exchange_animations) {
                 return
             }
-            socket.emit("exchange", {item_num: d, q: f})
+            socket.emit("exchange", {
+                item_num: d,
+                q: f
+            })
         }
     }
 
@@ -810,18 +1599,26 @@ function craft(i0,i1,i2,i3,i4,i5,i6,i7,i8) {
     var a = [i0,i1,i2,i3,i4,i5,i6,i7,i8], b = false;
     for (var c = 0; c < 9; c++) {
         if (cr_items[c] || cr_items[c] === 0) {
-            b = true, a.push([c, cr_items[c]])
+            b = true,
+                a.push([c, cr_items[c]])
         }
     }
     if (!b) {
         d_text("INVALID", character)
     } else {
-        socket.emit("craft", {items: a})
+        socket.emit("craft", {
+            items: a
+        })
     }
+}
+function dismantle() {
+    socket.emit("dismantle", {
+        num: ds_item
+    })
 }
 function reopen() {
     u_scroll = c_scroll = e_item = null;
-    draw_trigger(function () {
+    draw_trigger(function() {
         if (rendered_target == "upgrade") {
             render_upgrade_shrine()
         } else {
@@ -909,6 +1706,15 @@ function reset_inventory(a) {
         }
         render_inventory(), render_inventory()
     }
+}
+function open_chest(b) {
+    var a = chests[b];
+    if (a.openning && ssince(a.openning) < 5) {
+        return
+    }
+    socket.emit("open_chest", {
+        id: b
+    })
 }
 function generate_textures(b, l) {
     return;
@@ -1427,7 +2233,9 @@ function use(c) {
         })
     }
     if (!a) {
-        socket.emit("use", {item: c})
+        socket.emit("use", {
+            item: c
+        })
     }
 }
 var tint_c = {a: 0, p: 0, t: 0};
@@ -1647,19 +2455,9 @@ function ui_success(a) {
 }
 var code_list = {};
 function load_code_s(a) {
-    $(".csharp").val("" + a);
-    $(".codename").val(code_list[a])
 }
 function save_code_s() {
-    if (!$(".csharp").val()) {
-        return
-    }
-    api_call("save_code", {
-        code: codemirror_render.getValue(),
-        slot: $(".csharp").val(),
-        name: $(".codename").val(),
-        log: 1
-    })
+
 }
 function handle_information(g) {
     for (var f = 0; f < g.length; f++) {
@@ -1701,21 +2499,17 @@ function handle_information(g) {
         }
         if (in_arr(info.type, ["ui_error", "error"])) {
             if (inside == "message") {
-                //$("#message").html(info.message)
             } else {
                 ui_error(info.message)
             }
         }
         if (in_arr(info.type, ["success"])) {
             if (inside == "message") {
-                $("#message").html(info.message)
             } else {
                 ui_success(info.message)
             }
         } else {
             if (info.type == "content") {
-                //$("#content").html(info.html);
-                //resize()
             } else {
                 if (info.type == "eval") {
                     smart_eval(info.code)

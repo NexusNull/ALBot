@@ -1,12 +1,42 @@
 //#NOTE: If you want to see a new function/feature, just request it at: https://github.com/kaansoral/adventureland/issues
 
 var safeties=true;
-
+var game = {};
 server={
     mode:parent.gameplay,
     pvp:parent.is_pvp,
     region:parent.server_region,
     id:parent.server_identifier,
+}
+
+function start_character(name,code_slot_or_name)
+{
+    // Loads a character in [CODE] mode
+    //TODO implement
+    parent.start_character_runner(name,code_slot_or_name)
+}
+
+function stop_character(name)
+{
+    parent.stop_character_runner(name)
+}
+
+function command_character(name,code_snippet)
+{
+    // Commands the character in [CODE] mode
+    parent.character_code_eval(name,code_snippet)
+}
+
+function get_active_characters()
+{
+    // States: "self", "starting","loading", "active", "code"
+    // Example: {"Me":"self","Protector":"loading"}
+    return parent.get_active_characters()
+}
+
+function is_pvp()
+{
+    return G.maps[character.map].pvp || server.is_pvp;
 }
 
 function is_npc(entity)
@@ -23,7 +53,9 @@ function is_player(entity)
 {
     if(entity && entity.type=="character" && !entity.npc) return true;
 }
-function is_character(e){return is_player(e);}
+function is_character(e){
+    return is_player(e);
+}
 
 function activate(num) // activates an item, likely a booster, in the num-th inventory slot
 {
@@ -81,6 +113,16 @@ function item_value(item) // example: item_value(character.items[0])
     return calculate_item_value(item);
 }
 
+function is_paused()
+{
+    return true;
+}
+
+function pause() // Pauses the Graphics
+{
+    //Well what did you expect, there is nothing to pause here
+}
+
 function get_socket()
 {
     return parent.socket;
@@ -93,12 +135,12 @@ function get_map()
 
 function set_message(text,color)
 {
+    //TODO implement transfer to BWI
 }
 
 function game_log(message,color)
 {
-    if(!color) color="#51D2E1";
-    parent.add_log(message,color);
+    parent.add_log(message);
 }
 
 function get_target_of(entity) // .target is a Name for Monsters and `id` for Players - this function return whatever the entity in question is targeting
@@ -115,7 +157,8 @@ function get_target_of(entity) // .target is a Name for Monsters and `id` for Pl
 
 function get_target()
 {
-    return parent.ctarget;
+    if(parent.ctarget && !parent.ctarget.dead) return parent.ctarget;
+    return null;
 }
 
 function get_targeted_monster()
@@ -140,6 +183,12 @@ function can_move_to(x,y)
 {
     if(is_object(x)) y=x.real_y,x=x.real_x;
     return can_move({map:character.map,x:character.real_x,y:character.real_y,going_x:x,going_y:y});
+}
+
+function xmove(x,y)
+{
+    if(can_move_to(x,y)) move(x,y);
+    else smart_move({x:x,y:y});
 }
 
 function in_attack_range(target) // also works for priests/heal
@@ -235,7 +284,8 @@ function compound(item0,item1,item2,scroll_num,offering_num) // for example -> c
 }
 
 function craft(i0,i1,i2,i3,i4,i5,i6,i7,i8)
-
+// for example -> craft(null,0,null,null,1,null,null,2,null)
+// sends 3 items to be crafted, the 0th, 1st, 2nd items in your inventory, and it places them all in the middle column of crafting
 {
     parent.craft(i0,i1,i2,i3,i4,i5,i6,i7,i8);
 }
@@ -249,6 +299,11 @@ function exchange(item_num)
 function say(message) // please use responsibly, thank you! :)
 {
     parent.say(message,1);
+}
+
+function pm(name,message) // please use MORE responsibly, thank you! :)
+{
+    parent.private_say(name,message,0)
 }
 
 function move(x,y)
@@ -313,7 +368,7 @@ function get_nearest_hostile(args) // mainly as an example [08/02/17]
     var min_d=999999,target=null;
 
     if(!args) args={};
-    if(args.friendship===undefined) args.friendship=true;
+    if(args.friendship===undefined && character.owner) args.friendship=true;
 
     for(id in parent.entities)
     {
@@ -342,8 +397,12 @@ function use_hp_or_mp()
     if(used) last_potion=new Date();
 }
 
-function loot()
+// loot(true) allows code characters to make their commanders' loot instead, extremely useful [14/01/18]
+function loot(commander)
 {
+    if(commander){
+        console.log("Commander looting is not supported in this version")
+    }
     var looted=0;
     if(safeties && mssince(last_loot)<200) return;
     last_loot=new Date();
@@ -568,28 +627,60 @@ function clear_buttons()
 
 function auto_reload(value)
 {
-    // Configures the game to auto reload in case you disconnect due to rare network issues
-    if(value===false) parent.auto_reload="off";
-    else if(value=="auto") parent.auto_reload="auto"; // code or merchant stand
-    else parent.auto_reload="on"; // always reload
+    // The game will always reload when the character goe offline
 }
 
-var game={
-    last:0,
-    callbacks:[],
-    on:function(event,f){
-
-    },
-    once:function(event,f){
-
-    },
-    remove:function(num){
-
-    },
-    trigger:function(event,args){
-
-    },
+game.listeners=[];
+game.all=function(f){
+    var def={f:f,id:randomStr(30),event:"all"};
+    game.listeners.push(def);
+    return def.id;
 };
+game.on=function(event,f){
+    var def={f:f,id:randomStr(30),event:event};
+    game.listeners.push(def);
+    return def.id;
+};
+game.once=function(event,f){
+    var def={f:f,id:randomStr(30),event:event,once:true};
+    game.listeners.push(def);
+    return def.id;
+};
+game.remove=function(id){
+    for(var i=0;i<game.listeners.length;i++)
+    {
+        if(game.listeners[i].id==id)
+        {
+            game.listeners.splice(i,1);
+            break;
+        }
+    }
+};
+game.trigger=function(event,args){
+    var to_delete=[];
+    for(var i=0;i<game.listeners.length;i++)
+    {
+        var l=game.listeners[i];
+        if(l.event==event || l.event=="all")
+        {
+            try{
+                if(l.event=="all") l.f(event,args)
+                else l.f(args,event);
+            }
+            catch(e)
+            {
+                game_log("Listener Exception ("+l.event+") "+e,code_color);
+            }
+            if(l.once || l.f && l.f.delete) to_delete.push(l.id);
+        }
+    }
+    // game_log(to_delete);
+};
+
+function trigger_event(name,data)
+{
+    game.trigger(name,data);
+}
 
 function preview_item(def,args)
 {
@@ -868,6 +959,36 @@ function smart_move_logic()
 }
 
 setInterval(function(){smart_move_logic();},80);
+
+function doneify(fn,s_event,f_event)
+{
+    return function(a,b,c,d,e,f){
+        var rxd=randomStr(30);
+        parent.rxd=rxd;
+        fn(a,b,c,d,e,f);
+        return {done:function(callback){
+                game.once(s_event,function(event){
+                    if(event.rxd==rxd)
+                    {
+                        callback(true,event);
+                        this.delete=true; // remove the .on listener
+                        parent.rxd=null;
+                    }
+                    // else game_log("rxd_mismatch");
+                });
+                game.once(f_event,function(event){
+                    if(event.rxd==rxd)
+                    {
+                        callback(false,event);
+                        this.delete=true; // remove the .on listener
+                        parent.rxd=null;
+                    }
+                    // else game_log("rxd_mismatch");
+                });
+            }};
+    };
+}
+buy=doneify(buy,"buy_success","buy_fail");
 
 //safety flags
 var last_loot=new Date(0);
