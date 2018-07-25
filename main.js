@@ -84,7 +84,6 @@ async function main() {
             {name: "target", type: "text", label: "Target"},
             {name: "status", type: "text", label: "Status"},
             {name: "dps", type: "text", label: "DPS"},
-
         ]);
     }
 

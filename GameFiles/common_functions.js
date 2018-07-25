@@ -1,5 +1,6 @@
 var c_version = 2;
-var EPS = 1e-16;
+var EPS = 1e-8;
+var REPS = ((Number && Number.EPSILON) || EPS);
 var CINF = 999999999999999;
 var colors = {
     range: "#93A6A2",
@@ -43,6 +44,7 @@ var character_slots = ["ring1", "ring2", "earring1", "earring2", "belt", "mainha
 var booster_items = ["xpbooster", "luckbooster", "goldbooster"];
 var can_buy = {};
 function process_game_data() {
+    G.quests = {};
     for (var a in G.monsters) {
         if (G.monsters[a].charge) {
             continue
@@ -70,28 +72,29 @@ function process_game_data() {
         }
         G.monsters[a].max_hp = G.monsters[a].hp
     }
-    for (var b in G.maps) {
-        var d = G.maps[b];
-        if (d.ignore) {
+    for (var a in G.maps) {
+        var b = G.maps[a];
+        if (b.ignore) {
             continue
         }
-        d.items = {};
-        d.merchants = [];
-        d.ref = d.ref || {};
-        (d.npcs || []).forEach(function(f) {
+        var d = b.data = G.geometry[a];
+        b.items = {};
+        b.merchants = [];
+        b.ref = b.ref || {};
+        (b.npcs || []).forEach(function(f) {
             if (!f.position) {
                 return
             }
             var e = {
-                map: b,
-                "in": b,
+                map: a,
+                "in": a,
                 x: f.position[0],
                 y: f.position[1],
                 id: f.id
             }
                 , g = G.npcs[f.id];
             if (g.items) {
-                d.merchants.push(e);
+                b.merchants.push(e);
                 g.items.forEach(function(h) {
                     if (!h) {
                         return
@@ -100,21 +103,21 @@ function process_game_data() {
                         G.items[h].buy_with_cash = true;
                         return
                     }
-                    d.items[h] = d.items[h] || [];
-                    d.items[h].push(e);
+                    b.items[h] = b.items[h] || [];
+                    b.items[h].push(e);
                     can_buy[h] = true;
                     G.items[h].buy = true
                 })
             }
-            d.ref[f.id] = e;
+            b.ref[f.id] = e;
             if (g.role == "newupgrade") {
-                d.upgrade = d.compound = e
+                b.upgrade = b.compound = e
             }
             if (g.role == "exchange") {
-                d.exchange = e
+                b.exchange = e
             }
             if (g.quest) {
-                G["quest_" + g.quest] = e
+                G.quests[g.quest] = e
             }
         })
     }
@@ -296,7 +299,11 @@ function calculate_item_value(c) {
                     g = 1
                 }
             }
-            e *= 3.2;
+            if (f.cash) {
+                e *= 1.5
+            } else {
+                e *= 3.2
+            }
             e += G.items["cscroll" + g].g / 2.4
         }
     }
@@ -583,159 +590,159 @@ function is_in_front(b, a) {
     }
     return false
 }
-function calculate_move_original(f, c, j, a, h) {
-    var e, g = j < h, b = c < a;
-    for (var d = 0; d < (f.x_lines || []).length; d++) {
-        var k = f.x_lines[d];
-        if (!(c <= k[0] && k[0] <= a || a <= k[0] && k[0] <= c)) {
-            continue
-        }
-        e = j + (h - j) * (k[0] - c) / (a - c + EPS);
-        if (!(k[1] <= e && e <= k[2])) {
-            continue
-        }
-        if (g) {
-            h = min(h, e)
-        } else {
-            h = max(h, e)
-        }
-        if (b) {
-            a = min(a, k[0] - 3)
-        } else {
-            a = max(a, k[0] + 3)
-        }
+function calculate_movex(A, k, j, f, e) {
+    if (f == Infinity) {
+        f = CINF
     }
-    for (var d = 0; d < (f.y_lines || []).length; d++) {
-        var k = f.y_lines[d];
-        if (!(j <= k[0] && k[0] <= h || h <= k[0] && k[0] <= j)) {
-            continue
-        }
-        e = c + (a - c) * (k[0] - j) / (h - j + EPS);
-        if (!(k[1] <= e && e <= k[2])) {
-            continue
-        }
-        if (b) {
-            a = min(a, e)
-        } else {
-            a = max(a, e)
-        }
-        if (g) {
-            h = min(h, k[0] - 3)
-        } else {
-            h = max(h, k[0] + 7)
-        }
-    }
-    for (var d = 0; d < (f.x_lines || []).length; d++) {
-        var k = f.x_lines[d];
-        if (!(c <= k[0] && k[0] <= a || a <= k[0] && k[0] <= c)) {
-            continue
-        }
-        e = j + (h - j) * (k[0] - c) / (a - c + EPS);
-        if (!(k[1] <= e && e <= k[2])) {
-            continue
-        }
-        if (g) {
-            h = min(h, e)
-        } else {
-            h = max(h, e)
-        }
-        if (b) {
-            a = min(a, k[0] - 3)
-        } else {
-            a = max(a, k[0] + 3)
-        }
-    }
-    return {
-        x: a,
-        y: h
-    }
-}
-function calculate_movex(x, j, h, e, d) {
     if (e == Infinity) {
         e = CINF
     }
-    if (d == Infinity) {
-        d = CINF
-    }
-    var r = h < d;
-    var y = j < e;
-    var k = x.x_lines || [];
-    var u = x.y_lines || [];
+    var s = j < e;
+    var B = k < f;
+    var l = A.x_lines || [];
+    var x = A.y_lines || [];
+    var r = min(k, f);
+    var z = max(k, f);
     var q = min(j, e);
-    var w = max(j, e);
-    var o = min(h, d);
-    var v = max(h, d);
+    var y = max(j, e);
+    var o = f - k;
     var n = e - j;
-    var m = d - h;
-    var f = m / (n + EPS);
-    var s = 1 / f;
-    for (var t = 0; t < k.length; t++) {
-        var l = k[t];
-        var b = l[0];
-        if (w < b || q > b || v < l[1] || o > l[2]) {
+    var g = n / (o + REPS);
+    var v = 1 / g;
+    var u = 10 * EPS;
+    for (var w = bsearch_start(l, r); w < l.length; w++) {
+        var m = l[w];
+        var b = m[0]
+            , d = b + u;
+        if (B) {
+            d = b - u
+        }
+        if (z < b) {
+            break
+        }
+        if (z < b || r > b || y < m[1] || q > m[2]) {
             continue
         }
-        var g = h + (b - j) * f;
-        if (g < l[1] || g > l[2]) {
+        var h = j + (b - k) * g;
+        if (eps_equal(k, f) && eps_equal(k, b)) {
+            d = b;
+            if (s) {
+                h = min(m[1], m[2]) - u,
+                    e = min(e, h),
+                    y = e
+            } else {
+                q = h = max(m[1], m[2]) + u,
+                    e = min(e, h),
+                    q = e
+            }
             continue
         }
-        if (r) {
-            d = min(d, g);
-            v = d
-        } else {
-            d = max(d, g);
-            o = d
+        if (h < m[1] || h > m[2]) {
+            continue
         }
-        if (y) {
-            e = min(e, b - 3);
-            w = e
+        if (s) {
+            e = min(e, h);
+            y = e
         } else {
-            e = max(e, b + 3);
+            e = max(e, h);
             q = e
+        }
+        if (B) {
+            f = min(f, d);
+            z = f
+        } else {
+            f = max(f, d);
+            r = f
         }
     }
-    for (var t = 0; t < u.length; t++) {
-        var l = u[t];
-        var a = l[0];
-        if (v < a || o > a || w < l[1] || q > l[2]) {
+    for (var w = bsearch_start(x, q); w < x.length; w++) {
+        var m = x[w];
+        var a = m[0]
+            , t = a + u;
+        if (s) {
+            t = a - u
+        }
+        if (y < a) {
+            break
+        }
+        if (y < a || q > a || z < m[1] || r > m[2]) {
             continue
         }
-        var c = j + (a - h) * s;
-        if (c < l[1] || c > l[2]) {
+        var c = k + (a - j) * v;
+        if (eps_equal(j, e) && eps_equal(j, a)) {
+            t = a;
+            if (B) {
+                c = min(m[1], m[2]) - u,
+                    f = min(f, c),
+                    z = f
+            } else {
+                r = c = max(m[1], m[2]) + u,
+                    f = min(f, c),
+                    r = f
+            }
             continue
         }
-        if (y) {
-            e = min(e, c);
-            w = e
+        if (c < m[1] || c > m[2]) {
+            continue
+        }
+        if (B) {
+            f = min(f, c);
+            z = f
         } else {
-            e = max(e, c);
+            f = max(f, c);
+            r = f
+        }
+        if (s) {
+            e = min(e, t);
+            y = e
+        } else {
+            e = max(e, t);
             q = e
-        }
-        if (r) {
-            d = min(d, a - 3);
-            v = d
-        } else {
-            d = max(d, a + 7);
-            o = d
         }
     }
     return {
-        x: e,
-        y: d
+        x: f,
+        y: e
     }
 }
-function calculate_movev1(e, g, f, d, c) {
-    var b = calculate_movex(e, g, f, d, c);
-    if (b.x != d && b.y != c) {
-        var a = calculate_movex(e, b.x, b.y, d, b.y);
-        if (a.x == b.x) {
-            var a = calculate_movex(e, a.x, a.y, a.x, c)
+function get_height(a) {
+    if (a.me) {
+        return a.aheight
+    } else {
+        if (a.mscale) {
+            return a.height / a.mscale
+        } else {
+            return a.height
         }
-        return a
     }
-    return b
 }
-function calculate_move(e, g, f, d, c) {
+function get_width(a) {
+    if (a.me) {
+        return a.awidth
+    } else {
+        if (a.mscale) {
+            return a.width / a.mscale
+        } else {
+            return a.width
+        }
+    }
+}
+function set_base(a) {
+    var b = a.mtype || a.type;
+    a.base = {
+        h: 8,
+        v: 7,
+        vn: 2
+    };
+    if (G.actual_dimensions[b] && G.actual_dimensions[b][3]) {
+        a.base.h = G.actual_dimensions[b][3];
+        a.base.v = min(9.9, G.actual_dimensions[b][4])
+    } else {
+        a.base.h = min(12, get_width(a) * 0.8);
+        a.base.v = min(9.9, get_height(a) / 4)
+    }
+}
+function calculate_move_v2(e, g, f, d, c) {
     if (d == Infinity) {
         d = CINF
     }
@@ -752,128 +759,232 @@ function calculate_move(e, g, f, d, c) {
     }
     return b
 }
+var m_calculate = false, m_line_x = false, m_line_y = false, line_hit_x = null, line_hit_y = null, m_dx, m_dy;
+function calculate_move(k, g, e) {
+    m_calculate = true;
+    var a = k.map
+        , j = get_x(k)
+        , f = get_y(k);
+    var l = [[0, 0]];
+    var b = [[g, e]]
+        , c = [];
+    if (k.base) {
+        l = [[-k.base.h, k.base.vn], [k.base.h, k.base.vn], [-k.base.h, -k.base.v], [k.base.h, -k.base.v]]
+    }
+    l.forEach(function(r) {
+        for (var t = 0; t < 3; t++) {
+            var w = r[0]
+                , u = r[1];
+            var s = g + w
+                , q = e + u;
+            if (t == 1) {
+                s = j + w
+            }
+            if (t == 2) {
+                q = f + u
+            }
+            var o = calculate_movex(G.geometry[a] || {}, j + w, f + u, s, q);
+            var v = point_distance(j + w, f + u, o.x, o.y);
+            w = o.x - w;
+            u = o.y - u;
+            if (!in_arrD2([w, u], b)) {
+                b.push([w, u])
+            }
+        }
+    });
+    var m = -1
+        , d = {
+        x: j,
+        y: f
+    }
+        , h = CINF;
+    function n(q) {
+        var o = q[0]
+            , s = q[1];
+        if (can_move({
+                map: a,
+                x: j,
+                y: f,
+                going_x: o,
+                going_y: s,
+                base: k.base
+            })) {
+            var r = point_distance(g, e, o, s);
+            if (r < h) {
+                h = r;
+                d = {
+                    x: o,
+                    y: s
+                }
+            }
+        }
+        if (line_hit_x !== null) {
+            c.push([line_hit_x, line_hit_y]),
+                line_hit_x = null,
+                line_hit_y = null
+        }
+    }
+    b.forEach(n);
+    c.forEach(n);
+    if (point_distance(j, f, d.x, d.y) < 10 * EPS) {
+        d = {
+            x: j,
+            y: f
+        }
+    }
+    m_calculate = false;
+    return d
+}
+function point_distance(b, d, a, c) {
+    return Math.sqrt((a - b) * (a - b) + (c - d) * (c - d))
+}
 function recalculate_move(a) {
-    var c = get_x(a)
-        , e = get_y(a)
-        , b = a.going_x
-        , d = a.going_y;
-    move = calculate_move(G.maps[a.map].data || {}, c, e, b, d);
+    move = calculate_move(a, a.going_x, a.going_y);
     a.going_x = move.x;
     a.going_y = move.y
 }
-function can_move_original(f) {
-    var e = G.maps[f.map].data || {};
-    var b = f.x, h = f.y, a = f.going_x, g = f.going_y, d;
-    for (var c = 0; c < (e.x_lines || []).length; c++) {
-        var j = e.x_lines[c];
-        if (!(b <= j[0] && j[0] <= a || a <= j[0] && j[0] <= b)) {
+function bsearch_start(a, c) {
+    var e = 0, b = a.length - 1, d;
+    while (e < b - 1) {
+        d = parseInt((e + b) / 2);
+        if (a[d][0] < c) {
+            e = d
+        } else {
+            b = d - 1
+        }
+    }
+    return e
+}
+function can_move(l, t) {
+    var a = G.geometry[l.map] || {}
+        , x = 0;
+    var w = l.x, f = l.y, v = l.going_x, e = l.going_y, q, k = min(w, v), h = min(f, e), j = max(w, v), g = max(f, e);
+    if (!t && l.base) {
+        var n = true;
+        [[-l.base.h, l.base.vn], [l.base.h, l.base.vn], [-l.base.h, -l.base.v], [l.base.h, -l.base.v]].forEach(function(c) {
+            var z = c[0]
+                , y = c[1];
+            if (!n || !can_move({
+                    map: l.map,
+                    x: w + z,
+                    y: f + y,
+                    going_x: v + z,
+                    going_y: e + y
+                }, 1)) {
+                n = false
+            }
+        });
+        if (1) {
+            var u = l.base.h
+                , s = -l.base.h;
+            m_line_x = max;
+            if (v > w) {
+                u = -l.base.h,
+                    s = l.base.h,
+                    mcy = m_line_x = min
+            }
+            var d = l.base.vn
+                , b = -l.base.v;
+            m_line_y = max;
+            if (e > f) {
+                d = -l.base.v,
+                    b = l.base.vn,
+                    m_line_y = min
+            }
+            m_dx = -s;
+            m_dy = -b;
+            if (!n || !can_move({
+                    map: l.map,
+                    x: v + s,
+                    y: e + d,
+                    going_x: v + s,
+                    going_y: e + b
+                }, 1)) {
+                n = false
+            }
+            if (!n || !can_move({
+                    map: l.map,
+                    x: v + u,
+                    y: e + b,
+                    going_x: v + s,
+                    going_y: e + b
+                }, 1)) {
+                n = false
+            }
+            m_line_x = m_line_y = false
+        }
+        return n
+    }
+    function m(y, c, A, z) {
+        line_hit_x = m_line_x(y, A),
+            line_hit_x = m_line_x(line_hit_x + 6 * EPS, line_hit_x - 6 * EPS) + m_dx;
+        line_hit_y = m_line_y(c, z),
+            line_hit_y = m_line_y(line_hit_y + 6 * EPS, line_hit_y - 6 * EPS) + m_dy
+    }
+    for (var r = bsearch_start(a.x_lines || [], k); r < (a.x_lines || []).length; r++) {
+        var o = a.x_lines[r];
+        if (o[0] == v && (o[1] <= e && o[2] >= e || o[0] == w && f <= o[1] && e > o[1])) {
+            if (m_line_y) {
+                m(o[0], o[1], o[0], o[2])
+            }
+            return false
+        }
+        if (k > o[0]) {
             continue
         }
-        d = h + (g - h) * (j[0] - b) / (a - b + EPS);
-        if (!(j[1] <= d && d <= j[2])) {
+        if (j < o[0]) {
+            break
+        }
+        q = f + (e - f) * (o[0] - w) / (v - w + REPS);
+        if (!(o[1] - EPS <= q && q <= o[2] + EPS)) {
             continue
+        }
+        if (m_line_y) {
+            m(o[0], o[1], o[0], o[2])
         }
         return false
     }
-    for (var c = 0; c < (e.y_lines || []).length; c++) {
-        var j = e.y_lines[c];
-        if (!(h <= j[0] && j[0] <= g || g <= j[0] && j[0] <= h)) {
+    for (var r = bsearch_start(a.y_lines || [], h); r < (a.y_lines || []).length; r++) {
+        var o = a.y_lines[r];
+        if (o[0] == e && (o[1] <= v && o[2] >= v || o[0] == f && w <= o[1] && v > o[1])) {
+            if (m_line_x) {
+                m(o[1], o[0], o[2], o[0])
+            }
+            return false
+        }
+        if (h > o[0]) {
             continue
         }
-        d = b + (a - b) * (j[0] - h) / (g - h + EPS);
-        if (!(j[1] <= d && d <= j[2])) {
+        if (g < o[0]) {
+            break
+        }
+        q = w + (v - w) * (o[0] - f) / (e - f + REPS);
+        if (!(o[1] - EPS <= q && q <= o[2] + EPS)) {
             continue
+        }
+        if (m_line_x) {
+            m(o[1], o[0], o[2], o[0])
         }
         return false
     }
     return true
 }
-function can_move(f) {
-    var e = G.maps[f.map].data || {};
-    var b = f.x, h = f.y, a = f.going_x, g = f.going_y, d;
-    if (is_server && simple_distance({
-            x: b,
-            y: h
-        }, {
+function closest_line(c, a, d) {
+    var b = 16000;
+    [[0, 16000], [0, -16000], [16000, 0], [-16000, 0]].forEach(function(f) {
+        var j = f[0]
+            , g = f[1];
+        var e = calculate_move({
+            map: c,
             x: a,
-            y: g
-        }) < 0.9) {
-        return true
-    }
-    for (var c = 0; c < (e.x_lines || []).length; c++) {
-        var j = e.x_lines[c];
-        if (j[0] - 1 <= a && j[0] + 1 >= a && j[1] - 1 <= g && j[2] + 1 >= g) {
-            return false
+            y: d
+        }, a + j, d + g);
+        var h = point_distance(a, d, e.x, e.y);
+        if (h < b) {
+            b = h
         }
-        if (!(b <= j[0] && j[0] <= a || a <= j[0] && j[0] <= b)) {
-            continue
-        }
-        d = h + (g - h) * (j[0] - b) / (a - b + EPS);
-        if (!(j[1] + EPS <= d && d <= j[2] - EPS)) {
-            continue
-        }
-        return false
-    }
-    for (var c = 0; c < (e.y_lines || []).length; c++) {
-        var j = e.y_lines[c];
-        if (j[0] - 1 <= g && j[0] + 1 >= g && j[1] - 1 <= a && j[2] + 1 >= a) {
-            return false
-        }
-        if (!(h <= j[0] && j[0] <= g || g <= j[0] && j[0] <= h)) {
-            continue
-        }
-        d = b + (a - b) * (j[0] - h) / (g - h + EPS);
-        if (!(j[1] + EPS <= d && d <= j[2] - EPS)) {
-            continue
-        }
-        return false
-    }
-    return true
-}
-function can_movex(x, j, h, e, d) {
-    if (e == Infinity) {
-        e = CINF
-    }
-    if (d == Infinity) {
-        d = CINF
-    }
-    var r = h < d;
-    var y = j < e;
-    var k = x.x_lines || [];
-    var u = x.y_lines || [];
-    var q = min(j, e);
-    var w = max(j, e);
-    var o = min(h, d);
-    var v = max(h, d);
-    var n = e - j;
-    var m = d - h;
-    var f = m / (n + EPS);
-    var s = 1 / f;
-    for (var t = 0; t < k.length; t++) {
-        var l = k[t];
-        var b = l[0];
-        if (w < b || q > b || v < l[1] || o > l[2]) {
-            continue
-        }
-        var g = h + (b - j) * f;
-        if (g < l[1] || g > l[2]) {
-            continue
-        }
-        return false
-    }
-    for (var t = 0; t < u.length; t++) {
-        var l = u[t];
-        var a = l[0];
-        if (v < a || o > a || w < l[1] || q > l[2]) {
-            continue
-        }
-        var c = j + (a - h) * s;
-        if (c < l[1] || c > l[2]) {
-            continue
-        }
-        return false
-    }
-    return true
+    });
+    return b
 }
 function stop_logic(b) {
     if (!b.moving) {
@@ -910,6 +1021,14 @@ function to_number(a) {
         a = 0
     }
     return a
+}
+function is_number(b) {
+    try {
+        if (!isNaN(b) && 0 + b === b) {
+            return true
+        }
+    } catch (a) {}
+    return false
 }
 function is_string(b) {
     try {
@@ -1079,6 +1198,14 @@ function in_arr(b, d) {
     }
     return false
 }
+function in_arrD2(c, a) {
+    for (var b = 0; b < a.length; b++) {
+        if (c[0] == a[b][0] && c[1] == a[b][1]) {
+            return true
+        }
+    }
+    return false
+}
 function c_round(a) {
     if (window.floor_xy) {
         return Math.floor(a)
@@ -1102,6 +1229,9 @@ function floor(a) {
 }
 function ceil(a) {
     return Math.ceil(a)
+}
+function eps_equal(d, c) {
+    return Math.abs(d - c) < 5 * EPS
 }
 function abs(a) {
     return Math.abs(a)

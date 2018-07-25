@@ -392,7 +392,7 @@ function add_chat(c, o, g, b) {
             if (s[0]) {
                 r = "<span style='color:white'>" + s[0] + ":</span> "
             }
-            if (s[2] == colors.server_success) {
+            if (s[2] == colors.server_success || s[2] == "gold") {
                 p = "#E0E0E0"
             }
             if (s[2] == colors.server_failure) {
@@ -408,7 +408,7 @@ function add_chat(c, o, g, b) {
         $(f).html(m)
     }
     var d = "#999A4F";
-    if (g == colors.server_success) {
+    if (g == colors.server_success || g == "gold") {
         d = "#E0E0E0"
     }
     if (g == colors.server_failure) {
@@ -902,6 +902,13 @@ function on_skill(d, h) {
                                                         })
                                                     }
                                                 });
+                                                f.push({
+                                                    button: "Travel",
+                                                    onclick: function() {
+                                                        hide_modal();
+                                                        render_travel(1)
+                                                    }
+                                                });
                                                 get_input({
                                                     no_wrap: true,
                                                     elements: f
@@ -1113,9 +1120,10 @@ function map_keys_and_skills() {
         }
     }
 }
+var last_move = new Date();
 function move(a, f) {
     var d = d
-        , b = calculate_move(M, character.real_x, character.real_y, parseFloat(a) || 0, parseFloat(f) || 0);
+        , b = calculate_move(character, parseFloat(a) || 0, parseFloat(f) || 0);
     character.from_x = character.real_x;
     character.from_y = character.real_y;
     character.going_x = b.x;
@@ -1133,7 +1141,8 @@ function move(a, f) {
         c.key = next_minteraction,
             next_minteraction = null
     }
-    socket.emit("move", c)
+    socket.emit("move", c);
+    last_move = new Date()
 }
 function arrow_movement_logic() {
     if (!window.character || !window.options.move_with_arrows) {
@@ -1216,6 +1225,16 @@ function sh_click(a) {
         name: secondhands[a].name,
         actual: secondhands[a],
         secondhand: true
+    })
+}
+function lf_click(a) {
+    dialogs_target = get_npc("lostandfound");
+    render_item("#topleftcornerdialog", {
+        id: "sh" + a,
+        item: G.items[lostandfound[a].name],
+        name: lostandfound[a].name,
+        actual: lostandfound[a],
+        lostandfound: true
     })
 }
 function slot_click(a) {
@@ -1385,7 +1404,12 @@ function hide_transports() {
     topright_npc = false
 }
 function eval_snippet() {
-    code_eval(codemirror_render3.getValue())
+    var a = codemirror_render3.getValue();
+    if (a.search("output=") != -1 || a.search("json_output=") != -1) {
+        code_eval_s(a)
+    } else {
+        code_eval(a)
+    }
 }
 function show_snippet(b) {
     var a = "<textarea id='rendererx'></textarea><div class='gamebutton' style='position: absolute; bottom: -68px; right: -5px' onclick='eval_snippet()'>EXECUTE</div>";
@@ -1508,14 +1532,25 @@ function code_eval(a) {
         }
     }
 }
-function code_travel(a) {
-    if (character.role == "gm") {
-        socket.emit("transport", {
-            to: a
-        })
+function code_eval_s(a) {
+    if (code_active) {
+        call_code_function("eval_s", a)
     } else {
-        code_eval("smart_move({map:'" + a + "'})")
+        if (code_run) {
+            add_log("CODE is warming up", "#DC9E48")
+        } else {
+            start_runner(0, "\nset_message('Snippet');\n" + a)
+        }
     }
+}
+function code_travel(a) {
+    code_eval("smart_move({map:'" + a + "'})")
+}
+function direct_travel(b, a) {
+    socket.emit("transport", {
+        to: b,
+        s: a
+    })
 }
 function start_character_runner(b, d) {
     var c = "ichar" + b.toLowerCase();
@@ -2048,6 +2083,12 @@ function secondhand_buy(a) {
         rid: a
     })
 }
+function lostandfound_buy(a) {
+    socket.emit("sbuy", {
+        rid: a,
+        f: true
+    })
+}
 function buy_shells(a) {
     if ((a * 15000000 / 100) > character.gold) {
         render_interaction("noshells")
@@ -2112,17 +2153,17 @@ function party_say(b, a) {
     })
 }
 var last_say = "normal";
-function say(g, f) {
-    if (!g || !g.length) {
+function say(message, code) {
+    if (!message || !message.length) {
         return
     }
     last_say = "normal";
-    if (g[0] == "/") {
-        g = g.substr(1, 2000);
-        var d = g.split(" ")
-            , h = d.shift()
-            , c = d.join(" ");
-        if (h == "help" || h == "list" || h == "") {
+    if (message[0] == "/") {
+        message = message.substr(1, 2000);
+        var components = message.split(" ")
+            , command = components.shift()
+            , rest = components.join(" ");
+        if (command == "help" || command == "list" || command == "") {
             add_chat("", "/list");
             add_chat("", "/guide");
             add_chat("", "/invite NAME");
@@ -2145,158 +2186,162 @@ function say(g, f) {
                 add_chat("", "/new_window")
             }
         } else {
-            if (is_electron && (h == "new_window" || h == "window" || h == "newwindow")) {
+            if (is_electron && (command == "new_window" || command == "window" || command == "newwindow")) {
                 window.open(base_url, "", {
                     width: $(window).width(),
                     height: $(window).height()
                 })
             } else {
-                if (h == "start") {
-                    var b = c.split(" ")
-                        , a = b.shift();
-                    if (a) {
-                        start_character_runner(a)
+                if (command == "start") {
+                    var args = rest.split(" ")
+                        , name = args.shift();
+                    if (name) {
+                        start_character_runner(name)
                     }
                 } else {
-                    if (h == "leave") {
+                    if (command == "leave") {
                         socket.emit("party", {
                             event: "leave"
                         })
                     } else {
-                        if (h == "stop") {
-                            var b = c.split(" ")
-                                , a = b.shift();
-                            if (!a || a == "teleport") {
+                        if (command == "stop") {
+                            var args = rest.split(" ")
+                                , name = args.shift();
+                            if (!name || name == "teleport") {
                                 use_skill("stop")
                             } else {
-                                if (a == "invis") {
+                                if (name == "invis") {
                                     socket.emit("stop", {
                                         action: "invis"
                                     })
                                 } else {
-                                    stop_character_runner(a)
+                                    stop_character_runner(name)
                                 }
                             }
                         } else {
-                            if (h == "disconnect") {
-                                var b = c.split(" ")
-                                    , a = b.shift();
-                                if (!a) {
+                            if (command == "disconnect") {
+                                var args = rest.split(" ")
+                                    , name = args.shift();
+                                if (!name) {
                                     window.location = base_url
                                 } else {
                                     api_call("disconnect_character", {
-                                        name: a
+                                        name: name
                                     })
                                 }
                             } else {
-                                if (h == "p") {
-                                    party_say(c)
+                                if (command == "p") {
+                                    party_say(rest)
                                 } else {
-                                    if (h == "pause") {
+                                    if (command == "pause") {
                                         pause()
                                     } else {
-                                        if (h == "snippet") {
+                                        if (command == "snippet") {
                                             show_snippet()
                                         } else {
-                                            if (h == "eval" || h == "execute") {
-                                                code_eval(c)
+                                            if (command == "eval" || command == "execute") {
+                                                code_eval(rest)
                                             } else {
-                                                if (h == "w" || h == "whisper" || h == "pm") {
-                                                    var b = c.split(" ")
-                                                        , a = b.shift()
-                                                        , c = b.join(" ");
-                                                    if (!a || !c) {
-                                                        add_chat("", "Format: /w NAME MESSAGE")
-                                                    } else {
-                                                        private_say(a, c)
-                                                    }
+                                                if (command == "pure_eval") {
+                                                    eval(rest)
                                                 } else {
-                                                    if (h == "savecode") {
-                                                        var b = c.split(" ")
-                                                            , j = b.shift()
-                                                            , a = b.join(" ");
-                                                        if (j.length && !parseInt(j)) {
-                                                            add_chat("", "/savecode NUMBER NAME");
-                                                            add_chat("", "NUMBER can be from 1 to 100")
+                                                    if (command == "w" || command == "whisper" || command == "pm") {
+                                                        var args = rest.split(" ")
+                                                            , name = args.shift()
+                                                            , rest = args.join(" ");
+                                                        if (!name || !rest) {
+                                                            add_chat("", "Format: /w NAME MESSAGE")
                                                         } else {
-                                                            if (!j) {
-                                                                j = 1
-                                                            }
-                                                            api_call("save_code", {
-                                                                code: codemirror_render.getValue(),
-                                                                slot: j,
-                                                                name: a
-                                                            })
+                                                            private_say(name, rest)
                                                         }
                                                     } else {
-                                                        if (h == "loadcode" || h == "runcode") {
-                                                            var b = c.split(" ")
-                                                                , a = b.shift();
-                                                            if (!a) {
-                                                                a = 1
-                                                            }
-                                                            api_call("load_code", {
-                                                                name: a,
-                                                                run: (h == "runcode" && "1" || "")
-                                                            })
-                                                        } else {
-                                                            if (h == "ping") {
-                                                                ping()
+                                                        if (command == "savecode") {
+                                                            var args = rest.split(" ")
+                                                                , slot = args.shift()
+                                                                , name = args.join(" ");
+                                                            if (slot.length && !parseInt(slot)) {
+                                                                add_chat("", "/savecode NUMBER NAME");
+                                                                add_chat("", "NUMBER can be from 1 to 100")
                                                             } else {
-                                                                if (h == "whisper") {
-                                                                    if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
-                                                                        private_say(ctarget.name, c)
-                                                                    } else {
-                                                                        add_chat("", "Target someone to whisper")
-                                                                    }
+                                                                if (!slot) {
+                                                                    slot = 1
+                                                                }
+                                                                api_call("save_code", {
+                                                                    code: codemirror_render.getValue(),
+                                                                    slot: slot,
+                                                                    name: name
+                                                                })
+                                                            }
+                                                        } else {
+                                                            if (command == "loadcode" || command == "runcode") {
+                                                                var args = rest.split(" ")
+                                                                    , name = args.shift();
+                                                                if (!name) {
+                                                                    name = 1
+                                                                }
+                                                                api_call("load_code", {
+                                                                    name: name,
+                                                                    run: (command == "runcode" && "1" || "")
+                                                                })
+                                                            } else {
+                                                                if (command == "ping") {
+                                                                    ping()
                                                                 } else {
-                                                                    if (h == "party" || h == "invite") {
-                                                                        var b = c.split(" ")
-                                                                            , a = b.shift();
-                                                                        if (a && a.length) {
-                                                                            socket.emit("party", {
-                                                                                event: "invite",
-                                                                                name: a
-                                                                            })
+                                                                    if (command == "whisper") {
+                                                                        if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
+                                                                            private_say(ctarget.name, rest)
                                                                         } else {
-                                                                            if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
-                                                                                socket.emit("party", {
-                                                                                    event: "invite",
-                                                                                    id: ctarget.id
-                                                                                })
-                                                                            } else {
-                                                                                add_chat("", "Target someone to invite")
-                                                                            }
+                                                                            add_chat("", "Target someone to whisper")
                                                                         }
                                                                     } else {
-                                                                        if (h == "friend") {
-                                                                            var b = c.split(" ")
-                                                                                , a = b.shift();
-                                                                            if (a && a.length) {
-                                                                                socket.emit("friend", {
-                                                                                    event: "request",
-                                                                                    name: a
+                                                                        if (command == "party" || command == "invite") {
+                                                                            var args = rest.split(" ")
+                                                                                , name = args.shift();
+                                                                            if (name && name.length) {
+                                                                                socket.emit("party", {
+                                                                                    event: "invite",
+                                                                                    name: name
                                                                                 })
                                                                             } else {
                                                                                 if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
-                                                                                    socket.emit("friend", {
-                                                                                        event: "request",
-                                                                                        name: ctarget.name
+                                                                                    socket.emit("party", {
+                                                                                        event: "invite",
+                                                                                        id: ctarget.id
                                                                                     })
                                                                                 } else {
-                                                                                    add_chat("", "Target someone to friend")
+                                                                                    add_chat("", "Target someone to invite")
                                                                                 }
                                                                             }
                                                                         } else {
-                                                                            if (h == "guide") {
-                                                                                show_modal($("#gameguide").html())
-                                                                            } else {
-                                                                                if (code_active && document.getElementById("maincode") && document.getElementById("maincode").contentWindow && document.getElementById("maincode").contentWindow.handle_command) {
-                                                                                    if (document.getElementById("maincode").contentWindow.handle_command(h, c) != -1) {} else {
-                                                                                        add_chat("", "Command not found. You can add a `handle_command` function to your CODE to capture commands.")
-                                                                                    }
+                                                                            if (command == "friend") {
+                                                                                var args = rest.split(" ")
+                                                                                    , name = args.shift();
+                                                                                if (name && name.length) {
+                                                                                    socket.emit("friend", {
+                                                                                        event: "request",
+                                                                                        name: name
+                                                                                    })
                                                                                 } else {
-                                                                                    add_chat("", "Command not found. Suggestion: /list")
+                                                                                    if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
+                                                                                        socket.emit("friend", {
+                                                                                            event: "request",
+                                                                                            name: ctarget.name
+                                                                                        })
+                                                                                    } else {
+                                                                                        add_chat("", "Target someone to friend")
+                                                                                    }
+                                                                                }
+                                                                            } else {
+                                                                                if (command == "guide") {
+                                                                                    show_modal($("#gameguide").html())
+                                                                                } else {
+                                                                                    if (code_active && document.getElementById("maincode") && document.getElementById("maincode").contentWindow && document.getElementById("maincode").contentWindow.handle_command) {
+                                                                                        if (document.getElementById("maincode").contentWindow.handle_command(command, rest) != -1) {} else {
+                                                                                            add_chat("", "Command not found. You can add a `handle_command` function to your CODE to capture commands.")
+                                                                                        }
+                                                                                    } else {
+                                                                                        add_chat("", "Command not found. Suggestion: /list")
+                                                                                    }
                                                                                 }
                                                                             }
                                                                         }
@@ -2318,8 +2363,8 @@ function say(g, f) {
         }
     } else {
         socket.emit("say", {
-            message: g,
-            code: f
+            message: message,
+            code: code
         })
     }
 }
@@ -2392,6 +2437,7 @@ var exchange_animations = false
 var exccolors1 = ["#f1c40f", "#f39c12", "#e74c3c", "#c0392b", "#8e44ad", "#9b59b6", "#2980b9", "#3498db", "#1abc9c"];
 var exccolorsl = ["#CD6F1A", "#A95C15"];
 var exccolorsg = ["#EFD541", "#9495AC"];
+var exccolorsgray = ["#7C7C7C", "#5C5D5D", "#3B3C3C"];
 var exccolorsc = ["#C82F17", "#EBECEE"];
 var exccolorssea = ["#24A7CB", "#EBECEE"];
 function exchange_animation_logic() {
@@ -2405,6 +2451,9 @@ function exchange_animation_logic() {
     if (exchange_type == "seashell") {
         a = exccolorssea
     }
+    if (exchange_type == "poof") {
+        a = exccolorsgray
+    }
     if (in_arr(exchange_type, ["mistletoe", "ornament", "candycane"])) {
         a = exccolorsc
     }
@@ -2415,6 +2464,38 @@ function exchange_animation_logic() {
         $(".ering2").css("border-color", a[(exclast + 2) % a.length]);
         $(".ering1").css("border-color", a[(exclast + 3) % a.length]);
         exclast++
+    }
+}
+function poof(a) {
+    var b = 2400;
+    exchange_type = "poof";
+    if (a) {
+        socket.emit("destroy", {
+            num: p_item,
+            statue: true
+        });
+        return
+    }
+    function c(d) {
+        return function() {
+            if (!exchange_animations) {
+                return
+            }
+            socket.emit("destroy", {
+                num: d,
+                statue: true
+            })
+        }
+    }
+    if (p_item == null) {
+        d_text("INVALID", character)
+    } else {
+        if (exchange_animations) {
+            d_text("WAIT FOR IT", character)
+        } else {
+            exchange_animations = true;
+            draw_timeout(c(p_item), b)
+        }
     }
 }
 function exchange(a) {
@@ -2498,7 +2579,7 @@ function dismantle() {
     })
 }
 function reopen() {
-    u_scroll = c_scroll = e_item = null;
+    u_scroll = c_scroll = e_item = p_item = null;
     draw_trigger(function() {
         if (rendered_target == "upgrade") {
             render_upgrade_shrine()
@@ -2520,6 +2601,10 @@ function reopen() {
                             } else {
                                 if (rendered_target == "dismantler") {
                                     render_dismantler()
+                                } else {
+                                    if (rendered_target == "none") {
+                                        render_none_shrine()
+                                    }
                                 }
                             }
                         }
@@ -2585,7 +2670,7 @@ function toggle_character() {
 }
 function reset_inventory(a) {
     if (inventory) {
-        if (a && !in_arr(rendered_target, ["upgrade", "compound", "exchange", "npc", "merchant", "craftsman", "dismantler"])) {
+        if (a && !in_arr(rendered_target, ["upgrade", "compound", "exchange", "npc", "merchant", "craftsman", "dismantler", "none"])) {
             return
         }
         render_inventory(),
@@ -2621,7 +2706,7 @@ function open_chest(b) {
 function generate_textures(b, m) {
     console.log("generate_textures " + b + " " + m);
     if (m == "full") {
-        var l = D[b]
+        var l = XYHW[b]
             , c = l[2]
             , p = l[3]
             , r = 0
@@ -2631,7 +2716,7 @@ function generate_textures(b, m) {
             c = o[0];
             p = o[1];
             r = round((l[2] - c) / 2 + (o[2] || 0));
-            q = round(l[3] - p + (o[3] || 0))
+            q = round(l[3] - p)
         }
         textures[b] = [[null, null, null, null], [null, null, null, null], [null, null, null, null]];
         for (var k = 0; k < 3; k++) {
@@ -2646,7 +2731,7 @@ function generate_textures(b, m) {
         }
     }
     if (m == "emblem") {
-        var l = D[b];
+        var l = XYHW[b];
         var n = new PIXI.Rectangle(l[0],l[1],l[2],l[3]);
         textures[b] = new PIXI.Texture(C[FC[b]],n)
     }
@@ -2693,7 +2778,7 @@ function generate_textures(b, m) {
         })
     }
     if (m == "emote") {
-        var l = D[b];
+        var l = XYHW[b];
         textures[b] = [null, null, null];
         for (var k = 0; k < 3; k++) {
             var n = new PIXI.Rectangle(l[0] + k * l[2],l[1],l[2],l[3]);
@@ -2701,7 +2786,7 @@ function generate_textures(b, m) {
         }
     }
     if (m == "v_animation") {
-        var l = D[b];
+        var l = XYHW[b];
         textures[b] = [null, null, null, null];
         for (var k = 0; k < 4; k++) {
             var n = new PIXI.Rectangle(l[0],l[1] + k * l[3],l[2],l[3]);
@@ -2827,7 +2912,7 @@ function recreate_dtextures() {
     dtile_width = max(width, screen.width);
     dtile_height = max(height, screen.height);
     for (var b = 0; b < 3; b++) {
-        var a = new PIXI.extras.TilingSprite(M["default"][5 + b] || M["default"][5],dtile_width / scale + 3 * dtile_size,dtile_height / scale + 3 * dtile_size);
+        var a = new PIXI.extras.TilingSprite(GEO["default"][5 + b] || GEO["default"][5],dtile_width / scale + 3 * dtile_size,dtile_height / scale + 3 * dtile_size);
         dtextures[b] = PIXI.RenderTexture.create(dtile_width + 4 * dtile_size, dtile_height + 4 * dtile_size, PIXI.SCALE_MODES.NEAREST, 1);
         renderer.render(a, dtextures[b]);
         a.destroy()
@@ -2949,8 +3034,8 @@ function start_animation(d, c, g) {
         return
     }
     var b = new_sprite(c, "animation")
-        , f = (d.texture.width)
-        , a = (d.texture.height);
+        , f = (d.hitArea && d.hitArea.width || d.texture.width)
+        , a = (d.hitArea && d.hitArea.height || d.texture.height);
     d.animations[c] = b;
     if (G.animations[c].alpha) {
         b.alpha = G.animations[c].alpha
@@ -3507,20 +3592,61 @@ function draw_circle(a, d, c, b) {
     e.endFill();
     return e
 }
-function add_border(b, c, a) {
-    if (!c) {
-        c = (b.texture.width),
-            a = (b.texture.height)
+function add_border(f, g, d) {
+    if (!g) {
+        g = (f.texture.width),
+            d = (f.texture.height)
     }
-    e = new PIXI.Graphics();
-    e.lineStyle(1, 8940599);
-    e.drawRect(0, 0, c, a);
-    if (b.anchor) {
-        e.x = -b.anchor.x * c;
-        e.y = -b.anchor.y * a
+    var h = new PIXI.Graphics();
+    h.lineStyle(1, 16691746);
+    h.drawRect(0, 0, g, d);
+    if (f.anchor) {
+        h.x = -f.anchor.x * g;
+        h.y = -f.anchor.y * d
     }
-    b.aborder = e;
-    b.addChild(e)
+    if (f.hitArea && (f.hitArea.width != g || f.hitArea.height != d)) {
+        var a = new PIXI.Graphics();
+        a.lineStyle(1, 8705535);
+        a.drawRect(0, 0, f.hitArea.width, f.hitArea.height);
+        if (f.anchor) {
+            a.x = -f.anchor.x * f.hitArea.width;
+            a.y = -f.anchor.y * f.hitArea.height
+        }
+        f.bborder = a;
+        f.addChild(a)
+    }
+    if (f.base) {
+        var j = new PIXI.Graphics();
+        j.lineStyle(1, 5550079);
+        j.drawRect(0, 0, f.base.h * 2, f.base.v + f.base.vn);
+        if (f.anchor) {
+            j.x = -f.anchor.x * (f.base.h * 2);
+            j.y = -f.anchor.y * (f.base.v + f.base.vn)
+        }
+        j.y += f.base.vn;
+        f.cborder = j;
+        f.addChild(j)
+    }
+    f.aborder = h;
+    f.addChild(h)
+}
+function border_logic(a) {
+    if (a.aborder) {
+        return
+    }
+    if (a.aborder) {
+        destroy_sprite(a.aborder);
+        a.aborder = null
+    }
+    if (a.bborder) {
+        destroy_sprite(a.bborder);
+        a.bborder = null
+    }
+    if (a.cborder) {
+        destroy_sprite(a.cborder);
+        a.cborder = null
+    }
+    add_border(a)
 }
 function player_rclick_logic(a) {
     if (!character || a.me) {
@@ -3549,16 +3675,6 @@ function player_rclick_logic(a) {
             a.removeListener("rightdown")
         }
     }
-}
-function border_logic(a) {
-    if (a.aborder) {
-        return
-    }
-    if (a.aborder) {
-        destroy_sprite(a.aborder);
-        a.aborder = null
-    }
-    add_border(a)
 }
 function regather_filters(a) {
     var b = [];
@@ -4620,8 +4736,8 @@ function reflect_music() {
 }
 function gprocess_game_data() {
     if (no_graphics) {
-        for (var a in G.maps) {
-            var b = G.maps[a];
+        for (var a in G.geometry) {
+            var b = G.geometry[a];
             if (!b.data) {
                 continue
             }
@@ -4665,6 +4781,9 @@ function game_stringify(d, b) {
     try {
         return JSON.stringify(d, function(f, g) {
             if (in_arr(f, ["transform", "parent", "displayGroup", "parentGroup", "vertexData", "animations", "tiles", "placements", "default", "children"]) || f.indexOf("filter_") != -1 || f[0] == "_") {
+                return
+            }
+            if (f == "data" && d[f] && d[f].x_lines) {
                 return
             }
             if (g != null && typeof g == "object") {

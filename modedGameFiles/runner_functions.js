@@ -1,13 +1,37 @@
-//#NOTE: If you want to see a new function/feature, just request it at: https://github.com/kaansoral/adventureland/issues
+// #NOTE: If you want to see a new function/feature, just request it at: https://github.com/kaansoral/adventureland/issues
+// Or at #feedback in Discord: https://discord.gg/4SXJGU
 
-var safeties=true;
-var game = {};
-server={
-    mode:parent.gameplay,
-    pvp:parent.is_pvp,
-    region:parent.server_region,
-    id:parent.server_identifier,
+var character={
+    // This object proxies the real parent.character
+    // Normal entities have normal coordinates, their {x,y}'s are equal to their {real_x,real_y}'s
+    // The character object is special, it's always in the middle of the screen, so it has static {x,y}'s
+    // Added this wrapper so instead of using .real_x and .real_y on all entities, .x and .y's can be used uniformly
+    "note":"This is a proxy object, the real character is in parent.character",
+    "properties":["x","y"],
 }
+
+Object.defineProperty(character,'x',{get:function(){return parent.character.real_x;},set:function(){game_log("You can't set coordinates manually, use the move(x,y) function!");}});
+Object.defineProperty(character,'y',{get:function(){return parent.character.real_y;},set:function(){game_log("You can't set coordinates manually, use the move(x,y) function!");}});
+for(var p in parent.character) proxy(p); // Not all properties are sadly available right away, new properties are captured imperfectly
+// var character=parent.character; // Old [25/06/2018]
+
+var G=parent.G; // Game Data - Use show_json(Object.keys(G)); and inspect individual data with show_json(G.skills) and alike
+var safeties=true; // Prevents common delay based issues that cause many requests to be sent to the server in a burst that triggers the server to disconnect the character
+
+server={
+    mode:parent.gameplay, // "normal", "hardcore", "test"
+    pvp:parent.is_pvp, // true for PVP servers, use is_pvp() for maps
+    region:parent.server_region, // "EU", "US", "ASIA"
+    id:parent.server_identifier, // "I", "II", "PVP", "TEST"
+}
+
+game={
+    platform:parent.is_electron&&"electron"||"web", // "electron" for Steam, Mac clients, "web" for https://adventure.land
+    graphics:!parent.no_graphics, // if game.graphics is false, don't draw stuff to the game in your Code
+    html:!parent.no_html, // if game.html is false, this character is loaded in [CODE] mode
+}
+
+//#NOTE: Most new features are experimental - for #feedback + suggestions: https://discord.gg/X4MpntA [05/01/18]
 
 function start_character(name,code_slot_or_name)
 {
@@ -88,6 +112,7 @@ function use(name,target) // a multi-purpose use function, works for skills too
 
 function use_skill(name,target)
 {
+    // for blink: use_skill("blink",[x,y])
     if(!target) target=get_target();
     parent.use_skill(name,target);
 }
@@ -182,7 +207,7 @@ function change_target(target,public)
 function can_move_to(x,y)
 {
     if(is_object(x)) y=x.real_y,x=x.real_x;
-    return can_move({map:character.map,x:character.real_x,y:character.real_y,going_x:x,going_y:y});
+    return can_move({map:character.map,x:character.real_x,y:character.real_y,going_x:x,going_y:y,base:character.base});
 }
 
 function xmove(x,y)
@@ -309,15 +334,7 @@ function pm(name,message) // please use MORE responsibly, thank you! :)
 function move(x,y)
 {
     if(!can_walk(character)) return;
-    var map=parent.map,move=parent.calculate_move(parent.M,character.real_x,character.real_y,parseFloat(x)||0,parseFloat(y)||0);
-    character.from_x=character.real_x;
-    character.from_y=character.real_y;
-    character.going_x=move.x;
-    character.going_y=move.y;
-    character.moving=true;
-    parent.calculate_vxy(character);
-    // parent.console.log("engaged move "+character.angle);
-    parent.socket.emit("move",{x:character.real_x,y:character.real_y,going_x:character.going_x,going_y:character.going_y,m:character.m});
+    parent.move(x,y);
 }
 
 function show_json(e) // renders the object as json inside the game
@@ -346,6 +363,7 @@ function get_nearest_monster(args)
 
     if(!args) args={};
     if(args && args.target && args.target.name) args.target=args.target.name;
+    if(args && args.type=="monster") game_log("You used monster.type, which is always 'monster', use monster.mtype instead");
 
     for(id in parent.entities)
     {
@@ -627,7 +645,7 @@ function clear_buttons()
 
 function auto_reload(value)
 {
-    // The game will always reload when the character goe offline
+    // The game will always reload when the character goes offline
 }
 
 game.listeners=[];
@@ -722,6 +740,7 @@ function smart_move(destination,on_done) // despite the name, smart_move isn't v
 {
     smart.map="";
     if(is_string(destination)) destination={to:destination};
+    if(is_number(destination)) destination={x:destination,y:on_done},on_done=null;
     if("x" in destination)
     {
         smart.map=destination.map||character.map;
@@ -786,11 +805,22 @@ function smart_move(destination,on_done) // despite the name, smart_move isn't v
     console.log(smart.map+" "+smart.x+" "+smart.y);
 }
 
-function stop()
+function stop(action)
 {
-    if(smart.moving) smart.on_done(false);
-    smart.moving=false;
-    move(character.real_x,character.real_y);
+    if(!action || action=="move")
+    {
+        if(smart.moving) smart.on_done(false);
+        smart.moving=false;
+        move(character.real_x,character.real_y);
+    }
+    else if(action=="invis")
+    {
+        parent.socket.emit("stop",{action:"invis"});
+    }
+    else if(action=="teleport")
+    {
+        parent.socket.emit("stop",{action:"teleport"});
+    }
 }
 
 var queue=[],visited={},start=0,best=null;
@@ -821,8 +851,9 @@ function smooth_path()
         // Assume the path ahead is [i] [i+1] [i+2] - This routine checks whether [i+1] could be skipped
         // The resulting path is smooth rather than rectangular and bumpy
         // Try adding "function smooth_path(){}" or "smart.prune.smooth=false;" to your Code
-        while(i+2<smart.plot.length && smart.plot[i].map==smart.plot[i+1].map && smart.plot[i].map==smart.plot[i+1].map &&
-        can_move({map:smart.plot[i].map,x:smart.plot[i].x,y:smart.plot[i].y,going_x:smart.plot[i+2].x,going_y:smart.plot[i+2].y}))
+        // [06/07/18]: (!smart.plot[i+2] || !smart.plot[i+2].transport) - without this condition, in "winterland", move(-160,-660), smart_move("main") fails
+        while(i+2<smart.plot.length && smart.plot[i].map==smart.plot[i+1].map && smart.plot[i].map==smart.plot[i+1].map && (!smart.plot[i+2] || !smart.plot[i+2].transport) &&
+        can_move({map:smart.plot[i].map,x:smart.plot[i].x,y:smart.plot[i].y,going_x:smart.plot[i+2].x,going_y:smart.plot[i+2].y,base:character.base}))
             smart.plot.splice(i+1,1);
         i++;
     }
@@ -835,6 +866,7 @@ function bfs()
     while(start<queue.length)
     {
         var current=queue[start];
+        var map=G.maps[current.map];
         if(current.map==smart.map)
         {
             smart.flags.map=true;
@@ -851,11 +883,11 @@ function bfs()
         else if(current.map!=smart.map)
         {
             if(smart.prune.map && smart.flags.map) {start++; continue;}
-            G.maps[current.map].doors.forEach(function(door){
-                if(simple_distance({x:door[0]+door[2]/2,y:door[1]+door[3]/2},{x:current.x,y:current.y})<45)
+            map.doors.forEach(function(door){
+                if(simple_distance({x:map.spawns[door[6]][0],y:map.spawns[door[6]][1]},{x:current.x,y:current.y})<30)
                     qpush({map:door[4],x:G.maps[door[4]].spawns[door[5]||0][0],y:G.maps[door[4]].spawns[door[5]||0][1],transport:true,s:door[5]||0});
             });
-            G.maps[current.map].npcs.forEach(function(npc){
+            map.npcs.forEach(function(npc){
                 if(npc.id=="transporter" && simple_distance({x:npc.position[0],y:npc.position[1]},{x:current.x,y:current.y})<75)
                 {
                     for(var place in G.npcs.transporter.places)
@@ -866,13 +898,13 @@ function bfs()
             });
         }
 
-        if(smart.use_town) qpush({map:current.map,x:G.maps[current.map].spawns[0][0],y:G.maps[current.map].spawns[0][1],town:true}); // "town"
+        if(smart.use_town) qpush({map:current.map,x:map.spawns[0][0],y:map.spawns[0][1],town:true}); // "town"
 
         shuffle(moves);
         moves.forEach(function(m){
             var new_x=parseInt(current.x+m[0]),new_y=parseInt(current.y+m[1]);
             // utilise can_move - game itself uses can_move too - smart_move is slow as can_move checks all the lines at each step
-            if(can_move({map:current.map,x:current.x,y:current.y,going_x:new_x,going_y:new_y}))
+            if(can_move({map:current.map,x:current.x,y:current.y,going_x:new_x,going_y:new_y,base:character.base}))
                 qpush({map:current.map,x:new_x,y:new_y});
         });
 
@@ -959,6 +991,11 @@ function smart_move_logic()
 }
 
 setInterval(function(){smart_move_logic();},80);
+
+function performance_trick()
+{
+    // Just plays an empty sound file, so browsers don't throttle JS, only way to prevent it, interesting cheat [05/07/18]
+}
 
 function doneify(fn,s_event,f_event)
 {

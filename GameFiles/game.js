@@ -34,8 +34,7 @@ var manual_centering = true;
 var high_precision = false;
 var retina_mode = false;
 var text_quality = 2;
-var bw_mode = false
-    , border_mode = false;
+var bw_mode = false;
 var character_names = false;
 var hp_bars = true;
 var next_attack = new Date()
@@ -70,7 +69,7 @@ var entities = {}
     , pull_all = false
     , pull_all_next = false
     , prepull_target_id = null;
-var text_layer, monster_layer, player_layer, chest_layer, map_layer, separate_layer;
+var text_layer, monster_layer, player_layer, chest_layer, map_layer, separate_layer, entity_layer;
 var rip = false;
 var heartbeat = new Date()
     , slow_heartbeats = 0;
@@ -78,6 +77,8 @@ var ctarget = null;
 var textures = {}
     , C = {}
     , FC = {};
+var M = {}
+    , GEO = {};
 var total_map_tiles = 0;
 var tiles = null
     , dtile = null;
@@ -86,6 +87,7 @@ var map_npcs = []
     , map_animatables = {};
 var map_tiles = []
     , map_entities = []
+    , map_machines = {}
     , dtile_size = 32
     , dtile_width = 0
     , dtile_height = 0;
@@ -125,7 +127,8 @@ var abtesting = null
     , abtesting_ui = false;
 var code_run = false
     , code_active = false
-    , actual_code = false;
+    , actual_code = false
+    , CC = {};
 var reload_state = false
     , reload_timer = null
     , first_entities = false;
@@ -138,11 +141,14 @@ var draws = 0
 var keymap = {}
     , skillbar = [];
 var secondhands = []
-    , s_page = 0;
+    , s_page = 0
+    , lostandfound = []
+    , l_page = 0;
 var options = {
     move_with_arrows: true,
     code_fx: false,
     show_names: false,
+    move_with_mouse: false,
 };
 var S = {
     font: "Pixel",
@@ -1158,7 +1164,7 @@ function the_game(c) {
     C = PIXI.utils.BaseTextureCache;
     FC = {};
     FM = {};
-    D = {};
+    XYHW = {};
     T = {};
     loader = PIXI.loader;
     loader.on("progress", on_load_progress);
@@ -1186,12 +1192,66 @@ function the_game(c) {
         init_demo()
     }
 }
+function demo_entity_logic(b) {
+    if (!b.demo) {
+        return
+    }
+    if (b.moving) {
+        return
+    }
+    if (b.pause && mssince(b.pause) < 800) {
+        return
+    }
+    if (Math.random() < 0.1) {
+        b.pause = new Date()
+    }
+    var a = [[1, 0], [0, 1], [-1, 0], [0, -1], [0.8, 0.8], [-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8]]
+        , c = 12;
+    if (Math.random() < 0.3) {
+        c *= 2
+    } else {
+        if (Math.random() < 0.3) {
+            c *= 3
+        }
+    }
+    shuffle(a);
+    b.going_x = b.x + a[0][0] * c;
+    b.going_y = b.y + a[0][1] * c;
+    if (b.boundary && (b.going_x < b.boundary[0] || b.going_x > b.boundary[2] || b.going_y < b.boundary[1] || b.going_y > b.boundary[3])) {} else {
+        if (can_move(b)) {
+            b.u = true;
+            b.moving = true;
+            b.from_x = b.x;
+            b.from_y = b.y;
+            calculate_vxy(b)
+        } else {
+            b.going_x = b.x;
+            b.going_y = b.y
+        }
+    }
+}
 function init_demo() {
     is_demo = 1;
     current_map = "shellsisland";
     M = G.maps[current_map].data;
+    GEO = G.geometry[current_map];
     reflect_music();
-    load_game()
+    load_game();
+    G.maps[current_map].monsters.forEach(function(a) {
+        future_entities.monsters[a.type] = {
+            type: a.type,
+            speed: 8,
+            id: a.type,
+            x: a.boundary[0] + (a.boundary[2] - a.boundary[0]) * Math.random(),
+            y: a.boundary[1] + (a.boundary[3] - a.boundary[1]) * Math.random(),
+            boundary: a.boundary,
+            s: {},
+            "in": current_map,
+            map: current_map,
+            moving: false,
+            demo: true,
+        }
+    })
 }
 function init_socket() {
     if (!server_addr) {
@@ -1240,12 +1300,13 @@ function init_socket() {
         clear_game_logs();
         add_log("Welcome to " + server_names[data.region] + " " + data.name);
         add_update_notes();
-        M = G.maps[data.map].data;
         current_map = data.map;
         first_coords = true;
         first_x = data.x;
         first_y = data.y;
         reflect_music();
+        M = G.maps[current_map].data;
+        GEO = G.geometry[current_map];
         $(".servername").html(server_name);
         $(".mapname").html(G.maps[current_map].name || "Unknown");
         if (!game_loaded) {
@@ -1269,6 +1330,7 @@ function init_socket() {
         current_map = data.map;
         reflect_music();
         M = G.maps[current_map].data;
+        GEO = G.geometry[current_map];
         $(".mapname").html(G.maps[current_map].name || "Unknown");
         if (create) {
             create_map()
@@ -1282,11 +1344,13 @@ function init_socket() {
         transporting = false;
         if (current_map != data.name) {
             create = true;
-            topleft_npc = false
+            topleft_npc = false;
+            data.redraw = true
         }
         current_map = data.name;
         reflect_music();
         M = G.maps[current_map].data;
+        GEO = G.geometry[current_map];
         $(".mapname").html(G.maps[current_map].name || "Unknown");
         character.real_x = data.x;
         character.real_y = data.y;
@@ -1316,7 +1380,8 @@ function init_socket() {
         console.log("create_map: " + mssince(cm_timer));
         pull_all = true;
         position_map();
-        new_map_logic("map", data)
+        new_map_logic("map", data);
+        call_code_function("trigger_event", "new_map", data)
     });
     socket.on("start", function(data) {
         if (!no_html) {
@@ -1365,6 +1430,10 @@ function init_socket() {
             } else {
                 if (no_graphics) {
                     get += (!get && "?" || "&") + "no_graphics=true"
+                } else {
+                    if (border_mode) {
+                        get += (!get && "?" || "&") + "borders=true"
+                    }
                 }
             }
             window.history.pushState(character.name, title, "/character/" + character.name + "/in/" + server_region + "/" + server_identifier + "/" + get);
@@ -1378,6 +1447,7 @@ function init_socket() {
             current_map = character.map;
             reflect_music();
             M = G.maps[current_map].data;
+            GEO = G.geometry[current_map];
             $(".mapname").html(G.maps[current_map].name || "Unknown");
             create_map();
             pull_all = true
@@ -1463,7 +1533,8 @@ function init_socket() {
                 x: character.real_x,
                 y: character.real_y,
                 going_x: data.x,
-                going_y: data.y
+                going_y: data.y,
+                base: character.base
             })) {
             add_log("Location corrected", "gray");
             console.log("Character correction");
@@ -1781,51 +1852,63 @@ function init_socket() {
                                                                                                                                                                                     if (response == "friend_failed") {
                                                                                                                                                                                         add_chat("", "Friendship failed, reason: " + data.reason, "#409BDD")
                                                                                                                                                                                     } else {
-                                                                                                                                                                                        if (response == "craft") {
-                                                                                                                                                                                            var def = G.craft[data.name];
-                                                                                                                                                                                            ui_log("Spent " + to_pretty_num(def.cost) + " gold", "gray");
-                                                                                                                                                                                            ui_log("Received " + G.items[data.name].name, "white")
+                                                                                                                                                                                        if (response == "gold_use") {
+                                                                                                                                                                                            ui_log("Used " + to_pretty_num(data.gold) + " gold", "gray")
                                                                                                                                                                                         } else {
-                                                                                                                                                                                            if (response == "dismantle") {
-                                                                                                                                                                                                var def = G.dismantle[data.name];
-                                                                                                                                                                                                ui_log("Spent " + to_pretty_num(def.cost) + " gold", "gray");
-                                                                                                                                                                                                ui_log("Dismantled " + G.items[data.name].name, "#CF5C65")
+                                                                                                                                                                                            if (response == "slots_success") {
+                                                                                                                                                                                                ui_log("Machine went crazy", "#9733FF")
                                                                                                                                                                                             } else {
-                                                                                                                                                                                                if (response == "dismantle_cant") {
-                                                                                                                                                                                                    ui_log("Can't dismantle", "gray")
+                                                                                                                                                                                                if (response == "slots_fail") {
+                                                                                                                                                                                                    ui_log("Machine got stuck", "gray")
                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                    if (response == "inv_size") {
-                                                                                                                                                                                                        ui_log("Need more empty space", "gray")
+                                                                                                                                                                                                    if (response == "craft") {
+                                                                                                                                                                                                        var def = G.craft[data.name];
+                                                                                                                                                                                                        ui_log("Spent " + to_pretty_num(def.cost) + " gold", "gray");
+                                                                                                                                                                                                        ui_log("Received " + G.items[data.name].name, "white")
                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                        if (response == "craft_cant") {
-                                                                                                                                                                                                            ui_log("Can't craft", "gray")
+                                                                                                                                                                                                        if (response == "dismantle") {
+                                                                                                                                                                                                            var def = G.dismantle[data.name];
+                                                                                                                                                                                                            ui_log("Spent " + to_pretty_num(def.cost) + " gold", "gray");
+                                                                                                                                                                                                            ui_log("Dismantled " + G.items[data.name].name, "#CF5C65")
                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                            if (response == "craft_cant_quantity") {
-                                                                                                                                                                                                                ui_log("Not enough materials", "gray")
+                                                                                                                                                                                                            if (response == "dismantle_cant") {
+                                                                                                                                                                                                                ui_log("Can't dismantle", "gray")
                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                if (response == "craft_atleast2") {
-                                                                                                                                                                                                                    ui_log("You need to provide at least 2 items", "gray")
+                                                                                                                                                                                                                if (response == "inv_size") {
+                                                                                                                                                                                                                    ui_log("Need more empty space", "gray")
                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                    if (response == "target_lock") {
-                                                                                                                                                                                                                        ui_log("Target Acquired: " + G.monsters[data.monster].name, "#F00B22")
+                                                                                                                                                                                                                    if (response == "craft_cant") {
+                                                                                                                                                                                                                        ui_log("Can't craft", "gray")
                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                        if (response == "cooldown") {
-                                                                                                                                                                                                                            d_text("NOT READY", character)
+                                                                                                                                                                                                                        if (response == "craft_cant_quantity") {
+                                                                                                                                                                                                                            ui_log("Not enough materials", "gray")
                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                            if (response == "blink_failed") {
-                                                                                                                                                                                                                                no_no_no();
-                                                                                                                                                                                                                                d_text("NO", character);
-                                                                                                                                                                                                                                last_blink_pressed = inception
+                                                                                                                                                                                                                            if (response == "craft_atleast2") {
+                                                                                                                                                                                                                                ui_log("You need to provide at least 2 items", "gray")
                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                if (response == "magiport_failed") {
-                                                                                                                                                                                                                                    ui_log("Magiport failed", "gray"),
-                                                                                                                                                                                                                                        no_no_no(2)
+                                                                                                                                                                                                                                if (response == "target_lock") {
+                                                                                                                                                                                                                                    ui_log("Target Acquired: " + G.monsters[data.monster].name, "#F00B22")
                                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                                    if (response == "revive_failed") {
-                                                                                                                                                                                                                                        ui_log("Revival failed", "gray"),
-                                                                                                                                                                                                                                            no_no_no(1)
+                                                                                                                                                                                                                                    if (response == "cooldown") {
+                                                                                                                                                                                                                                        d_text("NOT READY", character)
                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                        console.log("Missed game_response: " + response)
+                                                                                                                                                                                                                                        if (response == "blink_failed") {
+                                                                                                                                                                                                                                            no_no_no();
+                                                                                                                                                                                                                                            d_text("NO", character);
+                                                                                                                                                                                                                                            last_blink_pressed = inception
+                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                            if (response == "magiport_failed") {
+                                                                                                                                                                                                                                                ui_log("Magiport failed", "gray"),
+                                                                                                                                                                                                                                                    no_no_no(2)
+                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                if (response == "revive_failed") {
+                                                                                                                                                                                                                                                    ui_log("Revival failed", "gray"),
+                                                                                                                                                                                                                                                        no_no_no(1)
+                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                    console.log("Missed game_response: " + response)
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                        }
                                                                                                                                                                                                                                     }
                                                                                                                                                                                                                                 }
                                                                                                                                                                                                                             }
@@ -1911,6 +1994,14 @@ function init_socket() {
             s_page = 0
         }
         render_secondhands()
+    });
+    socket.on("lostandfound", function(data) {
+        lostandfound = data;
+        lostandfound.reverse();
+        if (topleft_npc != "lostandfound") {
+            l_page = 0
+        }
+        render_secondhands("lostandfound")
     });
     socket.on("tavern", function(data) {});
     socket.on("game_chat_log", function(data) {
@@ -1998,194 +2089,177 @@ function init_socket() {
                         name: data.name
                     })
                 } else {
-                    if (data.type == "+$$") {
-                        var seller = get_player(data.seller)
-                            , buyer = get_player(data.buyer);
-                        if (seller) {
-                            d_text(data.type, seller, {
-                                color: colors.white_positive
+                    if (data.type == "+$f") {
+                        var npc = get_npc("lostandfound")
+                            , player = get_player(data.name);
+                        if (npc) {
+                            d_text("+$", npc, {
+                                color: "#7E65D3"
                             })
                         }
-                        if (buyer) {
-                            d_text("-$$", buyer, {
-                                color: colors.white_negative
+                        if (player) {
+                            d_text("-$", player, {
+                                color: "#7E65D3"
                             })
                         }
-                        call_code_function("trigger_event", "trade", {
-                            seller: data.seller,
-                            buyer: data.buyer,
+                        call_code_function("trigger_event", "fbuy", {
                             item: data.item,
-                            num: data.num,
-                            slot: data.slot
+                            name: data.name
                         })
                     } else {
-                        if (data.type == "gold_sent") {
-                            var sender = get_player(data.sender)
-                                , receiver = get_player(data.receiver);
-                            if (sender && receiver) {
-                                d_line(sender, receiver, {
-                                    color: "gold"
+                        if (data.type == "+$$") {
+                            var seller = get_player(data.seller)
+                                , buyer = get_player(data.buyer);
+                            if (seller) {
+                                d_text(data.type, seller, {
+                                    color: colors.white_positive
                                 })
                             }
-                            call_code_function("trigger_event", "gold", {
-                                sender: data.sender,
-                                receiver: data.receiver,
-                                gold: data.gold
+                            if (buyer) {
+                                d_text("-$$", buyer, {
+                                    color: colors.white_negative
+                                })
+                            }
+                            call_code_function("trigger_event", "trade", {
+                                seller: data.seller,
+                                buyer: data.buyer,
+                                item: data.item,
+                                num: data.num,
+                                slot: data.slot
                             })
                         } else {
-                            if (data.type == "item_sent") {
+                            if (data.type == "gold_sent") {
                                 var sender = get_player(data.sender)
                                     , receiver = get_player(data.receiver);
                                 if (sender && receiver) {
                                     d_line(sender, receiver, {
-                                        color: "item"
+                                        color: "gold"
                                     })
                                 }
-                                call_code_function("trigger_event", "item", {
+                                call_code_function("trigger_event", "gold", {
                                     sender: data.sender,
                                     receiver: data.receiver,
-                                    item: data.item,
-                                    num: data.num,
-                                    fnum: data.fnum
+                                    gold: data.gold
                                 })
                             } else {
-                                if (data.type == "energize") {
-                                    var sender = get_player(data.from)
-                                        , receiver = get_player(data.to);
+                                if (data.type == "item_sent") {
+                                    var sender = get_player(data.sender)
+                                        , receiver = get_player(data.receiver);
                                     if (sender && receiver) {
                                         d_line(sender, receiver, {
-                                            color: "mana"
+                                            color: "item"
                                         })
                                     }
-                                    if (receiver) {
-                                        start_animation(receiver, "block")
-                                    }
+                                    call_code_function("trigger_event", "item", {
+                                        sender: data.sender,
+                                        receiver: data.receiver,
+                                        item: data.item,
+                                        num: data.num,
+                                        fnum: data.fnum
+                                    })
                                 } else {
-                                    if (data.type == "mluck") {
+                                    if (data.type == "energize") {
                                         var sender = get_player(data.from)
                                             , receiver = get_player(data.to);
                                         if (sender && receiver) {
                                             d_line(sender, receiver, {
-                                                color: "mluck"
+                                                color: "mana"
                                             })
                                         }
                                         if (receiver) {
-                                            start_animation(receiver, "mluck")
+                                            start_animation(receiver, "block")
                                         }
                                     } else {
-                                        if (data.type == "rspeed") {
+                                        if (data.type == "mluck") {
                                             var sender = get_player(data.from)
                                                 , receiver = get_player(data.to);
                                             if (sender && receiver) {
                                                 d_line(sender, receiver, {
-                                                    color: "#D4C392"
+                                                    color: "mluck"
                                                 })
                                             }
                                             if (receiver) {
-                                                start_animation(receiver, "rspeed")
+                                                start_animation(receiver, "mluck")
                                             }
                                         } else {
-                                            if (data.type == "4fingers") {
+                                            if (data.type == "rspeed") {
                                                 var sender = get_player(data.from)
                                                     , receiver = get_player(data.to);
                                                 if (sender && receiver) {
                                                     d_line(sender, receiver, {
-                                                        color: "#6F62AE"
+                                                        color: "#D4C392"
                                                     })
                                                 }
-                                                if (sender) {
-                                                    mojo(sender)
+                                                if (receiver) {
+                                                    start_animation(receiver, "rspeed")
                                                 }
                                             } else {
-                                                if (data.type == "mcourage") {
-                                                    var sender = get_player(data.name);
-                                                    if (sender) {
-                                                        d_text("OMG!", sender, {
-                                                            size: "huge",
-                                                            color: "#B9A08C"
+                                                if (data.type == "4fingers") {
+                                                    var sender = get_player(data.from)
+                                                        , receiver = get_player(data.to);
+                                                    if (sender && receiver) {
+                                                        d_line(sender, receiver, {
+                                                            color: "#6F62AE"
                                                         })
                                                     }
+                                                    if (sender) {
+                                                        mojo(sender)
+                                                    }
                                                 } else {
-                                                    if (data.type == "agitate") {
-                                                        var attacker = get_entity(data.name);
-                                                        data.ids.forEach(function(id) {
-                                                            var entity = entities[id];
-                                                            if (!entity) {
-                                                                return
-                                                            }
-                                                            start_emblem(entity, "rr1", {
-                                                                frames: 20
-                                                            })
-                                                        });
-                                                        if (attacker) {
-                                                            start_emblem(attacker, "rr1", {
-                                                                frames: 10
+                                                    if (data.type == "mcourage") {
+                                                        var sender = get_player(data.name);
+                                                        if (sender) {
+                                                            d_text("OMG!", sender, {
+                                                                size: "huge",
+                                                                color: "#B9A08C"
                                                             })
                                                         }
                                                     } else {
-                                                        if (data.type == "stomp") {
+                                                        if (data.type == "agitate") {
                                                             var attacker = get_entity(data.name);
                                                             data.ids.forEach(function(id) {
                                                                 var entity = entities[id];
                                                                 if (!entity) {
                                                                     return
                                                                 }
-                                                                start_emblem(entity, "br1", {
-                                                                    frames: 30
-                                                                });
-                                                                if (1 || attacker != character) {
-                                                                    v_shake_i(entity)
-                                                                }
+                                                                start_emblem(entity, "rr1", {
+                                                                    frames: 20
+                                                                })
                                                             });
                                                             if (attacker) {
-                                                                start_emblem(attacker, "br1", {
-                                                                    frames: 5
+                                                                start_emblem(attacker, "rr1", {
+                                                                    frames: 10
                                                                 })
                                                             }
-                                                            if (attacker == character) {
-                                                                v_dive()
-                                                            } else {
-                                                                if (attacker) {
-                                                                    v_dive_i(attacker)
-                                                                }
-                                                            }
                                                         } else {
-                                                            if (data.type == "cleave") {
-                                                                var points = []
-                                                                    , attacker = get_entity(data.name);
+                                                            if (data.type == "stomp") {
+                                                                var attacker = get_entity(data.name);
                                                                 data.ids.forEach(function(id) {
-                                                                    var entity = entities[id] || entities["DEAD" + id];
+                                                                    var entity = entities[id];
                                                                     if (!entity) {
                                                                         return
                                                                     }
-                                                                    points.push({
-                                                                        x: get_x(entity),
-                                                                        y: get_y(entity)
+                                                                    start_emblem(entity, "br1", {
+                                                                        frames: 30
                                                                     });
-                                                                    if (attacker) {
-                                                                        disappearing_clone(attacker, {
-                                                                            x: (get_x(entity) + get_x(attacker) * 2) / 3,
-                                                                            y: (get_y(entity) + get_y(attacker) * 2) / 3,
-                                                                            random: true
-                                                                        })
+                                                                    if (1 || attacker != character) {
+                                                                        v_shake_i(entity)
                                                                     }
                                                                 });
                                                                 if (attacker) {
-                                                                    points.push({
-                                                                        x: get_x(attacker),
-                                                                        y: get_y(attacker)
-                                                                    }),
-                                                                        flurry(attacker)
-                                                                }
-                                                                cpoints = convexhull.makeHull(points);
-                                                                for (var i = 0; i < cpoints.length; i++) {
-                                                                    var j = (i + 1) % cpoints.length;
-                                                                    d_line(cpoints[i], cpoints[j], {
-                                                                        color: "warrior"
+                                                                    start_emblem(attacker, "br1", {
+                                                                        frames: 5
                                                                     })
                                                                 }
+                                                                if (attacker == character) {
+                                                                    v_dive()
+                                                                } else {
+                                                                    if (attacker) {
+                                                                        v_dive_i(attacker)
+                                                                    }
+                                                                }
                                                             } else {
-                                                                if (data.type == "shadowstrike") {
+                                                                if (data.type == "cleave") {
                                                                     var points = []
                                                                         , attacker = get_entity(data.name);
                                                                     data.ids.forEach(function(id) {
@@ -2193,29 +2267,71 @@ function init_socket() {
                                                                         if (!entity) {
                                                                             return
                                                                         }
-                                                                        if (!attacker) {
-                                                                            return
-                                                                        }
-                                                                        disappearing_clone(attacker, {
-                                                                            x: (get_x(entity) + get_x(attacker) * 2) / 3,
-                                                                            y: (get_y(entity) + get_y(attacker) * 2) / 3,
-                                                                            random: true,
-                                                                            rcolor: true
-                                                                        });
-                                                                        disappearing_clone(attacker, {
+                                                                        points.push({
                                                                             x: get_x(entity),
-                                                                            y: get_y(entity),
-                                                                            random: true,
-                                                                            rcolor: true
-                                                                        })
-                                                                    })
-                                                                } else {
-                                                                    if (data.type == "track") {
-                                                                        var attacker = get_entity(data.name);
+                                                                            y: get_y(entity)
+                                                                        });
                                                                         if (attacker) {
-                                                                            start_emblem(attacker, "o1", {
-                                                                                frames: 5
+                                                                            disappearing_clone(attacker, {
+                                                                                x: (get_x(entity) + get_x(attacker) * 2) / 3,
+                                                                                y: (get_y(entity) + get_y(attacker) * 2) / 3,
+                                                                                random: true
                                                                             })
+                                                                        }
+                                                                    });
+                                                                    if (attacker) {
+                                                                        points.push({
+                                                                            x: get_x(attacker),
+                                                                            y: get_y(attacker)
+                                                                        }),
+                                                                            flurry(attacker)
+                                                                    }
+                                                                    cpoints = convexhull.makeHull(points);
+                                                                    for (var i = 0; i < cpoints.length; i++) {
+                                                                        var j = (i + 1) % cpoints.length;
+                                                                        d_line(cpoints[i], cpoints[j], {
+                                                                            color: "warrior"
+                                                                        })
+                                                                    }
+                                                                } else {
+                                                                    if (data.type == "shadowstrike") {
+                                                                        var points = []
+                                                                            , attacker = get_entity(data.name);
+                                                                        data.ids.forEach(function(id) {
+                                                                            var entity = entities[id] || entities["DEAD" + id];
+                                                                            if (!entity) {
+                                                                                return
+                                                                            }
+                                                                            if (!attacker) {
+                                                                                return
+                                                                            }
+                                                                            disappearing_clone(attacker, {
+                                                                                x: (get_x(entity) + get_x(attacker) * 2) / 3,
+                                                                                y: (get_y(entity) + get_y(attacker) * 2) / 3,
+                                                                                random: true,
+                                                                                rcolor: true
+                                                                            });
+                                                                            disappearing_clone(attacker, {
+                                                                                x: get_x(entity),
+                                                                                y: get_y(entity),
+                                                                                random: true,
+                                                                                rcolor: true
+                                                                            })
+                                                                        })
+                                                                    } else {
+                                                                        if (data.type == "track") {
+                                                                            var attacker = get_entity(data.name);
+                                                                            if (attacker) {
+                                                                                start_emblem(attacker, "o1", {
+                                                                                    frames: 5
+                                                                                })
+                                                                            }
+                                                                        } else {
+                                                                            if (data.type == "slots") {
+                                                                                if (map_machines.slots) {
+                                                                                    map_machines.slots.spinning = future_s(3)
+                                                                                }
+                                                                            }
                                                                         }
                                                                     }
                                                                 }
@@ -2241,6 +2357,10 @@ function init_socket() {
             } else {
                 if (data.type == "compound") {
                     assassin_smoke(G.maps.main.ref.c_mid[0], G.maps.main.ref.c_mid[1], "explode_up")
+                } else {
+                    if (data.type == "poof") {
+                        assassin_smoke(G.maps.spookytown.ref.poof.x, G.maps.spookytown.ref.poof.y, "explode_up")
+                    }
                 }
             }
             map_npcs.forEach(function(npc) {
@@ -2736,6 +2856,9 @@ function npc_right_click(c) {
     if (this.role == "secondhands") {
         socket.emit("secondhands")
     }
+    if (this.role == "lostandfound") {
+        socket.emit("lostandfound")
+    }
     if (this.role == "blocker") {
         socket.emit("blocker", {
             type: "pvp"
@@ -3010,7 +3133,7 @@ function map_click(e) {
         }
     }
     if (character && can_walk(character)) {
-        var b = calculate_move(M, character.real_x, character.real_y, character.real_x + d, character.real_y + c);
+        var b = calculate_move(character, character.real_x + d, character.real_y + c);
         character.from_x = character.real_x;
         character.from_y = character.real_y;
         character.going_x = b.x;
@@ -3111,7 +3234,7 @@ function update_sprite(m) {
     if (m.stype == "static") {
         return
     }
-    if (m.type == "character" || m.type == "monster") {
+    if (m.type == "character" || m.type == "monster" || m.type == "npc") {
         hp_bar_logic(m);
         if (border_mode) {
             border_logic(m)
@@ -3126,6 +3249,9 @@ function update_sprite(m) {
     }
     if (m.type == "character" || m.type == "monster") {
         effects_logic(m)
+    }
+    if (is_demo) {
+        demo_entity_logic(m)
     }
     if (m.stype == "full") {
         var a = false
@@ -3262,13 +3388,26 @@ function update_sprite(m) {
             set_texture(m, m.frame)
         }
     }
-    if (m.mtype == "dice") {
-        if (m.shuffling) {
-            var h = m.updates % 4;
-            m.digits[h].texture = textures.dicesub[parseInt(Math.random() * 10)];
-            if (!(m.updates % 40)) {
-                m.cskin = "" + (parseInt(m.cskin) + 1) % 2;
-                m.texture = textures.dice[m.cskin]
+    if (m.mtype) {
+        if (m.mtype == "dice") {
+            if (m.shuffling) {
+                var h = m.updates % 4;
+                m.digits[h].texture = textures.dicesub[parseInt(Math.random() * 10)];
+                if (!(m.updates % 40)) {
+                    m.cskin = "" + (parseInt(m.cskin) + 1) % 2;
+                    m.texture = textures.dice[m.cskin]
+                }
+            }
+        }
+        if (m.mtype == "slots" || m.mtype == "wheel") {
+            if (m.spinning) {
+                if (!(m.updates % 2)) {
+                    m.cskin = "" + (parseInt(m.cskin) + 1) % 3;
+                    m.texture = textures[m.mtype][m.cskin]
+                }
+                if (m.spinning < new Date()) {
+                    m.spinning = false
+                }
             }
         }
     }
@@ -3338,6 +3477,7 @@ function add_monster(d) {
     }
     b.interactive = true;
     b.buttonMode = true;
+    set_base(b);
     b.on("mousedown", monster_click).on("touchstart", monster_click).on("rightdown", monster_attack);
     if (0 && G.actual_dimensions[d.type]) {
         var e = G.actual_dimensions[d.type]
@@ -3696,7 +3836,7 @@ function add_character(e, d) {
         console.log("add character " + e.id)
     }
     var a = (d && manual_centering && 2) || 1;
-    if (!D[e.skin]) {
+    if (!XYHW[e.skin]) {
         e.skin = "tf_template"
     }
     var c = new_sprite(e.skin, "full");
@@ -3719,6 +3859,11 @@ function add_character(e, d) {
     c.anchor.set(0.5, 1);
     c.type = "character";
     c.me = d;
+    c.base = {
+        h: 8,
+        v: 7,
+        vn: 2
+    };
     if (e.npc && G.npcs[e.npc]) {
         if (G.npcs[e.npc].role == "citizen" || G.npcs[e.npc].moving) {
             c.citizen = true,
@@ -3835,7 +3980,7 @@ function add_machine(d) {
     if (d.type == "dice") {
         c.digits = e_array(4);
         for (var b = 0; b < 4; b++) {
-            c.digits[b] = new PIXI.Sprite(textures.dicesub[parseInt(Math.random() * 10)]);
+            c.digits[b] = new PIXI.Sprite(textures.dicesub[8]);
             c.digits[b].anchor.set(0.5, 1);
             c.digits[b].x = -11 + b * 7;
             if (b > 1) {
@@ -3849,13 +3994,33 @@ function add_machine(d) {
         c.dot.x = 0;
         c.dot.y = -21;
         c.addChild(c.dot);
-        c.shuffling = true;
         c.shuffle_speed = 100
     }
-    function a() {
+    function a(f) {
         if (d.type == "dice") {
-            render_dice()
+            add_log("Curious device", "gray")
         }
+        if (d.type == "wheel") {
+            add_log("The hostess isn't around", "gray")
+        }
+        if (d.type == "slots") {
+            render_interaction({
+                auto: true,
+                skin: character.skin,
+                message: "Hmm. This machine seems broken. Still give it a try? [1,000,000 gold]",
+                button: "YES!",
+                onclick: function() {
+                    socket.emit("bet", {
+                        type: "slots"
+                    })
+                }
+            })
+        }
+        try {
+            if (f) {
+                f.stopPropagation()
+            }
+        } catch (g) {}
     }
     c.on("mousedown", a).on("touchstart", a).on("rightdown", a);
     c.onrclick = a;
@@ -3868,7 +4033,8 @@ function add_door(b) {
     c.buttonMode = true;
     c.x = round(b[0]);
     c.y = round(b[1]);
-    c.hitArea = new PIXI.Rectangle(0,0,round(b[2]),round(b[3]));
+    c.anchor.set(0.5, 1);
+    c.hitArea = new PIXI.Rectangle(-round(b[2] * 0.5),-round(b[3] * 1),round(b[2]),round(b[3]));
     c.type = "door";
     function a() {
         if (distance(character, {
@@ -3900,7 +4066,8 @@ function add_quirk(c) {
     }
     a.x = round(c[0]);
     a.y = round(c[1]);
-    a.hitArea = new PIXI.Rectangle(0,0,round(c[2]),round(c[3]));
+    a.anchor.set(0.5, 1);
+    a.hitArea = new PIXI.Rectangle(-round(c[2] * 0.5),-round(c[3] * 1),round(c[2]),round(c[3]));
     a.type = "quirk";
     function b(d) {
         if (c[4] == "sign") {
@@ -3920,6 +4087,11 @@ function add_quirk(c) {
                         } else {
                             if (c[4] == "list_pvp") {
                                 socket.emit("list_pvp")
+                            } else {
+                                if (c[4] == "invisible_statue") {
+                                    render_none_shrine(),
+                                        add_log("An invisible statue!", "gray")
+                                }
                             }
                         }
                     }
@@ -3932,7 +4104,7 @@ function add_quirk(c) {
             }
         } catch (f) {}
     }
-    if (is_mobile || in_arr(c[4], ["upgrade", "compound"])) {
+    if (is_mobile || in_arr(c[4], ["upgrade", "compound", "invisible_statue"])) {
         a.on("mousedown", b).on("touchstart", b)
     }
     a.on("rightdown", b);
@@ -3988,13 +4160,14 @@ function create_map() {
     map_doors = [];
     map_tiles = [];
     map_entities = [];
+    map_machines = {};
     water_tiles = [];
     entities = {};
     if (!tile_sprites[current_map]) {
         tile_sprites[current_map] = {},
             sprite_last[current_map] = []
     }
-    dtile_size = M["default"] && M["default"][3];
+    dtile_size = GEO["default"] && GEO["default"][3];
     if (dtile_size && is_array(dtile_size)) {
         dtile_size = dtile_size[0]
     }
@@ -4028,11 +4201,11 @@ function create_map() {
         regather_filters(stage)
     }
     if (cached_map) {
-        for (var B = 0; B <= M.tiles.length; B++) {
-            if (B == M.tiles.length) {
-                element = M["default"]
+        for (var B = 0; B <= GEO.tiles.length; B++) {
+            if (B == GEO.tiles.length) {
+                element = GEO["default"]
             } else {
-                element = M.tiles[B]
+                element = GEO.tiles[B]
             }
             sprite_last[current_map][B] = 0;
             if (!tile_sprites[current_map][B]) {
@@ -4048,25 +4221,25 @@ function create_map() {
                         element[4] = element[3]
                     }
                 }
-                var K = new PIXI.Rectangle(element[1],element[2],element[3],element[4]);
-                var s = new PIXI.Texture(C[G.tilesets[element[0]]],K);
+                var J = new PIXI.Rectangle(element[1],element[2],element[3],element[4]);
+                var s = new PIXI.Texture(C[G.tilesets[element[0]]],J);
                 element[5] = s;
                 if (element[0] == "water") {
                     element[5].type = "water";
-                    K = new PIXI.Rectangle(element[1] + 48,element[2],element[3],element[4]);
-                    s = new PIXI.Texture(C[G.tilesets[element[0]]],K);
+                    J = new PIXI.Rectangle(element[1] + 48,element[2],element[3],element[4]);
+                    s = new PIXI.Texture(C[G.tilesets[element[0]]],J);
                     element[6] = s;
-                    K = new PIXI.Rectangle(element[1] + 48 + 48,element[2],element[3],element[4]);
-                    s = new PIXI.Texture(C[G.tilesets[element[0]]],K);
+                    J = new PIXI.Rectangle(element[1] + 48 + 48,element[2],element[3],element[4]);
+                    s = new PIXI.Texture(C[G.tilesets[element[0]]],J);
                     element[7] = s
                 }
                 if (element[0] == "puzzle" || element[0] == "custom_a") {
                     element[5].type = "water";
-                    K = new PIXI.Rectangle(element[1] + 16,element[2],element[3],element[4]);
-                    s = new PIXI.Texture(C[G.tilesets[element[0]]],K);
+                    J = new PIXI.Rectangle(element[1] + 16,element[2],element[3],element[4]);
+                    s = new PIXI.Texture(C[G.tilesets[element[0]]],J);
                     element[6] = s;
-                    K = new PIXI.Rectangle(element[1] + 16 + 16,element[2],element[3],element[4]);
-                    s = new PIXI.Texture(C[G.tilesets[element[0]]],K);
+                    J = new PIXI.Rectangle(element[1] + 16 + 16,element[2],element[3],element[4]);
+                    s = new PIXI.Texture(C[G.tilesets[element[0]]],J);
                     element[7] = s
                 }
             }
@@ -4076,85 +4249,85 @@ function create_map() {
         if (dtile_size) {
             recreate_dtextures()
         }
-        var L = [new PIXI.Container(), new PIXI.Container(), new PIXI.Container()];
-        var J = 0
-            , I = 0;
+        var K = [new PIXI.Container(), new PIXI.Container(), new PIXI.Container()];
+        var I = 0
+            , H = 0;
         for (var d = 0; d < 3; d++) {
-            rtextures[d] = PIXI.RenderTexture.create(M.max_x - M.min_x, M.max_y - M.min_y, PIXI.SCALE_MODES.NEAREST, 1);
-            for (var B = 0; B < M.placements.length; B++) {
-                var N = M.placements[B];
-                if (N[3] === undefined) {
-                    var r = M.tiles[N[0]]
+            rtextures[d] = PIXI.RenderTexture.create(GEO.max_x - GEO.min_x, GEO.max_y - GEO.min_y, PIXI.SCALE_MODES.NEAREST, 1);
+            for (var B = 0; B < GEO.placements.length; B++) {
+                var L = GEO.placements[B];
+                if (L[3] === undefined) {
+                    var r = GEO.tiles[L[0]]
                         , g = r[3]
-                        , E = r[4];
-                    if (sprite_last[current_map][N[0]] >= tile_sprites[current_map][N[0]].length) {
-                        tile_sprites[current_map][N[0]][sprite_last[current_map][N[0]]] = new_map_tile(r)
+                        , D = r[4];
+                    if (sprite_last[current_map][L[0]] >= tile_sprites[current_map][L[0]].length) {
+                        tile_sprites[current_map][L[0]][sprite_last[current_map][L[0]]] = new_map_tile(r)
                     }
-                    var l = tile_sprites[current_map][N[0]][sprite_last[current_map][N[0]]++];
+                    var l = tile_sprites[current_map][L[0]][sprite_last[current_map][L[0]]++];
                     if (l.textures) {
                         l.texture = l.textures[d]
                     }
-                    l.x = N[1] - M.min_x;
-                    l.y = N[2] - M.min_y;
-                    L[d].addChild(l)
+                    l.x = L[1] - GEO.min_x;
+                    l.y = L[2] - GEO.min_y;
+                    K[d].addChild(l)
                 } else {
-                    var r = M.tiles[N[0]]
+                    var r = GEO.tiles[L[0]]
                         , g = r[3]
-                        , E = r[4];
-                    if (abs(((N[3] - N[1]) / g + 1) * ((N[4] - N[2]) / E + 1)) > 3) {
+                        , D = r[4];
+                    if (abs(((L[3] - L[1]) / g + 1) * ((L[4] - L[2]) / D + 1)) > 3) {
                         var s = r[5];
                         if (r.length == 8) {
                             s = r[5 + d]
                         }
-                        var l = new PIXI.extras.TilingSprite(s,N[3] - N[1] + g,N[4] - N[2] + E);
-                        l.x = N[1] - M.min_x;
-                        l.y = N[2] - M.min_y;
-                        L[d].addChild(l);
-                        J++
+                        var l = new PIXI.extras.TilingSprite(s,L[3] - L[1] + g,L[4] - L[2] + D);
+                        l.x = L[1] - GEO.min_x;
+                        l.y = L[2] - GEO.min_y;
+                        K[d].addChild(l);
+                        I++
                     } else {
-                        I++;
-                        for (var f = N[1]; f <= N[3]; f += g) {
-                            for (var e = N[2]; e <= N[4]; e += E) {
-                                if (sprite_last[current_map][N[0]] >= tile_sprites[current_map][N[0]].length) {
-                                    tile_sprites[current_map][N[0]][sprite_last[current_map][N[0]]] = new_map_tile(r)
+                        H++;
+                        for (var f = L[1]; f <= L[3]; f += g) {
+                            for (var e = L[2]; e <= L[4]; e += D) {
+                                if (sprite_last[current_map][L[0]] >= tile_sprites[current_map][L[0]].length) {
+                                    tile_sprites[current_map][L[0]][sprite_last[current_map][L[0]]] = new_map_tile(r)
                                 }
-                                var l = tile_sprites[current_map][N[0]][sprite_last[current_map][N[0]]++];
+                                var l = tile_sprites[current_map][L[0]][sprite_last[current_map][L[0]]++];
                                 if (l.textures) {
                                     l.texture = l.textures[d]
                                 }
-                                l.x = f - M.min_x;
-                                l.y = e - M.min_y;
-                                L[d].addChild(l)
+                                l.x = f - GEO.min_x;
+                                l.y = e - GEO.min_y;
+                                K[d].addChild(l)
                             }
                         }
                     }
                 }
             }
-            L[d].x = 0;
-            L[d].y = 0;
-            renderer.render(L[d], rtextures[d]);
+            K[d].x = 0;
+            K[d].y = 0;
+            renderer.render(K[d], rtextures[d]);
             if (!mode.destroy_tiles) {
-                L[d].destroy()
+                K[d].destroy()
             }
         }
-        console.log("a: " + J + " b: " + I);
+        console.log("a: " + I + " b: " + H);
         if (dtile_size) {
             window.dtile = new PIXI.Sprite(dtextures[1]),
                 dtile.x = -500,
                 dtile.y = -500
         }
         window.tiles = new PIXI.Sprite(rtextures[0]);
-        tiles.x = M.min_x;
-        tiles.y = M.min_y;
+        tiles.x = GEO.min_x;
+        tiles.y = GEO.min_y;
         if (dtile_size) {
             map.addChild(dtile)
         }
         map.addChild(tiles);
         if (mode.destroy_tiles) {
             for (var B = 0; B < 3; B++) {
-                L[B].destroy()
+                K[B].destroy()
             }
-            for (var B = 0; B <= M.tiles.length; B++) {
+            for (var B = 0; B <= GEO.tiles.length; B++) {
                 for (var z = 0; z < tile_sprites[current_map][B].length; z++) {
                     tile_sprites[current_map][B][z].destroy()
                 }
@@ -4162,11 +4335,11 @@ function create_map() {
             }
         }
     } else {
-        for (var B = 0; B <= M.tiles.length; B++) {
-            if (B == M.tiles.length) {
-                element = M["default"]
+        for (var B = 0; B <= GEO.tiles.length; B++) {
+            if (B == GEO.tiles.length) {
+                element = GEO["default"]
             } else {
-                element = M.tiles[B]
+                element = GEO.tiles[B]
             }
             sprite_last[current_map][B] = 0;
             if (!tile_sprites[current_map][B]) {
@@ -4180,68 +4353,68 @@ function create_map() {
                 } else {
                     element[4] = element[3]
                 }
-                var K = new PIXI.Rectangle(element[1],element[2],element[3],element[4]);
-                var s = new PIXI.Texture(C[G.tilesets[element[0]]],K);
+                var J = new PIXI.Rectangle(element[1],element[2],element[3],element[4]);
+                var s = new PIXI.Texture(C[G.tilesets[element[0]]],J);
                 element[5] = s;
                 if (element[0] == "water") {
                     element[5].type = "water";
-                    K = new PIXI.Rectangle(element[1] + 48,element[2],element[3],element[4]);
-                    s = new PIXI.Texture(C[G.tilesets[element[0]]],K);
+                    J = new PIXI.Rectangle(element[1] + 48,element[2],element[3],element[4]);
+                    s = new PIXI.Texture(C[G.tilesets[element[0]]],J);
                     element[6] = s;
-                    K = new PIXI.Rectangle(element[1] + 48 + 48,element[2],element[3],element[4]);
-                    s = new PIXI.Texture(C[G.tilesets[element[0]]],K);
+                    J = new PIXI.Rectangle(element[1] + 48 + 48,element[2],element[3],element[4]);
+                    s = new PIXI.Texture(C[G.tilesets[element[0]]],J);
                     element[7] = s
                 }
                 if (element[0] == "puzzle" || element[0] == "custom_a") {
                     element[5].type = "water";
-                    K = new PIXI.Rectangle(element[1] + 16,element[2],element[3],element[4]);
-                    s = new PIXI.Texture(C[G.tilesets[element[0]]],K);
+                    J = new PIXI.Rectangle(element[1] + 16,element[2],element[3],element[4]);
+                    s = new PIXI.Texture(C[G.tilesets[element[0]]],J);
                     element[6] = s;
-                    K = new PIXI.Rectangle(element[1] + 16 + 16,element[2],element[3],element[4]);
-                    s = new PIXI.Texture(C[G.tilesets[element[0]]],K);
+                    J = new PIXI.Rectangle(element[1] + 16 + 16,element[2],element[3],element[4]);
+                    s = new PIXI.Texture(C[G.tilesets[element[0]]],J);
                     element[7] = s
                 }
                 tile_sprites[current_map][B][sprite_last[current_map][B]] = new_map_tile(element)
             }
         }
     }
-    if (M.groups) {
-        for (var u = 0; u < M.groups.length; u++) {
-            if (!M.groups[u].length) {
+    if (GEO.groups) {
+        for (var u = 0; u < GEO.groups.length; u++) {
+            if (!GEO.groups[u].length) {
                 continue
             }
             var o = new PIXI.Container();
             o.type = "group";
             var n = 999999999
                 , q = 99999999
-                , F = -999999999;
-            for (var B = 0; B < M.groups[u].length; B++) {
-                var N = M.groups[u][B]
-                    , r = M.tiles[N[0]];
-                if (N[1] < q) {
-                    q = N[1]
+                , E = -999999999;
+            for (var B = 0; B < GEO.groups[u].length; B++) {
+                var L = GEO.groups[u][B]
+                    , r = GEO.tiles[L[0]];
+                if (L[1] < q) {
+                    q = L[1]
                 }
-                if (N[2] < n) {
-                    n = N[2]
+                if (L[2] < n) {
+                    n = L[2]
                 }
-                if (N[2] + r[4] > F) {
-                    F = N[2] + r[4]
+                if (L[2] + r[4] > E) {
+                    E = L[2] + r[4]
                 }
             }
-            for (var B = 0; B < M.groups[u].length; B++) {
-                var N = M.groups[u][B];
-                var l = new PIXI.Sprite(M.tiles[N[0]][5]);
-                l.x = N[1] - q;
-                l.y = N[2] - n;
-                if (N[2] < n) {
-                    n = N[2]
+            for (var B = 0; B < GEO.groups[u].length; B++) {
+                var L = GEO.groups[u][B];
+                var l = new PIXI.Sprite(GEO.tiles[L[0]][5]);
+                l.x = L[1] - q;
+                l.y = L[2] - n;
+                if (L[2] < n) {
+                    n = L[2]
                 }
                 o.addChild(l)
             }
             o.x = q;
             o.y = n;
             o.real_x = q;
-            o.real_y = F;
+            o.real_y = E;
             o.parentGroup = o.displayGroup = player_layer;
             map.addChild(o);
             map_entities.push(o)
@@ -4250,13 +4423,13 @@ function create_map() {
     map_info = G.maps[current_map];
     npcs = map_info.npcs;
     for (var B = 0; B < npcs.length; B++) {
-        var H = npcs[B]
-            , r = G.npcs[H.id];
+        var F = npcs[B]
+            , r = G.npcs[F.id];
         if (r.type == "full" || r.role == "citizen") {
             continue
         }
-        console.log("NPC: " + H.id);
-        var m = add_npc(r, H.position, H.name, H.id);
+        console.log("NPC: " + F.id);
+        var m = add_npc(r, F.position, F.name, F.id);
         map.addChild(m);
         map_npcs.push(m);
         map_entities.push(m)
@@ -4268,7 +4441,10 @@ function create_map() {
         console.log("Door: " + v);
         map.addChild(m);
         map_doors.push(m);
-        map_entities.push(m)
+        map_entities.push(m);
+        if (border_mode) {
+            border_logic(m)
+        }
     }
     machines = map_info.machines || [];
     for (var B = 0; B < machines.length; B++) {
@@ -4277,7 +4453,11 @@ function create_map() {
         console.log("Machine: " + c.type);
         map.addChild(m);
         map_npcs.push(m);
-        map_entities.push(m)
+        map_entities.push(m);
+        map_machines[m.mtype] = m;
+        if (border_mode) {
+            border_logic(m)
+        }
     }
     quirks = map_info.quirks || [];
     for (var B = 0; B < quirks.length; B++) {
@@ -4285,14 +4465,26 @@ function create_map() {
         var m = add_quirk(A);
         console.log("Quirk: " + A);
         map.addChild(m);
-        map_entities.push(m)
+        map_entities.push(m);
+        if (border_mode) {
+            border_logic(m)
+        }
     }
     console.log("Map created: " + current_map);
     animatables = {};
     for (var t in map_info.animatables || {}) {
         animatables[t] = add_animatable(t, map_info.animatables[t]);
         map.addChild(animatables[t]);
-        map_entities.push(animatables[t])
+        map_entities.push(animatables[t]);
+        if (border_mode) {
+            border_logic(animatables[t])
+        }
+    }
+    if (border_mode) {
+        G.maps[current_map].spawns.forEach(function(a) {
+            var b = draw_circle(a[0], a[1], 10, 16609672);
+            map.addChild(b)
+        })
     }
     console.log("Map created: " + current_map)
 }
@@ -4360,32 +4552,32 @@ function retile_the_map() {
             map.removeChildren(map.children.indexOf(map_tiles[0]), map.children.indexOf(map_tiles[map_tiles.length - 1]))
         }
     }
-    for (var q = 0; q <= M.tiles.length; q++) {
+    for (var q = 0; q <= GEO.tiles.length; q++) {
         sprite_last[current_map][q] = 0
     }
     map_tiles = n;
     water_tiles = [];
     last_water_frame = water_frame();
-    if (M["default"] && !mdraw_tiling_sprites) {
-        for (var d = k; d <= B + 10; d += M["default"][3]) {
-            for (var c = g; c <= A + 10; c += M["default"][4]) {
-                var z = floor(d / M["default"][3])
-                    , v = floor(c / M["default"][4])
+    if (GEO["default"] && !mdraw_tiling_sprites) {
+        for (var d = k; d <= B + 10; d += GEO["default"][3]) {
+            for (var c = g; c <= A + 10; c += GEO["default"][4]) {
+                var z = floor(d / GEO["default"][3])
+                    , v = floor(c / GEO["default"][4])
                     , u = "d" + z + "-" + v;
                 if (p[u]) {
                     continue
                 }
-                if (sprite_last[current_map][M.tiles.length] >= tile_sprites[current_map][M.tiles.length].length) {
-                    tile_sprites[current_map][M.tiles.length][sprite_last[current_map][M.tiles.length]] = new_map_tile(M["default"]),
+                if (sprite_last[current_map][GEO.tiles.length] >= tile_sprites[current_map][GEO.tiles.length].length) {
+                    tile_sprites[current_map][GEO.tiles.length][sprite_last[current_map][GEO.tiles.length]] = new_map_tile(GEO["default"]),
                         l++
                 }
-                var f = tile_sprites[current_map][M.tiles.length][sprite_last[current_map][M.tiles.length]++];
+                var f = tile_sprites[current_map][GEO.tiles.length][sprite_last[current_map][GEO.tiles.length]++];
                 if (f.textures) {
                     f.texture = f.textures[last_water_frame],
                         water_tiles.push(f)
                 }
-                f.x = z * M["default"][3];
-                f.y = v * M["default"][4];
+                f.x = z * GEO["default"][3];
+                f.y = v * GEO["default"][4];
                 if (mdraw_mode != "redraw") {
                     f.parentGroup = f.displayGroup = map_layer
                 }
@@ -4396,40 +4588,40 @@ function retile_the_map() {
             }
         }
     } else {
-        if (M["default"]) {
+        if (GEO["default"]) {
             if (!window.default_tiling) {
-                default_tiling = new PIXI.extras.TilingSprite(M["default"][5],floor((B - k) / 32) * 32 + 32,floor((A - g) / 32) * 32 + 32)
+                default_tiling = new PIXI.extras.TilingSprite(GEO["default"][5],floor((B - k) / 32) * 32 + 32,floor((A - g) / 32) * 32 + 32)
             }
-            default_tiling.x = floor(k / M["default"][3]) * M["default"][3];
-            default_tiling.y = floor(g / M["default"][4]) * M["default"][4];
-            default_tiling.textures = [M["default"][5], M["default"][6], M["default"][7]];
+            default_tiling.x = floor(k / GEO["default"][3]) * GEO["default"][3];
+            default_tiling.y = floor(g / GEO["default"][4]) * GEO["default"][4];
+            default_tiling.textures = [GEO["default"][5], GEO["default"][6], GEO["default"][7]];
             map.addChild(default_tiling);
             map_tiles.push(default_tiling)
         }
     }
-    for (var q = 0; q < M.placements.length; q++) {
-        var E = M.placements[q];
-        if (E[3] === undefined) {
+    for (var q = 0; q < GEO.placements.length; q++) {
+        var D = GEO.placements[q];
+        if (D[3] === undefined) {
             if (p["p" + q]) {
                 continue
             }
-            var j = M.tiles[E[0]]
+            var j = GEO.tiles[D[0]]
                 , e = j[3]
                 , t = j[4];
-            if (E[1] > B || E[2] > A || E[1] + e < k || E[2] + t < g) {
+            if (D[1] > B || D[2] > A || D[1] + e < k || D[2] + t < g) {
                 continue
             }
-            if (sprite_last[current_map][E[0]] >= tile_sprites[current_map][E[0]].length) {
-                tile_sprites[current_map][E[0]][sprite_last[current_map][E[0]]] = new_map_tile(j),
+            if (sprite_last[current_map][D[0]] >= tile_sprites[current_map][D[0]].length) {
+                tile_sprites[current_map][D[0]][sprite_last[current_map][D[0]]] = new_map_tile(j),
                     l++
             }
-            var f = tile_sprites[current_map][E[0]][sprite_last[current_map][E[0]]++];
+            var f = tile_sprites[current_map][D[0]][sprite_last[current_map][D[0]]++];
             if (f.textures) {
                 f.texture = f.textures[last_water_frame],
                     water_tiles.push(f)
             }
-            f.x = E[1];
-            f.y = E[2];
+            f.x = D[1];
+            f.y = D[2];
             if (mdraw_mode != "redraw") {
                 f.parentGroup = f.displayGroup = map_layer
             }
@@ -4438,23 +4630,23 @@ function retile_the_map() {
             map.addChild(f);
             map_tiles.push(f)
         } else {
-            var j = M.tiles[E[0]]
+            var j = GEO.tiles[D[0]]
                 , e = j[3]
                 , t = j[4];
             if (!mdraw_tiling_sprites) {
-                for (var d = E[1]; d <= E[3]; d += e) {
+                for (var d = D[1]; d <= D[3]; d += e) {
                     if (d > B || d + e < k) {
                         continue
                     }
-                    for (c = E[2]; c <= E[4]; c += t) {
+                    for (c = D[2]; c <= D[4]; c += t) {
                         if (c > A || c + t < g) {
                             continue
                         }
-                        if (sprite_last[current_map][E[0]] >= tile_sprites[current_map][E[0]].length) {
-                            tile_sprites[current_map][E[0]][sprite_last[current_map][E[0]]] = new_map_tile(j),
+                        if (sprite_last[current_map][D[0]] >= tile_sprites[current_map][D[0]].length) {
+                            tile_sprites[current_map][D[0]][sprite_last[current_map][D[0]]] = new_map_tile(j),
                                 l++
                         }
-                        var f = tile_sprites[current_map][E[0]][sprite_last[current_map][E[0]]++];
+                        var f = tile_sprites[current_map][D[0]][sprite_last[current_map][D[0]]++];
                         if (f.textures) {
                             f.texture = f.textures[last_water_frame],
                                 water_tiles.push(f)
@@ -4468,11 +4660,11 @@ function retile_the_map() {
                 }
             } else {
                 if (!window["defP" + q]) {
-                    window["defP" + q] = new PIXI.extras.TilingSprite(j[5],E[3] - E[1] + e,E[4] - E[2] + t)
+                    window["defP" + q] = new PIXI.extras.TilingSprite(j[5],D[3] - D[1] + e,D[4] - D[2] + t)
                 }
                 var f = window["defP" + q];
-                f.x = E[1];
-                f.y = E[2];
+                f.x = D[1];
+                f.y = D[2];
                 map.addChild(f);
                 map_tiles.push(f)
             }
@@ -4555,7 +4747,7 @@ function load_game(a) {
                     }
                     FC[l[h][f]] = g.file;
                     FM[l[h][f]] = [h, f];
-                    D[l[h][f]] = [f * b * c, h * e * n, c, n];
+                    XYHW[l[h][f]] = [f * b * c, h * e * n, c, n];
                     T[l[h][f]] = k
                 }
             }
@@ -4565,6 +4757,9 @@ function load_game(a) {
             textures[o] = new PIXI.Texture(PIXI.utils.BaseTextureCache[G.tilesets[j[0]]],new PIXI.Rectangle(j[1],j[2],j[3],j[4]))
         });
         create_map();
+        if (is_demo) {
+            map.real_y = -105
+        }
         for (name in G.animations) {
             generate_textures(name, "animation")
         }

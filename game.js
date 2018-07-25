@@ -71,6 +71,7 @@ Game.prototype.init = function () {
     var server_addr, port;
     var last_draw = new Date();
     var M;
+    var GMO;
     var entities = {}
     var future_entities = {
         players: {},
@@ -138,6 +139,7 @@ Game.prototype.init = function () {
         next_potion: next_potion,
         send_code_message: send_code_message,
         drawings: drawings,
+        move: move,
         show_modal: show_modal,
         prop_cache: prop_cache,
         next_attack: next_attack,

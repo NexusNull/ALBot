@@ -768,9 +768,10 @@ function map_keys_and_skills() {
         }
     }
 }
+var last_move = new Date();
 function move(a, f) {
     var d = d
-        , b = calculate_move(M, character.real_x, character.real_y, parseFloat(a) || 0, parseFloat(f) || 0);
+        , b = calculate_move(character, parseFloat(a) || 0, parseFloat(f) || 0);
     character.from_x = character.real_x;
     character.from_y = character.real_y;
     character.going_x = b.x;
@@ -788,7 +789,8 @@ function move(a, f) {
         c.key = next_minteraction,
             next_minteraction = null
     }
-    socket.emit("move", c)
+    socket.emit("move", c);
+    last_move = new Date()
 }
 function arrow_movement_logic() {
     if (!window.character || !window.options.move_with_arrows) {
@@ -839,6 +841,8 @@ function focus_chat() {
 }
 function gallery_click(a) {
 
+}
+function condition_click(a) {
 }
 function inventory_click(a) {
     return;

@@ -88,6 +88,7 @@ var topleft_npc = false, merchant_id = null, inventory = false, code = false, pv
 var topright_npc = false;
 var transports = false;
 var purpose = "buying";
+var next_minteraction = null;
 var abtesting = null, abtesting_ui = false;
 var code_run = false, code_active = false;
 var reload_state = false, reload_timer = null, first_entities = false;
@@ -610,8 +611,24 @@ function init_demo() {
     is_demo = 1;
     current_map = "shellsisland";
     M = G.maps[current_map].data;
+    GEO = G.geometry[current_map];
     reflect_music();
-    load_game()
+    load_game();
+    G.maps[current_map].monsters.forEach(function(a) {
+        future_entities.monsters[a.type] = {
+            type: a.type,
+            speed: 8,
+            id: a.type,
+            x: a.boundary[0] + (a.boundary[2] - a.boundary[0]) * Math.random(),
+            y: a.boundary[1] + (a.boundary[3] - a.boundary[1]) * Math.random(),
+            boundary: a.boundary,
+            s: {},
+            "in": current_map,
+            map: current_map,
+            moving: false,
+            demo: true,
+        }
+    })
 }
 
 function init_socket() {
@@ -667,6 +684,9 @@ function init_socket() {
         first_x = data.x;
         first_y = data.y;
 
+        M = G.maps[current_map].data;
+        GEO = G.geometry[current_map];
+
         if (!game_loaded) {
             load_game()
         } else {
@@ -683,6 +703,7 @@ function init_socket() {
         current_map = data.map;
         reflect_music();
         M = G.maps[current_map].data;
+        GEO = G.geometry[current_map];
         if (create) {
             create_map()
         }
@@ -700,6 +721,7 @@ function init_socket() {
         current_map = data.name;
         reflect_music();
         M = G.maps[current_map].data;
+        GEO = G.geometry[current_map];
         character.real_x = data.x;
         character.real_y = data.y;
         character.m = data.m;
@@ -739,6 +761,7 @@ function init_socket() {
             current_map = character.map;
             reflect_music();
             M = G.maps[current_map].data;
+            GEO = G.geometry[current_map];
             create_map();
             pull_all = true
         }
@@ -1893,12 +1916,12 @@ function add_monster(d) {
     monster.mtype = d.type;
     monster.interactive = true;
     monster.buttonMode = true;
-    if (0 && G.actual_dimensions[d.type]) {
-        var e = G.actual_dimensions[d.type];
+    if (0 && G.dimensions[d.type]) {
+        var e = G.dimensions[d.type];
         monster.awidth = e[0];
         monster.aheight = e[1]
     }
-    return monster
+    return monster;
 }
 
 function update_filters(a) {
@@ -2033,29 +2056,25 @@ function add_animatable(a, b) {
 }
 
 function create_map() {
-    if (map) {
-        map = {};
-    }
+    pvp = G.maps[current_map].pvp || is_pvp;
+
+    map = {};
     map_npcs = [];
     map_doors = [];
     map_tiles = [];
     map_entities = [];
+    map_machines = {};
     water_tiles = [];
+    entities = {};
+    if (!tile_sprites[current_map]) {
+        tile_sprites[current_map] = {},
+            sprite_last[current_map] = []
+    }
+    dtile_size = GEO["default"] && GEO["default"][3];
+    if (dtile_size && is_array(dtile_size)) {
+        dtile_size = dtile_size[0]
+    }
 
-    if (!entities)
-        entities = {};
-    Object.keys(entities).forEach(function (key) {
-        delete entities[key];
-    });
-
-    dtile_size = M["default"] && M["default"][3];
-    if (!map)
-        map = {};
-    Object.keys(map).forEach(function (key) {
-        delete map[key];
-    });
-
-    pvp = G.maps[current_map].pvp || is_pvp;
     map.real_x = 0;
     map.real_y = 0;
 
@@ -2069,35 +2088,59 @@ function create_map() {
     map.interactive = true;
 
     map_info = G.maps[current_map];
-    npcs = map_info.npcs;
-    for (var A = 0; A < npcs.length; A++) {
-        var F = npcs[A], q = G.npcs[F.id];
-        if (q.type == "full" || q.role == "citizen") {
+    let npcs = map_info.npcs;
+    for (var B = 0; B < npcs.length; B++) {
+        var F = npcs[B]
+            , r = G.npcs[F.id];
+        if (r.type == "full" || r.role == "citizen") {
             continue
         }
-        var l = add_npc(q, F.position, F.name, F.id);
-        map_npcs.push(l);
-        map_entities.push(l)
+        console.log("NPC: " + F.id);
+        var m = add_npc(r, F.position, F.name, F.id);
+        map_npcs.push(m);
+        map_entities.push(m)
     }
-    doors = map_info.doors || [];
-    for (var A = 0; A < doors.length; A++) {
-        var u = doors[A];
-        var l = add_door(u);
-        map_doors.push(l);
-        map_entities.push(l)
+    let doors = map_info.doors || [];
+    for (var B = 0; B < doors.length; B++) {
+        var v = doors[B];
+        var m = add_door(v);
+        console.log("Door: " + v);
+        map_doors.push(m);
+        map_entities.push(m);
+        if (border_mode) {
+            border_logic(m)
+        }
     }
-    quirks = map_info.quirks || [];
-    for (var A = 0; A < quirks.length; A++) {
-        var z = quirks[A];
-        var l = add_quirk(z);
-        map_entities.push(l)
+    let machines = map_info.machines || [];
+    for (var B = 0; B < machines.length; B++) {
+        var c = machines[B];
+        var m = add_machine(c);
+        console.log("Machine: " + c.type);
+        map_npcs.push(m);
+        map_entities.push(m);
+        map_machines[m.mtype] = m;
+        if (border_mode) {
+            border_logic(m)
+        }
+    }
+    let quirks = map_info.quirks || [];
+    for (var B = 0; B < quirks.length; B++) {
+        var A = quirks[B];
+        var m = add_quirk(A);
+        console.log("Quirk: " + A);
+        map_entities.push(m);
+        if (border_mode) {
+            border_logic(m)
+        }
     }
     console.log("Map created: " + current_map);
-    animatables = {};
+    let animatables = {};
     for (var s in map_info.animatables || {}) {
         animatables[s] = add_animatable(s, map_info.animatables[s]);
         map_entities.push(animatables[s])
     }
+
+    console.log("Map created: " + current_map)
 }
 
 function retile_the_map() {
