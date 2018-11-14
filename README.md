@@ -9,7 +9,7 @@
   
 ### getting your bot to work.
   4. Change the login data in userData.json to your own.
-  ```json
+  ```code
         "config": {
             //Set to true to fetch available userdata on next run(Will overwrite existing userdata)
             "fetch": true,
