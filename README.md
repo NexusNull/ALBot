@@ -11,10 +11,15 @@
   4. Change the login data in userData.json to your own.
   ```json
         "config": {
+            //Set to true to fetch available userdata on next run(Will overwrite existing userdata)
             "fetch": true,
             "botKey": 1,
+            //Used to display basic information about every bot run with ALBot
             "botWebInterface": {
-                "start": true,
+                "start": false,
+                //The port that BWI runs on
+                //BWI requires 2 Ports one for HTTP and on WebSocket these are always in series.
+                //The WebSocket is always 1 higher than the HTTP port so 81 and 82 in this case.
                 "port": 81
             }
         },
@@ -24,6 +29,7 @@
          }
   }
   ```
+  If you have questions and suggestions please refer to the[repo](https://github.com/NexusNull/bot-web-interface).
   If fetch is set to true it will fetch the character data on the next run. This means previous entries in bots will be lost. BotKey is just a developer token to access additional permissions which is set to 1 by default.
   
   5. Start the programm with `node main.js`.
@@ -38,7 +44,8 @@
   }
   ```
   The character name is irrelevant for running the bot and just for easier use, the bot will use the id to identify the character and only fallback to the name if the id is missing.
-  The `runScript` entry has to contain a relative path to the script that should be run for the character. `server` is the server name the character should start on, possible servers are "ASIA I", "EU I", "EU PVP", "US I", "US PVP".
+  The `runScript` entry has to contain a relative path to the script that should be run for the character. `server` is the server name the character should start on, possible servers are "US I", "US PVP".
+  There used to be more but sadly they got taken down.
 
   6. Now your bot is ready to run, normal character limitations still apply.
   
