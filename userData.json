@@ -3,7 +3,7 @@
         "fetch": true,
         "botKey": 1,
         "botWebInterface": {
-            "start": true,
+            "start": false,
             "port": 81
         }
     },
