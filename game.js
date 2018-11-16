@@ -184,6 +184,11 @@ Game.prototype.init = function () {
         }
     })
     var damage = 0;
+    var timeFrame = 60*5;
+    var goldTimeline = [],
+        xpTimeline = [],
+        damageTimeline = [];
+
     var damageStart = Date.now();
     socket.on("hit", function (data) {
         if (data.hid && data.damage && character) {
@@ -203,6 +208,43 @@ Game.prototype.init = function () {
                         targetName = entities[character.target].mtype;
                     }
                 }
+                damageTimeline.push(damage);
+                var thenDamage;
+                if(damageTimeline.length < timeFrame)
+                    thenDamage = damageTimeline[0];
+                else
+                    thenDamage = damageTimeline.unshift();
+                var dps = (damage-thenDamage)/damageTimeline.length;
+
+                goldTimeline.push(character.gold);
+                var thenGold;
+                if(goldTimeline.length < timeFrame)
+                    thenGold = goldTimeline[0];
+                else
+                    thenGold = goldTimeline.unshift();
+                var gps = (character.gold-thenGold)/goldTimeline.length
+
+                xpTimeline.push(character.xp);
+                var thenXP;
+                if(xpTimeline.length < timeFrame)
+                    thenXP = xpTimeline[0];
+                else
+                    thenXP = xpTimeline.unshift();
+                var xpps = (character.xp-thenXP)/xpTimeline.length;
+
+                var time = Math.floor((character.max_xp-character.xp)/xpps);
+                var days    = Math.floor(time / (3600*24));
+                time -= 3600*24*days;
+                var hours   = Math.floor(time / 3600);
+                time -= 3600*hours;
+                var minutes = Math.floor(time / 60);
+                time -= 60*minutes;
+                var seconds = time;
+
+                if (days    < 10) {days = days+"d";}
+                if (hours   < 10) {hours   = "0"+hours;}
+                if (minutes < 10) {minutes = "0"+minutes;}
+                if (seconds < 10) {seconds = "0"+seconds;}
                 process.send({
                     type: "bwiUpdate",
                     data: {
@@ -215,10 +257,14 @@ Game.prototype.init = function () {
                         target: targetName,
                         status: character.rip ? "Dead" : "Alive",
                         gold: character.gold,
-                        dps: Math.floor((damage * 100000) / (Date.now() - damageStart)) / 100,
+                        dps: Math.floor(dps),
+                        gps: Math.floor(gps),
+                        xpps: Math.floor(xpps),
+                        tlu: days+" "+hours+":"+minutes+":"+seconds
+
                     }
                 })
-            }, 800);
+            }, 1000);
 
 
             self.executor = new Executor(glob, script);
