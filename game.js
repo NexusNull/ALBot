@@ -213,7 +213,7 @@ Game.prototype.init = function () {
                 if(damageTimeline.length < timeFrame)
                     thenDamage = damageTimeline[0];
                 else
-                    thenDamage = damageTimeline.unshift();
+                    thenDamage = damageTimeline.shift();
                 var dps = (damage-thenDamage)/damageTimeline.length;
 
                 goldTimeline.push(character.gold);
@@ -221,15 +221,15 @@ Game.prototype.init = function () {
                 if(goldTimeline.length < timeFrame)
                     thenGold = goldTimeline[0];
                 else
-                    thenGold = goldTimeline.unshift();
-                var gps = (character.gold-thenGold)/goldTimeline.length
+                    thenGold = goldTimeline.shift();
+                var gps = (character.gold-thenGold)/goldTimeline.length;
 
                 xpTimeline.push(character.xp);
                 var thenXP;
                 if(xpTimeline.length < timeFrame)
                     thenXP = xpTimeline[0];
                 else
-                    thenXP = xpTimeline.unshift();
+                    thenXP = xpTimeline.shift();
                 var xpps = (character.xp-thenXP)/xpTimeline.length;
 
                 var time = Math.floor((character.max_xp-character.xp)/xpps);
@@ -241,7 +241,6 @@ Game.prototype.init = function () {
                 time -= 60*minutes;
                 var seconds = time;
 
-                if (days    < 10) {days = days+"d";}
                 if (hours   < 10) {hours   = "0"+hours;}
                 if (minutes < 10) {minutes = "0"+minutes;}
                 if (seconds < 10) {seconds = "0"+seconds;}
@@ -260,7 +259,7 @@ Game.prototype.init = function () {
                         dps: Math.floor(dps),
                         gps: Math.floor(gps),
                         xpps: Math.floor(xpps),
-                        tlu: days+" "+hours+":"+minutes+":"+seconds
+                        tlu: days+"d "+hours+":"+minutes+":"+seconds
 
                     }
                 })
