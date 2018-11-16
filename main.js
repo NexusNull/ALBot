@@ -30,7 +30,7 @@ async function main() {
                 characterName: characters[i].name,
                 characterId: characters[i].id,
                 runScript: "default.js",
-                server: "EU I"
+                server: "US I"
             }
         }
         userData.config.fetch = false;
@@ -83,6 +83,7 @@ async function main() {
             {name: "mana", type: "progressBar", label: "Mana", options: {color: "blue"}},
             {name: "target", type: "text", label: "Target"},
             {name: "status", type: "text", label: "Status"},
+            {name: "gold", type: "text", label: "Gold"},
             {name: "dps", type: "text", label: "DPS"},
         ]);
     }

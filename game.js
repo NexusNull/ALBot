@@ -214,6 +214,7 @@ Game.prototype.init = function () {
                         mana: Math.floor(character.mp * 10000 / character.max_mp) / 100,
                         target: targetName,
                         status: character.rip ? "Dead" : "Alive",
+                        gold: character.gold,
                         dps: Math.floor((damage * 100000) / (Date.now() - damageStart)) / 100,
                     }
                 })
