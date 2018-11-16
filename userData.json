@@ -1,28 +1,14 @@
 {
     "config": {
-        "fetch": false,
+        "fetch": true,
         "botKey": 1,
         "botWebInterface": {
-            "start": true,
+            "start": false,
             "port": 81
         }
     },
     "login": {
         "email": "random@example.com",
         "password": "password123456"
-    },
-    "bots": [
-        {
-            "characterName": "CooperBolton",
-            "characterId": "6747399047348224",
-            "runScript": "default.js",
-            "server": "US I"
-        },
-        {
-            "characterName": "BoltonCopper",
-            "characterId": "5252833374896128",
-            "runScript": "default.js",
-            "server": "US I"
-        }
-    ]
+    }
 }
