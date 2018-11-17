@@ -25,14 +25,14 @@ HttpWrapper.prototype.login = async function (email, password) {
     var self = this;
     return new Promise(async function (resolve, reject) {
         try {
-            await request({url: "http://adventure.land"});
+            await request({url: "https://adventure.land"});
         } catch (e) {
             reject("could not fetch index.html on login." + err);
         }
         try {
             await request.post(
                 {
-                    url: "http://adventure.land/api/signup_or_login",
+                    url: "https://adventure.land/api/signup_or_login",
                     formData: {
                         arguments: '{"email":"' + email + '","password":"' + password + '"}',
                         method: "signup_or_login"
@@ -88,7 +88,7 @@ HttpWrapper.prototype.getCharacters = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
         var characters = [];
-        var html = await request.post({url: "http://adventure.land/api/servers_and_characters", headers: {cookie: "auth=" + self.sessionCookie}, formData:{method:"servers_and_characters", arguments:"{}"}});
+        var html = await request.post({url: "https://adventure.land/api/servers_and_characters", headers: {cookie: "auth=" + self.sessionCookie}, formData:{method:"servers_and_characters", arguments:"{}"}});
         let data = JSON.parse(html)[0];
         console.log(data.characters)
         resolve(data.characters);
@@ -99,7 +99,7 @@ HttpWrapper.prototype.getServerList = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
         var options = {
-            url: "http://adventure.land/api/get_servers",
+            url: "https://adventure.land/api/get_servers",
             method: "POST",
             headers: {
                 "user-agent": "AdventureLandBot: (v1.0.0)",
@@ -128,7 +128,7 @@ HttpWrapper.prototype.getGameData = async function(){
     return new Promise(async function (resolve, reject) {
         try{
             let code = await request({
-                url: "http://adventure.land/data.js",
+                url: "https://adventure.land/data.js",
                 headers: {
                     "x-requested-with": "XMLHttpRequest",
                     "Accept": "application/json, text/javascript, */*; q=0.01",
@@ -149,7 +149,7 @@ HttpWrapper.prototype.getUserAuth = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
         var html = await request({
-            url: "http://adventure.land/",
+            url: "https://adventure.land/",
             headers: {
                 "x-requested-with": "XMLHttpRequest",
                 "Accept": "application/json, text/javascript, */*; q=0.01",
@@ -165,7 +165,7 @@ HttpWrapper.prototype.getUserAuth = async function () {
 
 HttpWrapper.prototype.checkIn = async function (ip, port, ipass, characterId, callbackId, callbackStart, callbackCount) {
     var options = {
-        url: 'http://' + ip + ':' + (+port + 40) + '/character?checkin=1&ipass=' + ipass + '&id=' + characterId + '&callback=jQuery' + callbackId + '_' + callbackStart + '&_=' + callbackCount,
+        url: 'https://' + ip + ':' + (+port + 40) + '/character?checkin=1&ipass=' + ipass + '&id=' + characterId + '&callback=jQuery' + callbackId + '_' + callbackStart + '&_=' + callbackCount,
         headers: {
             "user-agent": "AdventureLandBot: (v1.0.0)"
         }

@@ -633,7 +633,7 @@ function init_demo() {
 
 function init_socket() {
 
-    socket = new Socket("http://" + server_addr + ":" + port, {
+    socket = new Socket("wss://" + server_addr + ":" + port, {
         autoConnect: false,
         extraHeaders: {
             "user-agent": "AdventureLandBot: (v1.0.0)",
