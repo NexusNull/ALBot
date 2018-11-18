@@ -770,16 +770,6 @@ function init_socket() {
         new_map_logic("start", data);
         new_game_logic();
 
-        var callbackId;
-        var callbackStart;
-        var callbackCount;
-        setInterval(function () {
-            callbackCount = callbackCount ? callbackCount++ : callbackStart;
-            callbackId = Math.round(Math.random() * 100000000000 + 12007144706612636761);
-            callbackStart = Math.round(Math.random() * 10000) + 1494359179004;
-            httpWrapper.checkIn(server_addr, port, ipass, character.id, callbackId, callbackStart, callbackCount);
-        }, 30000);
-
 
         if (character.ctype == "mage") {
             skill_timeout("burst", 10000)

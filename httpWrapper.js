@@ -163,18 +163,4 @@ HttpWrapper.prototype.getUserAuth = async function () {
     });
 };
 
-HttpWrapper.prototype.checkIn = async function (ip, port, ipass, characterId, callbackId, callbackStart, callbackCount) {
-    var options = {
-        url: 'https://' + ip + ':' + (+port + 40) + '/character?checkin=1&ipass=' + ipass + '&id=' + characterId + '&callback=jQuery' + callbackId + '_' + callbackStart + '&_=' + callbackCount,
-        headers: {
-            "user-agent": "AdventureLandBot: (v1.0.0)"
-        }
-    };
-    try {
-        await  request(options);
-    } catch (e) {
-        console.log("Error on checkin: " + e.message);
-    }
-};
-
 module.exports = HttpWrapper;
