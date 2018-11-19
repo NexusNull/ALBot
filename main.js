@@ -74,6 +74,12 @@ async function main() {
     let serverList = await httpWrapper.getServerList();
     if (userData.config.botWebInterface.start) {
         BotWebInterface.startOnPort(userData.config.botWebInterface.port);
+        var password;
+        if(userData.config.botWebInterface.password === "")
+            password = null;
+        else
+            password = userData.config.botWebInterface.password
+        BotWebInterface.setPassword(password);
         BotWebInterface.SocketServer.getPublisher().setStructure([
             {name: "name", type: "text", label: "name"},
             {name: "inv", type: "text", label: "Inventory"},

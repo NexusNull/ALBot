@@ -4,7 +4,8 @@
         "botKey": 1,
         "botWebInterface": {
             "start": false,
-            "port": 81
+            "port": 2080,
+            "password": ""
         }
     },
     "login": {
