@@ -5,7 +5,6 @@ const cheerio = require("cheerio");
 const request = require("request-promise-native");
 const util = require('util');
 const vm = require('vm');
-const SocksProxyAgent = require('socks-proxy-agent');
 /**
  *
  * @constructor
@@ -21,20 +20,18 @@ var HttpWrapper = function (sessionCookie, userAuth, userId) {
  * @param password
  * @return {Object}
  */
-var agent = new SocksProxyAgent("socks4://181.112.41.50:36867");
 HttpWrapper.prototype.login = async function (email, password) {
     console.log("Logging in.");
     var self = this;
     return new Promise(async function (resolve, reject) {
         try {
-            await request({agent:agent,url: "https://adventure.land"});
+            await request({url: "https://adventure.land"});
         } catch (err) {
             reject("could not fetch index.html on login." + err);
         }
         try {
             await request.post(
                 {
-                    agent:agent,
                     url: "https://adventure.land/api/signup_or_login",
                     formData: {
                         arguments: '{"email":"' + email + '","password":"' + password + '"}',
@@ -97,7 +94,7 @@ HttpWrapper.prototype.getCharacters = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
         var characters = [];
-        var html = await request.post({agent:agent,url: "https://adventure.land/api/servers_and_characters", headers: {cookie: "auth=" + self.sessionCookie}, formData:{method:"servers_and_characters", arguments:"{}"}});
+        var html = await request.post({url: "https://adventure.land/api/servers_and_characters", headers: {cookie: "auth=" + self.sessionCookie}, formData:{method:"servers_and_characters", arguments:"{}"}});
         let data = JSON.parse(html)[0];
         console.log(data.characters)
         resolve(data.characters);
@@ -108,7 +105,6 @@ HttpWrapper.prototype.getServerList = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
         var options = {
-            agent:agent,
             url: "https://adventure.land/api/get_servers",
             method: "POST",
             headers: {
@@ -138,7 +134,6 @@ HttpWrapper.prototype.getGameData = async function(){
     return new Promise(async function (resolve, reject) {
         try{
             let code = await request({
-                agent:agent,
                 url: "https://adventure.land/data.js",
                 headers: {
                     "x-requested-with": "XMLHttpRequest",
@@ -160,7 +155,6 @@ HttpWrapper.prototype.getUserAuth = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
         var html = await request({
-            agent:agent,
             url: "https://adventure.land/",
             headers: {
                 "x-requested-with": "XMLHttpRequest",
