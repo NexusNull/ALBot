@@ -44,8 +44,8 @@ async function main() {
     }
 
     for (let i = 0; i < bots.length; i++) {
-        if (!(bots[i] && (bots[i].characterId || bots[i].characterName) && bots[i].runScript && bots[i].server))
-            throw new Error("One or more necessary fields are missing from userData.json \n The following fields need to be present for a working executor:\n characterId or characterName\n runScript\n server\n");
+        if (!(bots[i] && bots[i].characterId && bots[i].runScript && bots[i].server))
+            throw new Error("One or more necessary fields are missing from userData.json \n The following fields need to be present for a working executor:\n characterId runScript\n server\n");
     }
 
     //Reverse lookup name to characterId, names can't be used for starting a bot.

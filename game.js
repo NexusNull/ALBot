@@ -2,6 +2,10 @@
  * Created by nexus on 03/04/17.
  */
 
+process.on('uncaughtException', function (exception) {
+    console.log(exception);
+    console.log(exception.stack);
+});
 
 var LocalStorage = require('node-localstorage').LocalStorage;
 var HttpWrapper = require("./httpWrapper");
@@ -208,6 +212,9 @@ Game.prototype.init = function () {
                         targetName = entities[character.target].mtype;
                     }
                 }
+
+
+                //calculate damage per second
                 damageTimeline.push(damage);
                 var thenDamage;
                 if(damageTimeline.length < timeFrame)
@@ -216,6 +223,7 @@ Game.prototype.init = function () {
                     thenDamage = damageTimeline.shift();
                 var dps = (damage-thenDamage)/damageTimeline.length;
 
+                //calculate gold per second
                 goldTimeline.push(character.gold);
                 var thenGold;
                 if(goldTimeline.length < timeFrame)
@@ -224,6 +232,7 @@ Game.prototype.init = function () {
                     thenGold = goldTimeline.shift();
                 var gps = (character.gold-thenGold)/goldTimeline.length;
 
+                //calculate xp per second
                 xpTimeline.push(character.xp);
                 var thenXP;
                 if(xpTimeline.length < timeFrame)
@@ -232,7 +241,10 @@ Game.prototype.init = function () {
                     thenXP = xpTimeline.shift();
                 var xpps = (character.xp-thenXP)/xpTimeline.length;
 
+                //calculate time until level up
                 var time = Math.floor((character.max_xp-character.xp)/xpps);
+
+                //prettify time
                 var days    = Math.floor(time / (3600*24));
                 time -= 3600*24*days;
                 var hours   = Math.floor(time / 3600);
@@ -260,7 +272,6 @@ Game.prototype.init = function () {
                         gps: Math.floor(gps),
                         xpps: Math.floor(xpps),
                         tlu: days+"d "+hours+":"+minutes+":"+seconds
-
                     }
                 })
             }, 1000);
@@ -335,7 +346,6 @@ async function main() {
     } catch (e) {
         console.log(e)
     }
-
 }
 
 main();

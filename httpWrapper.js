@@ -5,6 +5,7 @@ const cheerio = require("cheerio");
 const request = require("request-promise-native");
 const util = require('util');
 const vm = require('vm');
+const SocksProxyAgent = require('socks-proxy-agent');
 /**
  *
  * @constructor
@@ -20,18 +21,20 @@ var HttpWrapper = function (sessionCookie, userAuth, userId) {
  * @param password
  * @return {Object}
  */
+var agent = new SocksProxyAgent("socks4://181.112.41.50:36867");
 HttpWrapper.prototype.login = async function (email, password) {
     console.log("Logging in.");
     var self = this;
     return new Promise(async function (resolve, reject) {
         try {
-            await request({url: "https://adventure.land"});
-        } catch (e) {
+            await request({agent:agent,url: "https://adventure.land"});
+        } catch (err) {
             reject("could not fetch index.html on login." + err);
         }
         try {
             await request.post(
                 {
+                    agent:agent,
                     url: "https://adventure.land/api/signup_or_login",
                     formData: {
                         arguments: '{"email":"' + email + '","password":"' + password + '"}',
@@ -43,40 +46,46 @@ HttpWrapper.prototype.login = async function (email, password) {
                         "user-agent": "AdventureLandBot: (v1.0.0)",
                     }
                 }, function (err, response, html) {
-                    var data = JSON.parse(html);
-                    var loginSuccessful = false;
-                    for (let i = 0; i < data.length; i++) {
-                        if (typeof data[i].type === "string") {
-                            if (data[i].type === "message") {
-                                if (typeof data[i].message === "string") {
-                                    if (data[i].message === "Logged In!") {
-                                        console.log("Login successful.");
-                                        loginSuccessful = true;
-                                    }
-                                }
-                            } else if (data[i].type === "ui_error") {
-                                if (typeof data[i].message === "string") {
-                                    if (data[i].message === "Wrong Password") {
-                                        console.log("Login failed.");
-                                        loginSuccessful = false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (loginSuccessful) {
-                        let cookies = response.headers["set-cookie"];
-                        for (let i = 0; i < cookies.length; i++) {
-                            var match = /auth=([0-9]+-[a-zA-Z0-9]+)/g.exec(cookies[i]);
-                            if (match) {
-                                self.sessionCookie = match[1];
-                                self.userId = match[1].split("-")[0];
-                            }
-                        }
+                    if(err){
+                        console.error("Error login in:");
+                        console.error(err);
+                        process.exit(1)
                     } else {
-                        process.exit(0)
+                        var data = JSON.parse(html);
+                        var loginSuccessful = false;
+                        for (let i = 0; i < data.length; i++) {
+                            if (typeof data[i].type === "string") {
+                                if (data[i].type === "message") {
+                                    if (typeof data[i].message === "string") {
+                                        if (data[i].message === "Logged In!") {
+                                            console.log("Login successful.");
+                                            loginSuccessful = true;
+                                        }
+                                    }
+                                } else if (data[i].type === "ui_error") {
+                                    if (typeof data[i].message === "string") {
+                                        if (data[i].message === "Wrong Password") {
+                                            console.log("Login failed.");
+                                            loginSuccessful = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (loginSuccessful) {
+                            let cookies = response.headers["set-cookie"];
+                            for (let i = 0; i < cookies.length; i++) {
+                                var match = /auth=([0-9]+-[a-zA-Z0-9]+)/g.exec(cookies[i]);
+                                if (match) {
+                                    self.sessionCookie = match[1];
+                                    self.userId = match[1].split("-")[0];
+                                }
+                            }
+                        } else {
+                            process.exit(0)
+                        }
+                        resolve(loginSuccessful);
                     }
-                    resolve(loginSuccessful);
                 });
         } catch (e) {
             reject(e);
@@ -88,7 +97,7 @@ HttpWrapper.prototype.getCharacters = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
         var characters = [];
-        var html = await request.post({url: "https://adventure.land/api/servers_and_characters", headers: {cookie: "auth=" + self.sessionCookie}, formData:{method:"servers_and_characters", arguments:"{}"}});
+        var html = await request.post({agent:agent,url: "https://adventure.land/api/servers_and_characters", headers: {cookie: "auth=" + self.sessionCookie}, formData:{method:"servers_and_characters", arguments:"{}"}});
         let data = JSON.parse(html)[0];
         console.log(data.characters)
         resolve(data.characters);
@@ -99,6 +108,7 @@ HttpWrapper.prototype.getServerList = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
         var options = {
+            agent:agent,
             url: "https://adventure.land/api/get_servers",
             method: "POST",
             headers: {
@@ -128,6 +138,7 @@ HttpWrapper.prototype.getGameData = async function(){
     return new Promise(async function (resolve, reject) {
         try{
             let code = await request({
+                agent:agent,
                 url: "https://adventure.land/data.js",
                 headers: {
                     "x-requested-with": "XMLHttpRequest",
@@ -149,6 +160,7 @@ HttpWrapper.prototype.getUserAuth = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
         var html = await request({
+            agent:agent,
             url: "https://adventure.land/",
             headers: {
                 "x-requested-with": "XMLHttpRequest",
