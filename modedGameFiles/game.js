@@ -804,9 +804,6 @@ function init_socket() {
             load_pvp_list(data.list)
         }
     });
-    socket.on("ping_ack", function () {
-        add_log("Ping: " + mssince(ping_sent) + "ms", "gray")
-    });
     socket.on("requesting_ack", function () {
         socket.emit("requested_ack", {})
     });
