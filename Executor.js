@@ -21,6 +21,7 @@ var Executor = function (glob, file) {
     character = glob.character;
     G = glob.G;
 
+    process_game_data();
     this.execute = function () {
         console.log("Executing " + file);
 

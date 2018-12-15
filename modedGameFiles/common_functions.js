@@ -72,49 +72,51 @@ function process_game_data() {
         }
         G.monsters[a].max_hp = G.monsters[a].hp
     }
-    for (var b in G.maps) {
-        var d = G.maps[b];
-        if (d.ignore) {
+    for (var a in G.maps) {
+        var b = G.maps[a];
+        if (b.ignore) {
             continue
         }
         var d = b.data = G.geometry[a];
-        d.items = {};
-        d.merchants = [];
-        d.ref = d.ref || {};
-        (d.npcs || []).forEach(function(f) {
+        b.items = {};
+        b.merchants = [];
+        b.ref = b.ref || {};
+        (b.npcs || []).forEach(function(f) {
             if (!f.position) {
                 return
             }
             var e = {
-                map: b,
-                "in": b,
+                map: a,
+                "in": a,
                 x: f.position[0],
                 y: f.position[1],
                 id: f.id
             }
                 , g = G.npcs[f.id];
             if (g.items) {
-                d.merchants.push(e);
+                b.merchants.push(e);
                 g.items.forEach(function(h) {
                     if (!h) {
                         return
                     }
                     if (G.items[h].cash) {
                         G.items[h].buy_with_cash = true;
-                        return
+                        if (!G.items[h].p2w) {
+                            return
+                        }
                     }
-                    d.items[h] = d.items[h] || [];
-                    d.items[h].push(e);
+                    b.items[h] = b.items[h] || [];
+                    b.items[h].push(e);
                     can_buy[h] = true;
                     G.items[h].buy = true
                 })
             }
-            d.ref[f.id] = e;
+            b.ref[f.id] = e;
             if (g.role == "newupgrade") {
-                d.upgrade = d.compound = e
+                b.upgrade = b.compound = e
             }
             if (g.role == "exchange") {
-                d.exchange = e
+                b.exchange = e
             }
             if (g.quest) {
                 G.quests[g.quest] = e
