@@ -135,7 +135,7 @@ Game.prototype.init = function () {
         compound: compound,
         exchange: exchange,
         say: say,
-        part_list: party_list,
+        party_list: party_list,
         calculate_move: calculate_move,
         chests: chests,
         entities: entities,
