@@ -77,7 +77,7 @@ var map_npcs = [], map_doors = [], map_animatables = {};
 var map_tiles = [], map_entities = [], dtile_size = 32, dtile_width = 0, dtile_height = 0;
 var water_tiles = [], last_water_frame = -1;
 var drawings = [], code_buttons = {};
-var chests = {}, party_list = [];
+var chests = {}, party_list = [], party ={};
 var tile_sprites = {}, sprite_last = {};
 var first_coords = false, first_x = 0, first_y = 0;
 var last_refxy = 0, ref_x = 0, ref_y = 0;
@@ -1529,7 +1529,7 @@ function init_socket() {
                 add_log(data.message, "#703987")
             }
         }
-        party_list = data.list || []
+        party_list = data.list || [];
         party = data.party || {};
     });
     socket.on("blocker", function (data) {
