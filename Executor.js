@@ -24,6 +24,20 @@ var Executor = function (glob, file) {
     process_game_data();
     this.execute = function () {
         console.log("Executing " + file);
+        process.send({
+            type:"startupClient",
+            characterName: character.name,
+        });
+        process.on('message', (m) => {
+            if (m.type === "on_cm") {
+                parent.call_code_function("on_cm", m.from, m.data);
+            }
+        });
+        process.on('message', (m) => {
+            if (m.type === "send_cm_failed") {
+                parent.send_code_message(m.characterName, m.data);
+            }
+        });
 
         (1,eval)(fs.readFileSync('CODE/' + file) + '');
 

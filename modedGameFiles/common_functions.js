@@ -1287,9 +1287,9 @@ function html_escape(a) {
 function he(a) {
     return html_escape(a)
 }
-function future_ms(a) {
+function future_ms(ms) {
     var b = new Date();
-    b.setMilliseconds(b.getMilliseconds() + a);
+    b.setMilliseconds(b.getMilliseconds() + ms);
     return b
 }
 function future_s(a) {

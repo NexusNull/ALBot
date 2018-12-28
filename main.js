@@ -112,7 +112,7 @@ async function main() {
         startGame(args);
     }
 }
-
+var activeChildren = {};
 function startGame(args) {
     let childProcess = child_process.fork("./game", args, {
         stdio: [0, 1, 2, 'ipc']
@@ -122,14 +122,34 @@ function startGame(args) {
     botInterface.setDataSource(() => {
         return data;
     });
-
     childProcess.on('message', (m) => {
         if (m.type === "status" && m.status === "disconnected") {
             childProcess.kill();
+            for(var i in activeChildren){
+                if(activeChildren[i] == childProcess){
+                    activeChildren[i] = null;
+                }
+            }
             BotWebInterface.SocketServer.getPublisher().removeInterface(botInterface);
             startGame(args);
         } else if (m.type === "bwiUpdate") {
             data = m.data;
+        } else if (m.type === "startupClient") {
+            activeChildren[m.characterName] = childProcess;
+        } else  if(m.type === "send_cm") {
+            if(activeChildren[m.characterName]){
+                activeChildren[m.characterName].send({
+                    type: "on_cm",
+                    from: m.from,
+                    data: m.data,
+                })
+            } else {
+                childProcess.send({
+                    type: "send_cm_failed",
+                    characterName: m.characterName,
+                    data: m.data,
+                });
+            }
         }
     });
 }

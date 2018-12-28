@@ -143,6 +143,7 @@ Game.prototype.init = function () {
         show_json: show_json,
         next_potion: next_potion,
         send_code_message: send_code_message,
+        call_code_function: call_code_function,
         drawings: drawings,
         move: move,
         show_modal: show_modal,

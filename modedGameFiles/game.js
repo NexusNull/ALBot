@@ -500,33 +500,33 @@ function process_entities() {
     }
 }
 
-function on_disappear(a) {
-    if (future_entities.players[a.id]) {
-        delete future_entities.players[a.id]
+function on_disappear(event) {
+    if (future_entities.players[event.id]) {
+        delete future_entities.players[event.id]
     }
-    if (future_entities.monsters[a.id]) {
-        delete future_entities.monsters[a.id]
+    if (future_entities.monsters[event.id]) {
+        delete future_entities.monsters[event.id]
     }
-    if (entities[a.id]) {
-        if (a.invis) {
-            assassin_smoke(entities[a.id].real_x, entities[a.id].real_y)
+    if (entities[event.id]) {
+        if (event.invis) {
+            assassin_smoke(entities[event.id].real_x, entities[event.id].real_y)
         }
-        if (a.effect === 1) {
-            start_animation(entities[a.id], "transport")
+        if (event.effect === 1) {
+            start_animation(entities[event.id], "transport")
         }
-        entities["DEAD" + a.id] = entities[a.id];
-        entities[a.id].dead = true;
-        if (a.teleport) {
-            entities[a.id].tpd = true
+        entities["DEAD" + event.id] = entities[event.id];
+        entities[event.id].dead = true;
+        if (event.teleport) {
+            entities[event.id].tpd = true
         }
-        call_code_function("on_disappear", entities[a.id], a);
-        delete entities[a.id]
+        call_code_function("on_disappear", entities[event.id], event);
+        delete entities[event.id]
     } else {
-        if (character && character.id == a.id) {
-            if (a.invis) {
+        if (character && character.id == event.id) {
+            if (event.invis) {
                 assassin_smoke(character.real_x, character.real_y)
             }
-            call_code_function("on_disappear", character, a)
+            call_code_function("on_disappear", character, event)
         }
     }
 }
