@@ -1301,29 +1301,12 @@ function init_socket() {
     });
     socket.on("pm", function (data) {
         draw_trigger(function () {
-            var entity = get_entity(data.id);
-            if (entity) {
-                d_text(data.message, entity, {size: S.chat, color: "#BA6B88"})
-            }
-            sfx("chat");
-            var cid = "pm" + (data.to || data.owner);
-            add_pmchat(data.to || data.owner, data.owner, data.message);
-            if (in_arr(cid, docked)) {
-                add_chat(data.owner, data.message, "#CD7879")
-            }
+             add_chat(data.owner, data.message, "#CD7879")
         })
     });
     socket.on("partym", function (data) {
         draw_trigger(function () {
-            var entity = get_entity(data.id);
-            if (entity) {
-                d_text(data.message, entity, {size: S.chat, color: "#5B8DB0"})
-            }
-            sfx("chat");
-            add_partychat(data.owner, data.message);
-            if (in_arr("party", docked)) {
-                add_chat(data.owner, data.message, "#46A0C6")
-            }
+            add_chat(data.owner, data.message, "#46A0C6")
         })
     });
     socket.on("drop", function (data) {
