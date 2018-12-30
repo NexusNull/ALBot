@@ -291,7 +291,6 @@ function use_skill(b, h, k) {
                                     ids: h
                                 })
                             } else {
-                                console.log("asd")
                                 var g = get_nearby_hostiles({
                                     range: character.range - 2,
                                     limit: 3
@@ -2280,13 +2279,15 @@ function pvp_timeout(c, h) {
     }
 }
 var next_skill = {};
-function skill_timeout(skill, ms) {
-    console.log(skill);
-    var c = "";
-    if (!ms) {
-        ms = G.skills[skill].cooldown
+function skill_timeout(skill, b) {
+    var a = [];
+    if (!b) {
+        b = G.skills[skill].cooldown
     }
-    next_skill[skill] = future_ms(ms);
+    if (b == "1X") {
+        b = 1000 * 100 / character.speed
+    }
+    next_skill[skill] = future_ms(b);
 }
 function disappearing_circle(a, g, d, b) {
 }
