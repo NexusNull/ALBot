@@ -77,7 +77,7 @@ var map_npcs = [], map_doors = [], map_animatables = {};
 var map_tiles = [], map_entities = [], dtile_size = 32, dtile_width = 0, dtile_height = 0;
 var water_tiles = [], last_water_frame = -1;
 var drawings = [], code_buttons = {};
-var chests = {}, party_list = [];
+var chests = {}, party_list = [], party ={};
 var tile_sprites = {}, sprite_last = {};
 var first_coords = false, first_x = 0, first_y = 0;
 var last_refxy = 0, ref_x = 0, ref_y = 0;
@@ -500,33 +500,33 @@ function process_entities() {
     }
 }
 
-function on_disappear(a) {
-    if (future_entities.players[a.id]) {
-        delete future_entities.players[a.id]
+function on_disappear(event) {
+    if (future_entities.players[event.id]) {
+        delete future_entities.players[event.id]
     }
-    if (future_entities.monsters[a.id]) {
-        delete future_entities.monsters[a.id]
+    if (future_entities.monsters[event.id]) {
+        delete future_entities.monsters[event.id]
     }
-    if (entities[a.id]) {
-        if (a.invis) {
-            assassin_smoke(entities[a.id].real_x, entities[a.id].real_y)
+    if (entities[event.id]) {
+        if (event.invis) {
+            assassin_smoke(entities[event.id].real_x, entities[event.id].real_y)
         }
-        if (a.effect === 1) {
-            start_animation(entities[a.id], "transport")
+        if (event.effect === 1) {
+            start_animation(entities[event.id], "transport")
         }
-        entities["DEAD" + a.id] = entities[a.id];
-        entities[a.id].dead = true;
-        if (a.teleport) {
-            entities[a.id].tpd = true
+        entities["DEAD" + event.id] = entities[event.id];
+        entities[event.id].dead = true;
+        if (event.teleport) {
+            entities[event.id].tpd = true
         }
-        call_code_function("on_disappear", entities[a.id], a);
-        delete entities[a.id]
+        call_code_function("on_disappear", entities[event.id], event);
+        delete entities[event.id]
     } else {
-        if (character && character.id == a.id) {
-            if (a.invis) {
+        if (character && character.id == event.id) {
+            if (event.invis) {
                 assassin_smoke(character.real_x, character.real_y)
             }
-            call_code_function("on_disappear", character, a)
+            call_code_function("on_disappear", character, event)
         }
     }
 }
@@ -803,9 +803,6 @@ function init_socket() {
         } else {
             load_pvp_list(data.list)
         }
-    });
-    socket.on("ping_ack", function () {
-        add_log("Ping: " + mssince(ping_sent) + "ms", "gray")
     });
     socket.on("requesting_ack", function () {
         socket.emit("requested_ack", {})
@@ -1304,29 +1301,12 @@ function init_socket() {
     });
     socket.on("pm", function (data) {
         draw_trigger(function () {
-            var entity = get_entity(data.id);
-            if (entity) {
-                d_text(data.message, entity, {size: S.chat, color: "#BA6B88"})
-            }
-            sfx("chat");
-            var cid = "pm" + (data.to || data.owner);
-            add_pmchat(data.to || data.owner, data.owner, data.message);
-            if (in_arr(cid, docked)) {
-                add_chat(data.owner, data.message, "#CD7879")
-            }
+             add_chat(data.owner, data.message, "#CD7879")
         })
     });
     socket.on("partym", function (data) {
         draw_trigger(function () {
-            var entity = get_entity(data.id);
-            if (entity) {
-                d_text(data.message, entity, {size: S.chat, color: "#5B8DB0"})
-            }
-            sfx("chat");
-            add_partychat(data.owner, data.message);
-            if (in_arr("party", docked)) {
-                add_chat(data.owner, data.message, "#46A0C6")
-            }
+            add_chat(data.owner, data.message, "#46A0C6")
         })
     });
     socket.on("drop", function (data) {
@@ -1532,7 +1512,7 @@ function init_socket() {
                 add_log(data.message, "#703987")
             }
         }
-        party_list = data.list || []
+        party_list = data.list || [];
         party = data.party || {};
     });
     socket.on("blocker", function (data) {

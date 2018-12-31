@@ -497,11 +497,16 @@ function handle_command(command,args) // command's are things like "/party" that
     return -1;
 }
 
-function send_cm(to,data)
+function send_cm(to, data)
 {
     // to: Name or Array of Name's
     // data: JSON object
-    parent.send_code_message(to,data);
+    process.send({
+        type: "send_cm",
+        characterName: to,
+        data: data,
+        from: character.name,
+    })
 }
 
 function on_cm(name,data)

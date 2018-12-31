@@ -1,6 +1,6 @@
 {
     "config": {
-        "fetch": true,
+        "fetch": false,
         "botKey": 1,
         "botWebInterface": {
             "start": false,
@@ -11,5 +11,37 @@
     "login": {
         "email": "random@example.com",
         "password": "password123456"
-    }
+    },
+    "bots": [
+        {
+            "characterName": "BoltonCopper",
+            "characterId": "5252833374896128",
+            "runScript": "default.js",
+            "server": "US I"
+        },
+        {
+            "characterName": "CooperBolton",
+            "characterId": "6747399047348224",
+            "runScript": "default.js",
+            "server": "US I"
+        },
+        {
+            "characterName": "asdsasdasd",
+            "characterId": "4672935697580032",
+            "runScript": "default.js",
+            "server": "US I"
+        },
+        {
+            "characterName": "YouAreNice",
+            "characterId": "4822608194306048",
+            "runScript": "default.js",
+            "server": "US I"
+        },
+        {
+            "characterName": "LetLight",
+            "characterId": "5929475825991680",
+            "runScript": "default.js",
+            "server": "US I"
+        }
+    ]
 }

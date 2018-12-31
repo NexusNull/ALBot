@@ -2279,13 +2279,15 @@ function pvp_timeout(c, h) {
     }
 }
 var next_skill = {};
-function skill_timeout(b, a) {
-    var c = "";
-    if (!a) {
-        a = G.skills[b].cooldown
+function skill_timeout(skill, b) {
+    var a = [];
+    if (!b) {
+        b = G.skills[skill].cooldown
     }
-    next_skill[b] = future_ms(a);
-
+    if (b == "1X") {
+        b = 1000 * 100 / character.speed
+    }
+    next_skill[skill] = future_ms(b);
 }
 function disappearing_circle(a, g, d, b) {
 }

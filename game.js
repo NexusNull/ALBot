@@ -135,6 +135,8 @@ Game.prototype.init = function () {
         compound: compound,
         exchange: exchange,
         say: say,
+        private_say: private_say,
+        party_list: party_list,
         calculate_move: calculate_move,
         chests: chests,
         entities: entities,
@@ -142,6 +144,7 @@ Game.prototype.init = function () {
         show_json: show_json,
         next_potion: next_potion,
         send_code_message: send_code_message,
+        call_code_function: call_code_function,
         drawings: drawings,
         move: move,
         show_modal: show_modal,
@@ -149,6 +152,7 @@ Game.prototype.init = function () {
         next_attack: next_attack,
         bot_mode: true,
         botKey: botKey,
+        require: require,
         game: this
     };
     Object.defineProperty(glob, "entities", {
@@ -188,7 +192,7 @@ Game.prototype.init = function () {
         }
     })
     var damage = 0;
-    var timeFrame = 60*5;
+    var timeFrame = 60 * 5;
     var goldTimeline = [],
         xpTimeline = [],
         damageTimeline = [];
@@ -217,45 +221,51 @@ Game.prototype.init = function () {
                 //calculate damage per second
                 damageTimeline.push(damage);
                 var thenDamage;
-                if(damageTimeline.length < timeFrame)
+                if (damageTimeline.length < timeFrame)
                     thenDamage = damageTimeline[0];
                 else
                     thenDamage = damageTimeline.shift();
-                var dps = (damage-thenDamage)/damageTimeline.length;
+                var dps = (damage - thenDamage) / damageTimeline.length;
 
                 //calculate gold per second
                 goldTimeline.push(character.gold);
                 var thenGold;
-                if(goldTimeline.length < timeFrame)
+                if (goldTimeline.length < timeFrame)
                     thenGold = goldTimeline[0];
                 else
                     thenGold = goldTimeline.shift();
-                var gps = (character.gold-thenGold)/goldTimeline.length;
+                var gps = (character.gold - thenGold) / goldTimeline.length;
 
                 //calculate xp per second
                 xpTimeline.push(character.xp);
                 var thenXP;
-                if(xpTimeline.length < timeFrame)
+                if (xpTimeline.length < timeFrame)
                     thenXP = xpTimeline[0];
                 else
                     thenXP = xpTimeline.shift();
-                var xpps = (character.xp-thenXP)/xpTimeline.length;
+                var xpps = (character.xp - thenXP) / xpTimeline.length;
 
                 //calculate time until level up
-                var time = Math.floor((character.max_xp-character.xp)/xpps);
+                var time = Math.floor((character.max_xp - character.xp) / xpps);
 
                 //prettify time
-                var days    = Math.floor(time / (3600*24));
-                time -= 3600*24*days;
-                var hours   = Math.floor(time / 3600);
-                time -= 3600*hours;
+                var days = Math.floor(time / (3600 * 24));
+                time -= 3600 * 24 * days;
+                var hours = Math.floor(time / 3600);
+                time -= 3600 * hours;
                 var minutes = Math.floor(time / 60);
-                time -= 60*minutes;
+                time -= 60 * minutes;
                 var seconds = time;
 
-                if (hours   < 10) {hours   = "0"+hours;}
-                if (minutes < 10) {minutes = "0"+minutes;}
-                if (seconds < 10) {seconds = "0"+seconds;}
+                if (hours < 10) {
+                    hours = "0" + hours;
+                }
+                if (minutes < 10) {
+                    minutes = "0" + minutes;
+                }
+                if (seconds < 10) {
+                    seconds = "0" + seconds;
+                }
                 process.send({
                     type: "bwiUpdate",
                     data: {
@@ -271,7 +281,7 @@ Game.prototype.init = function () {
                         dps: Math.floor(dps),
                         gps: Math.floor(gps),
                         xpps: Math.floor(xpps),
-                        tlu: days+"d "+hours+":"+minutes+":"+seconds
+                        tlu: days + "d " + hours + ":" + minutes + ":" + seconds
                     }
                 })
             }, 1000);
