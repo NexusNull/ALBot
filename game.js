@@ -31,8 +31,8 @@ var Game = function (ip, port, characterId, script, botKey, G, httpWrapper) {
     this.events = {};
     this.socket = null;
     this.executor = null;
-    this.G = G
-
+    this.G = G;
+    this.pathfinding = null;
 }
 
 Game.prototype.init = function () {
@@ -54,7 +54,7 @@ Game.prototype.init = function () {
     var c_enabled = '1', stripe_enabled = '';
     var auto_reload = "auto", reload_times = '0', code_to_load = null, mstand_to_load = null;
     var EPS = 1e-16;
-
+    var no_graphics = true;
     var first_coords = false,
         first_x = 0,
         first_y = 0;
@@ -91,6 +91,7 @@ Game.prototype.init = function () {
     var sandbox;
 
     game = this;
+
     server_addr = this.ip;
     port = this.port;
     user_id = this.userId;
@@ -101,9 +102,12 @@ Game.prototype.init = function () {
     }
 
     eval(fs.readFileSync('modedGameFiles/game.js') + '');
-
+    gprocess_game_data();
     init_socket();
     this.socket = socket;
+
+    game.pathfinding = require("./PathFinding/pathFinding");
+    game.pathfinding.initialize(this.G);
 
     var glob = {
         localStorage: localStorage,
