@@ -34,7 +34,7 @@ HttpWrapper.prototype.login = async function (email, password) {
                 {
                     url: "https://adventure.land/api/signup_or_login",
                     formData: {
-                        arguments: '{"email":"' + email + '","password":"' + password + '"}',
+                        arguments: '{"login_only": true, "email":"' + email + '","password":"' + password + '"}',
                         method: "signup_or_login"
                     },
                     headers: {
