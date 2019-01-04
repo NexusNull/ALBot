@@ -2550,6 +2550,20 @@ var current_music = null;
 function reflect_music() {
 
 }
+function gprocess_game_data() {
+    if (no_graphics) {
+        for (var a in G.geometry) {
+            var b = G.geometry[a];
+            if (!b.data) {
+                continue
+            }
+            b.data.tiles = [];
+            b.data.placements = [];
+            b.data.groups = []
+        }
+    }
+    process_game_data()
+}
 var BACKUP = {};
 function reload_data() {
     BACKUP.maps = G.maps;

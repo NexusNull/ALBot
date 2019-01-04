@@ -1993,6 +1993,33 @@ function add_npc(d, a, c, g) {
     }
     return e
 }
+function add_machine(d) {
+    var c = {};
+    c.interactive = true;
+    c.buttonMode = true;
+    c.x = round(d.x);
+    c.y = round(d.y);
+    c.type = "machine";
+    c.mtype = d.type;
+    c.updates = 0;
+    if (d.type == "dice") {
+        c.digits = e_array(4);
+        for (var b = 0; b < 4; b++) {
+            c.digits[b] = {};
+            c.digits[b].x = -11 + b * 7;
+            if (b > 1) {
+                c.digits[b].x += 1
+            }
+            c.digits[b].y = -17;
+        }
+        c.dot = {};
+        c.dot.x = 0;
+        c.dot.y = -21;
+        c.shuffle_speed = 100
+    }
+    c.onrclick = a;
+    return c
+}
 
 function add_door(b) {
     var c = {};
@@ -2084,7 +2111,7 @@ function create_map() {
     let machines = map_info.machines || [];
     for (var B = 0; B < machines.length; B++) {
         var c = machines[B];
-        var m = add_machine(c);
+        var m = {};
         console.log("Machine: " + c.type);
         map_npcs.push(m);
         map_entities.push(m);
@@ -2368,7 +2395,6 @@ function draw(a, b) {
     }
 
 };
-
 function cut(number) {
     return Math.floor(number * 100) / 100;
 }
