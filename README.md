@@ -8,7 +8,7 @@
   3. Enter the repo folder and install dependencies with ` npm install `
   
 ### getting your bot to work.
-  4. Change the login data in userData.json to your own.
+  4. Rename `userData.json-example` to `userData.json`, and change the data to your own.
   ```code
         "config": {
             //Set to true to fetch available userdata on next run(Will overwrite existing userdata)
