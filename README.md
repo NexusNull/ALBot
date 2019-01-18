@@ -4,7 +4,7 @@
   1. Download git and node js 7.9.0 and install them
     [git](https://git-scm.com/downloads)
     [node](https://nodejs.org/en/download/package-manager/)
-  2. Download repo code with `git clone https://github.com/Fansana/ALBot.git`
+  2. Download repo code with `git clone https://github.com/NexusNull/ALBot.git`
   3. Enter the repo folder and install dependencies with ` npm install `
   
 ### getting your bot to work.
