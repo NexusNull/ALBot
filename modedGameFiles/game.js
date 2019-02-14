@@ -1512,8 +1512,21 @@ function init_socket() {
                 add_log(data.message, "#703987")
             }
         }
-        party_list = data.list || [];
-        party = data.party || {};
+	//we can't replace the objects here, as there is a reference
+	//to it within the Executor.
+	//instead we need to replace the entries inside
+	//the existing objects
+        let new_party_list = data.list || [];
+        while (party_list.length > 0)
+            party_list.pop();
+        for (let member of new_party_list)
+            party_list.push(member);
+	
+        let new_party = data.party || {};
+        for (let member in party)
+            delete party[member];
+        for (let member in new_party)
+            party[member] = new_party[member];
     });
     socket.on("blocker", function (data) {
         if (data.type == "pvp") {
