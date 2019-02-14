@@ -141,6 +141,7 @@ Game.prototype.init = function () {
         say: say,
         private_say: private_say,
         party_list: party_list,
+	party: party,
         calculate_move: calculate_move,
         chests: chests,
         entities: entities,
