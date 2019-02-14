@@ -40,6 +40,7 @@ for (var i = 1; i <= 16; i++) {
     trade_slots.push("trade" + i),
         check_slots.push("trade" + i)
 }
+var bank_packs = [ "items0", "items1", "items2", "items3", "items4", "items5", "items6", "items7" ];
 var character_slots = ["ring1", "ring2", "earring1", "earring2", "belt", "mainhand", "offhand", "helmet", "chest", "pants", "shoes", "gloves", "amulet", "orb", "elixir", "cape"];
 var booster_items = ["xpbooster", "luckbooster", "goldbooster"];
 var can_buy = {};
@@ -165,6 +166,70 @@ function hardcore_logic() {
     G.monsters.phoenix.respawn = 1;
     G.monsters.mvampire.respawn = 1
 }
+
+function can_stack(e, c, f) {
+    if (e && c && e.name && G.items[e.name].s && e.name == c.name && e.l == c.l && e.q + c.q + (f || 0) < 1e4) {
+        return true;
+    }
+    return false;
+}
+
+function can_add_item(c, e, a) {
+    if (!a) {
+        a = {};
+    }
+    if (!e.name) {
+        e = create_new_item(e, a.q || 1);
+    }
+    if (is_array(c)) {
+        c = {
+            items: c
+        };
+        for (var b = 0; b < 42; b++) {
+            if (!c.items[b]) {
+                return true;
+            }
+        }
+    }
+    if (c.esize > 0) {
+        return true;
+    }
+    if (G.items[e.name].s) {
+        for (var b = 0; b < c.items.length; b++) {
+            var d = c.items[b];
+            if (can_stack(d, e)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function can_add_items(d, b, c) {
+    if (!c) {
+        c = {};
+    }
+    var e = b.length, a = [];
+    if (d.esize + (c.space || 0) >= e) {
+        return true;
+    }
+    b.forEach(function(h) {
+        if (G.items[h.name].s) {
+            for (var f = 0; f < d.items.length; f++) {
+                var g = d.items[f];
+                if (can_stack(g, h, a[f] || 0)) {
+                    a[f] = (a[f] || 0) + h.q;
+                    e--;
+                }
+            }
+        }
+    });
+    if (d.esize + (c.space || 0) >= e) {
+        return true;
+    }
+    return false;
+}
+
 function object_sort(e, d) {
     function b(h, g) {
         if (h[0] < g[0]) {
