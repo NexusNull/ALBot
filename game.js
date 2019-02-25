@@ -158,7 +158,9 @@ Game.prototype.init = function () {
         bot_mode: true,
         botKey: botKey,
         require: require,
-        game: this
+        game: this,
+        close_merchant: close_merchant,
+        open_merchant: open_merchant,
     };
     Object.defineProperty(glob, "entities", {
         get: function () {
