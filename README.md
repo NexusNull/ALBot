@@ -27,7 +27,7 @@
     cd ALBot
     npm install 
     ```
-7. Rename copy config file and enter credentials. If you don't know how refer to Section [Understanding userdata.json](https://github.com/NexusNull/ALBot/#Understanding%20userdata.json) 
+7. Rename copy config file and enter credentials. If you don't know how refer to Section [Understanding userdata.json](#Understanding-userdata.json) 
     ```
     cp userdata.json-example userdata.json
     nano userdata.json
@@ -41,7 +41,8 @@
 Currently there is no client side check for character limitations, if you forget this your bot will keep disconnecting.
 
 10. Congratulations you now have a working copy of ALBot, if you experience unexpected behavior please raise an issue.
-    ### Understanding userdata.json
+
+## Understanding userdata.json
 Rename `userData.json-example` to `userData.json`, and change the data to your own.
     ```code
         "config": {
@@ -83,5 +84,5 @@ The character name is irrelevant when running ALBot. The bot will use the charac
 
 6. Now your bot is ready to run, normal character limitations still apply.
 
-    ## Running your own code
+## Running your own code
 The default code located at `./CODE/default.js`, the runScript entry in `userData.json` corresponds with the name of the script that should be run for the character. The environment is fundamentally the same as a browser with some exceptions, for example references to window, document, and PIXI are not supported.  Every character can run a different file, the default.js script will send characters to farm tiny crabs on the main beach.
