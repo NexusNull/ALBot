@@ -29,7 +29,7 @@
     ```
 7. Rename copy config file and enter credentials. If you don't know how refer to Section [Understanding userdata.json](https://github.com/NexusNull/ALBot/#Understanding%20userdata.json) 
     ```
-    cp userdata.json-example userdata.json nanouserdata.json
+    cp userdata.json-example userdata.json
     nano userdata.json
     ```
 8. Run the bot once with
