@@ -1,5 +1,6 @@
 var c_version = 2;
 var EPS = 1e-8;
+var ZEPS = 1e-8;
 var REPS = ((Number && Number.EPSILON) || EPS);
 var CINF = 999999999999999;
 var colors = {
@@ -14,6 +15,10 @@ var colors = {
     cash: "#5DAC40",
     hp: "#FF2E46",
     mp: "#3a62ce",
+    stat_xp: "#4570B1",
+    party_xp: "#AD73E0",
+    xp: "#CBFFFF",
+    luck: "#2A9A3D",
     gold: "gold",
     male: "#43A1C6",
     female: "#C06C9B",
@@ -33,6 +38,7 @@ var colors = {
     serious_red: "#BC0004",
     serious_green: "#428727",
     heal: "#EE4D93",
+    lifesteal: "#9A1D27",
 };
 var trade_slots = []
     , check_slots = ["elixir"];
@@ -40,7 +46,7 @@ for (var i = 1; i <= 16; i++) {
     trade_slots.push("trade" + i),
         check_slots.push("trade" + i)
 }
-var bank_packs = [ "items0", "items1", "items2", "items3", "items4", "items5", "items6", "items7" ];
+var bank_packs = ["items0", "items1", "items2", "items3", "items4", "items5", "items6", "items7"];
 var character_slots = ["ring1", "ring2", "earring1", "earring2", "belt", "mainhand", "offhand", "helmet", "chest", "pants", "shoes", "gloves", "amulet", "orb", "elixir", "cape"];
 var booster_items = ["xpbooster", "luckbooster", "goldbooster"];
 var can_buy = {};
@@ -211,7 +217,8 @@ function can_add_items(d, b, c) {
     if (!c) {
         c = {};
     }
-    var e = b.length, a = [];
+    var e = b.length
+        , a = [];
     if (d.esize + (c.space || 0) >= e) {
         return true;
     }
@@ -248,6 +255,13 @@ function object_sort(e, d) {
     }
     return c
 }
+function direction_logic(a, b, c) {
+    if (a.moving) {
+        return
+    }
+    a.angle = Math.atan2(get_y(b) - get_y(a), get_x(b) - get_x(a)) * 180 / Math.PI;
+    set_direction(a, c)
+}
 function within_xy_range(c, b) {
     if (c["in"] != b["in"]) {
         return false
@@ -264,7 +278,10 @@ function within_xy_range(c, b) {
     }
     return false
 }
-function distance(l, j) {
+function distance(l, j, o) {
+    if (o && l["in"] != j["in"]) {
+        return 99999999
+    }
     if ("width"in l && "width"in j) {
         var f = 99999999, n = l.width, e = l.height, d = j.width, h = j.height, g;
         if ("awidth"in l) {
@@ -314,6 +331,12 @@ function distance(l, j) {
         return f
     }
     return simple_distance(l, j)
+}
+function random_away(a, f, d) {
+    var c = 2 * Math.PI * Math.random();
+    var b = Math.random() * 2;
+    var e = b > 1 && (2 - b) || b;
+    return [a + d * e * Math.cos(c), f + d * e * Math.sin(c)]
 }
 function can_transport(a) {
     return can_walk(a)
@@ -553,12 +576,33 @@ function calculate_item_properties(e, d) {
                 }
             }
         }
+    } else {
+        if (d.p == "superfast") {
+            g.frequency += 20
+        }
     }
     prop_cache[a] = g;
     return g
 }
 function random_one(a) {
     return a[parseInt(a.length * Math.random())]
+}
+function floor_f2(a) {
+    return parseInt(a * 100) / 100
+}
+function to_pretty_float(a) {
+    if (!a) {
+        return "0"
+    }
+    var b = floor_f2(a).toFixed(2)
+        , a = parseFloat(b);
+    if (parseFloat(b) == parseFloat(a.toFixed(1))) {
+        b = a.toFixed(1)
+    }
+    if (parseFloat(b) == parseFloat(parseInt(a))) {
+        b = parseInt(a)
+    }
+    return b
 }
 function to_pretty_num(a) {
     if (!a) {
@@ -802,9 +846,9 @@ function set_base(a) {
         v: 7,
         vn: 2
     };
-    if (G.actual_dimensions[b] && G.actual_dimensions[b][3]) {
-        a.base.h = G.actual_dimensions[b][3];
-        a.base.v = min(9.9, G.actual_dimensions[b][4])
+    if (G.dimensions[b] && G.dimensions[b][3]) {
+        a.base.h = G.dimensions[b][3];
+        a.base.v = min(9.9, G.dimensions[b][4])
     } else {
         a.base.h = min(12, get_width(a) * 0.8);
         a.base.v = min(9.9, get_height(a) / 4)
@@ -923,6 +967,7 @@ function bsearch_start(a, c) {
     }
     return e
 }
+
 function can_move(l, t) {
     var a = G.geometry[l.map] || {}
         , x = 0;
@@ -1055,6 +1100,46 @@ function closest_line(c, a, d) {
     });
     return b
 }
+function unstuck_logic(a) {
+    if (!can_move({
+            map: a.map,
+            x: get_x(a),
+            y: get_y(a),
+            going_x: get_x(a),
+            going_y: get_y(a) + EPS / 2,
+            base: a.base
+        })) {
+        var b = false;
+        if (can_move({
+                map: a.map,
+                x: get_x(a),
+                y: get_y(a) + 8.1,
+                going_x: get_x(a),
+                going_y: get_y(a) + 8.1 + EPS / 2,
+                base: a.base
+            })) {
+            set_xy(a, get_x(a), get_y(a) + 8.1);
+            b = true
+        } else {
+            if (can_move({
+                    map: a.map,
+                    x: get_x(a),
+                    y: get_y(a) - 8.1,
+                    going_x: get_x(a),
+                    going_y: get_y(a) - 8.1 - EPS / 2,
+                    base: a.base
+                })) {
+                set_xy(a, get_x(a), get_y(a) - 8.1);
+                b = true
+            }
+        }
+        if (!b) {
+            console.log("#CRITICAL: Couldn't fix blink onto line issue")
+        } else {
+            console.log("Blinked onto line, fixed")
+        }
+    }
+}
 function stop_logic(b) {
     if (!b.moving) {
         return
@@ -1070,9 +1155,76 @@ function stop_logic(b) {
             start_moving_element(b);
             return
         }
-        b.moving = false;
-        b.vx = b.vy = 0
+        b.moving = b.amoving || false;
+        b.vx = b.vy = 0;
+        if (b.name_tag) {
+            stop_name_tag(b)
+        }
     }
+}
+function is_door_close(e, b, a, f) {
+    var d = G.maps[e]
+        , c = d.spawns[b[6]];
+    if (point_distance(a, f, c[0], c[1]) < 40) {
+        return true
+    }
+    if (distance({
+            x: a,
+            y: f,
+            width: 26,
+            height: 35
+        }, {
+            x: b[0],
+            y: b[1],
+            width: b[2],
+            height: b[3]
+        }) < 40) {
+        return true
+    }
+    return false
+}
+function can_use_door(f, b, a, g) {
+    var e = G.maps[f]
+        , c = e.spawns[b[6]];
+    if (point_distance(a, g, c[0], c[1]) < 40 && can_move({
+            map: f,
+            x: a,
+            y: g,
+            going_x: c[0],
+            going_y: c[1]
+        })) {
+        return true
+    }
+    if (distance({
+            x: a,
+            y: g,
+            width: 26,
+            height: 35
+        }, {
+            x: b[0],
+            y: b[1],
+            width: b[2],
+            height: b[3]
+        }) < 40) {
+        var d = false;
+        [[0, 0], [-b[2] / 2, 0], [b[2] / 2, 0], [-b[2] / 2, -b[3]], [b[2] / 2, -b[3]], [0, -b[3]], ].forEach(function(h) {
+            var k = h[0]
+                , j = h[1];
+            if (can_move({
+                    map: f,
+                    x: a,
+                    y: g,
+                    going_x: b[0] + k,
+                    going_y: b[1] + j
+                })) {
+                d = true
+            }
+        });
+        if (d) {
+            return true
+        }
+    }
+    return false
 }
 function trigger(a) {
     setTimeout(a, 0)
@@ -1171,19 +1323,26 @@ function clone(d, b) {
     }
     throw "type not supported"
 }
-function safe_stringify(d, b) {
-    var a = [];
+function safe_stringify(f, c) {
+    var b = [];
     try {
-        return JSON.stringify(d, function(e, f) {
-            if (f != null && typeof f == "object") {
-                if (a.indexOf(f) >= 0) {
+        var a = JSON.stringify(f, function(e, g) {
+            if (g != null && typeof g == "object") {
+                if (b.indexOf(g) >= 0) {
                     return
                 }
-                a.push(f)
+                b.push(g)
             }
-            return f
-        }, b)
-    } catch (c) {
+            return g
+        }, c);
+        if ("x"in f) {
+            a = JSON.parse(a);
+            a.x = f.x;
+            a.y = f.y;
+            a = JSON.stringify(a)
+        }
+        return a
+    } catch (d) {
         return "safe_stringify_exception"
     }
 }
@@ -1321,6 +1480,24 @@ function shuffle(c) {
     }
     return c
 }
+function random_binary() {
+    var b = "";
+    for (var a = 0; a < 2 + parseInt(Math.random() * 12); a++) {
+        if (Math.random() < 0.5) {
+            b += "0"
+        } else {
+            b += "1"
+        }
+    }
+    return b
+}
+function random_binaries() {
+    var b = "";
+    for (var a = 0; a < 7 + parseInt(Math.random() * 23); a++) {
+        b += random_binary() + " "
+    }
+    return b
+}
 function randomStr(a) {
     var e = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz"
         , c = "ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
@@ -1336,11 +1513,16 @@ function randomStr(a) {
     }
     return f
 }
+function lstack(a, c, b) {
+    a.unshift(c);
+    while (a.length > b) {
+        a.pop()
+    }
+}
 String.prototype.replace_all = function(c, a) {
     var b = this;
     return b.replace(new RegExp(c.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&"),"g"), a)
-}
-;
+};
 function html_escape(a) {
     var d = a;
     var b = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"]];
@@ -1391,6 +1573,21 @@ function randomStr(a) {
         }
     }
     return f
+}
+function log_trace(a, b) {
+    console.log("\n====================");
+    if (typeof b === "object") {
+        if (b.message) {
+            console.log("Exception[" + a + "]:\n" + b.message)
+        }
+        if (b.stack) {
+            console.log("Stacktrace:");
+            console.log(b.stack)
+        }
+    } else {
+        console.log("log_trace: argument is not an object on :" + a)
+    }
+    console.log("====================\n")
 }
 function rough_size(d) {
     var c = [];

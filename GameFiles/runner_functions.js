@@ -29,7 +29,8 @@ game={
     platform:parent.is_electron&&"electron"||"web", // "electron" for Steam, Mac clients, "web" for https://adventure.land
     graphics:!parent.no_graphics, // if game.graphics is false, don't draw stuff to the game in your Code
     html:!parent.no_html, // if game.html is false, this character is loaded in [CODE] mode
-}
+};
+character.bot=parent.is_bot;
 
 //#NOTE: Most new features are experimental - for #feedback + suggestions: https://discord.gg/X4MpntA [05/01/18]
 
@@ -57,9 +58,14 @@ function get_active_characters()
     return parent.get_active_characters()
 }
 
+function change_server(region,name) // change_server("EU","I") or change_server("ASIA","PVP") or change_server("US","III")
+{
+    parent.window.location.href="/character/"+character.name+"/in/"+region+"/"+name+"/";
+}
+
 function is_pvp()
 {
-    return G.maps[character.map].pvp || server.is_pvp;
+    return G.maps[character.map].pvp || server.pvp;
 }
 
 function is_npc(entity)
@@ -72,11 +78,11 @@ function is_monster(entity)
     if(entity && entity.type=="monster") return true;
 }
 
-function is_player(entity)
+function is_character(entity)
 {
     if(entity && entity.type=="character" && !entity.npc) return true;
 }
-function is_character(e){return is_player(e);}
+function is_player(e){return is_character(e);} // backwards-compatibility
 
 function activate(num) // activates an item, likely a booster, in the num-th inventory slot
 {
@@ -91,9 +97,10 @@ function shift(num,name) // shifts an item, likely a booster, in the num-th inve
     parent.shift(num,name);
 }
 
-function can_use(name) // work in progress, can be used to check cooldowns of class skills [02/02/17]
+function can_use(name)
 {
-    return parent.can_use(name);
+    if(G.skills[name] && G.skills[name].class && !in_arr(character.ctype,G.skills[name].class)) return false; // checks the class
+    return parent.can_use(name); // checks the cooldown
 }
 
 function use(name,target) // a multi-purpose use function, works for skills too
@@ -117,6 +124,67 @@ function use_skill(name,target)
     parent.use_skill(name,target);
 }
 
+function bank_deposit(gold)
+{
+    if(!character.bank) return game_log("Not inside the bank");
+    parent.socket.emit("bank",{operation:"deposit",amount:gold});
+}
+
+function bank_withdraw(gold)
+{
+    if(!character.bank) return game_log("Not inside the bank");
+    parent.socket.emit("bank",{operation:"withdraw",amount:gold});
+}
+
+function bank_store(num,pack,pack_slot)
+{
+    // bank_store(0) - Stores the first item in inventory in the first/best spot in bank
+    // parent.socket.emit("bank",{operation:"swap",pack:pack,str:num,inv:num});
+    // Above call can be used manually to pull items, swap items and so on - str is from 0 to 41, it's the storage slot #
+    // parent.socket.emit("bank",{operation:"swap",pack:pack,str:num,inv:-1}); <- this call would pull an item to the first inventory slot available
+    // pack is one of ["items0","items1","items2","items3","items4","items5","items6","items7"]
+    if(!character.bank) return game_log("Not inside the bank");
+    if(!character.items[num]) return game_log("No item in that spot");
+    if(!pack_slot) pack_slot=-1; // the server interprets -1 as first slot available
+    if(!pack)
+    {
+        var cp=undefined,cs=undefined;
+        bank_packs.forEach(function(cpack){
+            if(!character.bank[cpack]) return;
+            for(var i=0;i<42;i++)
+            {
+                if(pack) return;
+                if(can_stack(character.bank[cpack][i],character.items[num])) // the item we want to store and this bank item can stack - best case scenario
+                {
+                    pack=cpack;
+                }
+                if(!character.bank[cpack][i] && !cp)
+                {
+                    cp=cpack;
+                }
+            }
+        });
+        if(!pack && !cp) return game_log("Bank is full!");
+        if(!pack) pack=cp;
+    }
+    parent.socket.emit("bank",{operation:"swap",pack:pack,str:-1,inv:num});
+}
+
+function swap(a,b) // inventory move/swap
+{
+    parent.socket.emit("imove",{a:a,b:b});
+}
+
+function quantity(name)
+{
+    var q=0;
+    for(var i=0;i<character.items.length;i++)
+    {
+        if(character.items[i] && character.items[i].name==name) q+=character.items[i].q||1;
+    }
+    return q;
+}
+
 function item_properties(item) // example: item_properties(character.items[0])
 {
     if(!item || !item.name) return null;
@@ -136,6 +204,11 @@ function item_value(item) // example: item_value(character.items[0])
 {
     if(!item || !item.name) return 0;
     return calculate_item_value(item);
+}
+
+function transport(map,spawn)
+{
+    parent.socket.emit("transport",{to:map,s:spawn});
 }
 
 function is_paused()
@@ -246,7 +319,7 @@ function can_attack(target) // also works for priests/heal
 
 function can_heal(t)
 {
-    if(is_monster(t)) return false;
+    if(is_monster(t)) return false; // ?? :D [11/10/18]
     return can_attack(t);
 }
 
@@ -286,14 +359,24 @@ function buy(name,quantity) //item names can be spotted from show_json(character
     parent.buy(name,quantity);
 }
 
+function buy_with_gold(name,quantity)
+{
+    parent.buy_with_gold(name,quantity);
+}
+
+function buy_with_shells(name,quantity)
+{
+    parent.buy_with_shells(name,quantity);
+}
+
 function sell(num,quantity) //sell an item from character.items by it's order - 0 to N-1
 {
     parent.sell(num,quantity);
 }
 
-function equip(num)
+function equip(num,slot) // slot is optional
 {
-    parent.socket.emit("equip",{num:num});
+    parent.socket.emit("equip",{num:num,slot:slot});
 }
 
 function unequip(slot) // show_json(character.slots) => to see slot options
@@ -301,9 +384,10 @@ function unequip(slot) // show_json(character.slots) => to see slot options
     parent.socket.emit("unequip",{slot:slot});
 }
 
-function trade(num,trade_slot,price) // where trade_slot is 1 to 16 - example, trade(0,4,1000) puts the first item in inventory to the 4th trade slot for 1000 gold [27/10/16]
+function trade(num,trade_slot,price,quantity) // where trade_slot is 1 to 16 - example, trade(0,4,1000) puts the first item in inventory to the 4th trade slot for 1000 gold [27/10/16]
 {
-    parent.trade("trade"+trade_slot,num,price);
+    if(!is_string(trade_slot) || !trade_slot.startsWith("trade")) trade_slot="trade"+trade_slot;
+    parent.trade(trade_slot,num,price,quantity||1);
 }
 
 function trade_buy(target,trade_slot) // target needs to be an actual player
@@ -336,6 +420,12 @@ function craft(i0,i1,i2,i3,i4,i5,i6,i7,i8)
     parent.craft();
 }
 
+function dismantle(item_num)
+{
+    parent.ds_item=item_num;
+    parent.dismantle();
+}
+
 function exchange(item_num)
 {
     parent.e_item=item_num;
@@ -358,9 +448,15 @@ function move(x,y)
     parent.move(x,y);
 }
 
+function cruise(speed)
+{
+    parent.socket.emit("cruise",speed);
+}
+
 function show_json(e) // renders the object as json inside the game
 {
-    parent.show_json(parent.game_stringify(e,2));
+    if(character.bot) parent.parent.show_json(parent.game_stringify(e,'\t'));
+    else parent.show_json(parent.game_stringify(e,'\t'));
 }
 
 function get_player(name) // returns the player by name, if the player is within the vision area
@@ -436,9 +532,9 @@ function use_hp_or_mp()
     if(used) last_potion=new Date();
 }
 
-// loot(true) allows code characters to make their commanders' loot instead, extremely useful [14/01/18]
 function loot(commander)
 {
+    // loot(true) allows code characters to make their commanders' loot instead, extremely useful [14/01/18]
     var looted=0;
     if(safeties && mssince(last_loot)<200) return;
     last_loot=new Date();
@@ -487,11 +583,30 @@ function send_party_request(name)
 
 function accept_party_invite(name)
 {
+    parent.$(".pin"+name).remove();
     parent.socket.emit('party',{event:'accept',name:name});
 }
+
 function accept_party_request(name)
 {
+    parent.$(".pin"+name).remove();
     parent.socket.emit('party',{event:'raccept',name:name});
+}
+
+function leave_party()
+{
+    parent.socket.emit("party",{event:"leave"});
+}
+
+function accept_magiport(name)
+{
+    parent.$(".mpin"+name).remove();
+    parent.socket.emit('magiport',{name:name});
+}
+
+function unfriend(name) // instead of a name, an owner id also works, this is currently the only way to unfriend someone [20/08/18]
+{
+    parent.socket.emit('friend',{event:'unfriend',name:name});
 }
 
 function respawn()
@@ -547,6 +662,18 @@ function on_party_invite(name) // called by the inviter's name
 function on_party_request(name) // called by the inviter's name - request = someone requesting to join your existing party
 {
     // accept_party_request(name)
+}
+
+function on_magiport(name) // called by the mage's name in PVE servers, in PVP servers magiport either succeeds or fails without consent
+{
+    // accept_magiport(name)
+}
+
+function on_map_click(x,y)
+{
+    // if true is returned, the default move is cancelled
+    // xmove(x,y);
+    // return true;
 }
 
 function on_destroy() // called just before the CODE is destroyed
@@ -659,13 +786,37 @@ function clear_buttons()
     buttons=parent.code_buttons={};
 }
 
-function auto_reload(value)
-{
-    // Configures the game to auto reload in case you disconnect due to rare network issues
-    if(value===false) parent.auto_reload="off";
-    else if(value=="auto") parent.auto_reload="auto"; // code or merchant stand
-    else parent.auto_reload="on"; // always reload
-}
+character.listeners=[];
+character.all=function(f){
+    var def={f:f,id:randomStr(30),event:"all"};
+    character.listeners.push(def);
+    return def.id;
+};
+character.on=function(event,f){
+    var def={f:f,id:randomStr(30),event:event};
+    character.listeners.push(def);
+    return def.id;
+};
+character.trigger=function(event,args){
+    var to_delete=[];
+    for(var i=0;i<character.listeners.length;i++)
+    {
+        var l=character.listeners[i];
+        if(l.event==event || l.event=="all")
+        {
+            try{
+                if(l.event=="all") l.f(event,args)
+                else l.f(args,event);
+            }
+            catch(e)
+            {
+                game_log("Listener Exception ("+l.event+") "+e,code_color);
+            }
+            if(l.once || l.f && l.f.delete) to_delete.push(l.id);
+        }
+    }
+    // game_log(to_delete);
+};
 
 game.listeners=[];
 game.all=function(f){
@@ -713,6 +864,11 @@ game.trigger=function(event,args){
     }
     // game_log(to_delete);
 };
+
+function trigger_character_event(name,data)
+{
+    character.trigger(name,data);
+}
 
 function trigger_event(name,data)
 {
@@ -791,6 +947,18 @@ function reset_mappings()
     parent.map_keys_and_skills();
     set_keymap(parent.keymap);
     set_skillbar(parent.skillbar);
+}
+
+function pset(name,value)
+{
+    // on Web, window.localStorage is used, on Steam/Mac, the electron-store package is used for persistent storage
+    return parent.storage_set(name,value);
+}
+
+function pget(name)
+{
+    // on Web, window.localStorage is used, on Steam/Mac, the electron-store package is used for persistent storage
+    return parent.storage_get(name);
 }
 
 function load_code(name,onerror) // onerror can be a function that will be executed if load_code fails
@@ -901,9 +1069,13 @@ function stop(action)
     {
         parent.socket.emit("stop",{action:"invis"});
     }
-    else if(action=="teleport")
+    else if(action=="teleport" || action=="town")
     {
-        parent.socket.emit("stop",{action:"teleport"});
+        parent.socket.emit("stop",{action:"town"});
+    }
+    else if(action=="revival")
+    {
+        parent.socket.emit("stop",{action:"revival"});
     }
 }
 
@@ -968,7 +1140,8 @@ function bfs()
         {
             if(smart.prune.map && smart.flags.map) {start++; continue;}
             map.doors.forEach(function(door){
-                if(simple_distance({x:map.spawns[door[6]][0],y:map.spawns[door[6]][1]},{x:current.x,y:current.y})<30)
+                // if(simple_distance({x:map.spawns[door[6]][0],y:map.spawns[door[6]][1]},{x:current.x,y:current.y})<30)
+                if(is_door_close(current.map,door,current.x,current.y) && can_use_door(current.map,door,current.x,current.y))
                     qpush({map:door[4],x:G.maps[door[4]].spawns[door[5]||0][0],y:G.maps[door[4]].spawns[door[5]||0][1],transport:true,s:door[5]||0});
             });
             map.npcs.forEach(function(npc){
@@ -1099,7 +1272,9 @@ function eval_s(code) // this is how snippets are eval'ed if they include "outpu
 
 function performance_trick()
 {
+    // Needed for browsers only, Steam/Mac versions of the game always deliver high JS performance [03/02/19]
     parent.performance_trick(); // Just plays an empty sound file, so browsers don't throttle JS, only way to prevent it, interesting cheat [05/07/18]
+    // Lately Chrome has been screwing things up with every update, mostly it's bugs and performance issues, but this time, the way Audio is played has been changed, so, once the game refreshes itself, the tabs need to be manually focused once for performance_trick() to become effective, as Audio can no longer automatically play [21/10/18]
 }
 
 function doneify(fn,s_event,f_event)

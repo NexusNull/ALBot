@@ -82,31 +82,72 @@ function cached(d, c, b, a) {
     GCACHED[d] = c;
     return false
 }
-function disappearing_clone(c, a) {
-    if (!a) {
-        a = {}
+function preview_all(c) {
+    if (!c) {
+        c = character
     }
-    var d = c.texture;
-    if (a.random && c.stype == "full") {
-        d = textures[c.skin][parseInt(Math.random() * 3)][parseInt(Math.random() * 4)]
+    for (var b = 0; b < 3; b++) {
+        for (var a = 0; a < 4; a++) {
+            disappearing_clone(c, {
+                i: b,
+                j: a,
+                x: get_x(c) + b * 40,
+                y: get_y(c) + a * 40,
+                stay: true,
+                alpha: 1,
+                border: true
+            })
+        }
     }
-    var b = new PIXI.Sprite(d);
-    b.x = a.x || get_x(c);
-    b.y = a.y || get_y(c) - 1;
-    b.width = c.width / (c.cscale || 1);
-    b.height = c.height / (c.cscale || 1);
-    if (a.rcolor) {
-        start_filter(b, "rcolor")
+}
+function disappearing_clone(d, b) {
+    if (!b) {
+        b = {}
     }
-    if (use_layers) {
-        b.parentGroup = c.parentGroup
+    var g = d.texture
+        , a = false;
+    if (b.random && d.stype == "full") {
+        g = textures[d.skin][parseInt(Math.random() * 3)][parseInt(Math.random() * 4)]
+    }
+    if (b.i !== undefined) {
+        g = textures[d.skin][b.i][b.j]
+    }
+    var c = new PIXI.Sprite(g);
+    if (d.cx) {
+        if (b.i !== undefined) {
+            c.i = b.i,
+                c.j = b.j
+        } else {
+            c.i = d.i,
+                c.j = d.j
+        }
+        c.skin = d.skin;
+        c.cx = d.cx;
+        cosmetics_logic(c);
+        a = true
+    }
+    c.x = b.x || get_x(d);
+    c.y = b.y || get_y(d) - 1;
+    c.width = d.width / (d.cscale || 1);
+    c.height = d.height / (d.cscale || 1);
+    if (b.rcolor) {
+        start_filter(c, "rcolor")
+    }
+    c.anchor.set(0.5, 1);
+    if (c.cx && (b.alpha || 0.8) != 1) {
+        var f = new PIXI.filters.AlphaFilter();
+        f.alpha = b.alpha || 0.8;
+        c.filters = [f]
     } else {
-        b.displayGroup = c.displayGroup
+        c.alpha = b.alpha || 0.8
     }
-    b.anchor = c.anchor;
-    b.alpha = 0.8;
-    map.addChild(b);
-    draw_timeout(fade_away(5, b), 15)
+    if (b.border) {
+        border_logic(c)
+    }
+    map.addChild(c);
+    if (!b.stay) {
+        draw_timeout(fade_away(5, c), 15)
+    }
 }
 function fade_out_blink(b, a) {
     return function() {
@@ -118,7 +159,7 @@ function fade_out_blink(b, a) {
                 return
             }
         } else {
-            a.alpha -= 0.1;
+            a.real_alpha -= 0.1;
             a.height += (a.cscale || 1);
             draw_timeout(fade_out_blink(b + 1, a), 30, 1)
         }
@@ -134,7 +175,7 @@ function fade_out_magiport(b, a) {
                 return
             }
         } else {
-            a.alpha -= 0.05;
+            a.real_alpha -= 0.05;
             a.height -= (a.cscale || 1);
             a.width -= (a.cscale || 1);
             draw_timeout(fade_out_magiport(b + 1, a), 16, 1)
@@ -149,7 +190,7 @@ function fade_away_teleport(b, a) {
             }
             destroy_sprite(a, "children")
         } else {
-            a.alpha -= 0.1;
+            a.real_alpha -= 0.1;
             update_sprite(a);
             draw_timeout(fade_away_teleport(b + 1, a), 30, 1)
         }
@@ -160,7 +201,7 @@ function fade_away(b, a) {
         if (b == 20 || is_hidden()) {
             destroy_sprite(a, "children")
         } else {
-            a.alpha -= 0.05;
+            a.real_alpha -= 0.05;
             update_sprite(a);
             draw_timeout(fade_away(b + 1, a), 30, 1)
         }
@@ -208,11 +249,41 @@ function keymap_modal_logic() {
     $(".skbkeys").html(a)
 }
 function show_game_guide() {
+    return
     if (gameplay == "hardcore") {
-        show_modal($("#hardcoreguide").html())
+        show_modal($("#hardcoreguide").html(), {
+            styles: ""
+        })
     } else {
-        show_modal($("#gameguide").html())
+        show_modal($("#gameguide").html(), {
+            styles: ""
+        })
     }
+}
+function show_shells_info() {
+    show_modal($("#shellsinfo").html(), {
+        styles: "padding-left: 20px; padding-right: 20px; font-size: 24px;"
+    })
+}
+function show_credits() {
+    show_modal($("#credits").html(), {
+        styles: "background: #E5E5E5; color: #010805; padding-left: 20px; padding-right: 20px; font-size: 24px; text-align: center"
+    })
+}
+function show_terms() {
+    show_modal($("#terms").html(), {
+        styles: "background: #E5E5E5; color: #010805; padding-left: 20px; padding-right: 20px; font-size: 24px; text-align: center"
+    })
+}
+function show_privacy() {
+    show_modal($("#privacy").html(), {
+        styles: "background: #E5E5E5; color: #010805; padding-left: 20px; padding-right: 20px; font-size: 24px; text-align: center"
+    })
+}
+function show_opensource_info() {
+    show_modal($("#opensource").html(), {
+        styles: "background: #E5E5E5; color: #010805; padding-left: 20px; padding-right: 20px; font-size: 24px; text-align: center"
+    })
 }
 function hide_modal() {
     if (modal_count > 0) {
@@ -221,14 +292,31 @@ function hide_modal() {
     if ($(".modal:last").find(".destroy").length) {
         eval($(".modal:last").find(".destroy").attr("onclick"))
     }
-    $(".modal:last").remove()
+    $(".modal:last").remove();
+    if ($(".modal:last").hasClass("hideinbackground")) {
+        $(".modal:last").show();
+        position_modals()
+    }
+    if (!modal_count) {
+        block_right_clicks = true;
+        if (code) {
+            $("#codeui").show();
+            codemirror_render.refresh()
+        }
+    }
 }
 function show_modal(mhtml, args) {
     if (!args) {
         args = {}
     }
     if (!args.opacity) {
-        args.opacity = 0.5
+        args.opacity = 0.4
+    }
+    if (!args.classes) {
+        args.classes = ""
+    }
+    if (args.hideinbackground) {
+        args.classes = "hideinbackground"
     }
     if (args.wrap === undefined) {
         args.wrap = true
@@ -242,15 +330,18 @@ function show_modal(mhtml, args) {
         , styles = "";
     styles += "position: fixed; top: 0px; bottom: 0px; left: 0px; right: 0px; z-index: 9000; text-align: center; vertical-align: middle; overflow-y: scroll; ";
     styles += "background: rgba(0,0,0," + args.opacity + ")";
-    html += "<div style='" + styles + "' class='modal' onclick='stpr(event); hide_modal()'>";
-    html += "<div style='display: inline-block; " + wrap_styles + " " + (args.styles || "") + " margin-bottom: 100px; margin-top: 40px; padding: 10px; text-align: left; position: relative'";
-    html += " onclick='stpr(event); /*return false*/' class='imodal'>";
+    html += "<div style='" + styles + "' class='modal " + args.classes + "' onclick='if(stprlink(event)) return; hide_modal()'>";
+    html += "<div style='display: inline-block; margin-bottom: 100px; margin-top: 40px; padding: 10px; text-align: left; position: relative; " + wrap_styles + " " + (args.styles || "") + "'";
+    html += " onclick='stprlink(event); /*return false*/' class='imodal'>";
     html += mhtml;
     if (args.ondestroy) {
         html += '<div style="display:none" class="destroy" onclick="' + args.ondestroy + '"></div>'
     }
     html += "</div>";
     html += "</div>";
+    if ($(".modal:last").hasClass("hideinbackground")) {
+        $(".modal:last").hide()
+    }
     $("body").append(html);
     var iheight = $(".imodal:last").height();
     if (height > iheight) {
@@ -259,6 +350,17 @@ function show_modal(mhtml, args) {
     if ($(".modal:last").find(".oncreate").length) {
         eval($(".modal:last").find(".oncreate").attr("onclick"))
     }
+    block_right_clicks = false;
+    if (code && !args.keep_code) {
+        $("#codeui").hide();
+        if (last_hint) {
+            $("#codehint").remove(),
+                last_hint = undefined
+        }
+    }
+}
+function show_alert(a) {
+    show_modal("<div style='padding: 20px; text-align:center'><pre style='font-family: Pixel; font-size: 48px;'>" + a + "</pre></div>")
 }
 function position_modals() {
     $(".imodal").each(function() {
@@ -276,15 +378,20 @@ function set_status(a) {
 }
 function show_json(a) {
     if (!is_string(a)) {
-        a = safe_stringify(a, 2)
+        a = safe_stringify(a, "\t")
     }
-    show_modal("<div style='font-size: 24px; white-space: pre-wrap;' class='yesselect pre'>" + syntax_highlight(a) + "</div>")
+    show_modal("<div style='font-size: 24px; white-space: pre-wrap;' class='yesselect pre shcontainer'>" + syntax_highlight(a) + "</div>")
 }
 function json_to_html(a) {
     if (!is_string(a)) {
-        a = safe_stringify(a, 2)
+        a = safe_stringify(a, "\t")
     }
-    return "<div style='font-size: 24px; white-space: pre;' class='yesselect'>" + syntax_highlight(a) + "</div>"
+    return "<div style='font-size: 24px; white-space: pre;' class='yesselect shcontainer'>" + syntax_highlight(a) + "</div>"
+}
+function add_magiport(a) {
+    $(".mpin" + a).remove();
+    $("#chatlog").append("<div class='chatentry mpin" + a + "' style='color: gray'><span style='color: white'>" + a + "</span> wants to magiport you! 		<span class='clickable' style='color:#3E97AA' onclick='socket.emit(\"magiport\",{name:\"" + a + "\"}); $(this).parent().remove()'>Accept</span></div>");
+    $("#chatlog").scrollTop($("#chatlog")[0].scrollHeight)
 }
 function add_invite(a) {
     $(".pin" + a).remove();
@@ -304,11 +411,17 @@ function add_frequest(a) {
 function add_update_notes() {
     update_notes.forEach(function(b) {
         var a = "gray";
+        if (b.indexOf("Happy Holidays") != -1) {
+            a = "#C82F17"
+        }
         if (b.indexOf("Chinese") != -1) {
             a = "#B02B16"
         }
-        if (b.indexOf("Valentines") != -1) {
+        if (b.indexOf("Valentine's") != -1) {
             a = "#C987B7"
+        }
+        if (b.indexOf("Halloween") != -1) {
+            a = "#DE6E37"
         }
         add_log(b, a)
     })
@@ -323,9 +436,9 @@ function add_log(c, a) {
     if (mode.dom_tests || inside == "payments" || no_html) {
         return
     }
-    if (game_logs.length > 1000) {
+    if (game_logs.length > 480) {
         var b = "<div class='gameentry' style='color: gray'>- Truncated -</div>";
-        game_logs = game_logs.slice(-720);
+        game_logs = game_logs.slice(-160);
         game_logs.forEach(function(d) {
             b += "<div class='gameentry' style='color: " + (d[1] || "white") + "'>" + d[0] + "</div>"
         });
@@ -339,7 +452,7 @@ function add_xmas_log() {
     if (mode.dom_tests || inside == "payments" || no_html) {
         return
     }
-    $("#gamelog").append("<div class='gameentry' style='color: white'>Would you like to turn on the Xmas Tunes? <span style='color: #C82F17' class='clickable' onclick='xmas_tunes=true; sound_music=\"1\"; init_music(); reflect_music();  $(\".musicoff\").hide(); $(\".musicon\").show(); add_log(\"As a reminder, you can control Music from CONF\",\"gray\"); $(this).parent().remove();'>Yes!</span></div>");
+    $("#gamelog").append("<div class='gameentry' style='color: white'>Would you like to turn on the Holiday Tunes? <span style='color: #C82F17' class='clickable' onclick='xmas_tunes=true; sound_music=\"1\"; init_music(); reflect_music();  $(\".musicoff\").hide(); $(\".musicon\").show(); add_log(\"As a reminder, you can control Music from CONF\",\"gray\"); $(this).parent().remove();'>Yes!</span></div>");
     $("#gamelog").scrollTop($("#gamelog")[0].scrollHeight)
 }
 function add_greenlight_log() {
@@ -371,19 +484,19 @@ function add_chat(c, o, g, b) {
             break
         }
     }
-    if (game_chats.length > 360 || j) {
+    if (game_chats.length > 250 || j) {
         var m = "";
-        if (game_chats.length > 360) {
+        if (game_chats.length > 250) {
             m = "<div class='chatentry' style='color: gray'>- Truncated -</div>";
             var a = [];
             for (var l = 0; l < game_chats.length; l++) {
                 var h = game_chats[l];
-                if (l < 180 && !h[0]) {
+                if (l < 100 && !h[0]) {
                     continue
                 }
                 a.push(h)
             }
-            game_chats = a.slice(-270)
+            game_chats = a.slice(-225)
         }
         game_chats.forEach(function(s) {
             var r = ""
@@ -509,8 +622,8 @@ function get_nearby_hostiles(a) {
     if (!a.limit) {
         a.limit = 12
     }
-    for (id in parent.entities) {
-        var b = parent.entities[id];
+    for (id in entities) {
+        var b = entities[id];
         if (b.rip || b.invincible || b.npc) {
             continue
         }
@@ -577,6 +690,7 @@ function get_input(b) {
         $("." + a).focus()
     }
 }
+function show_confirm(d, b, c, a) {}
 function use_skill(b, h, k) {
     if (h && h.id) {
         h = h.id
@@ -588,14 +702,7 @@ function use_skill(b, h, k) {
             use("mp")
         } else {
             if (b == "stop") {
-                map_click({
-                    data: {
-                        global: {
-                            x: width / 2,
-                            y: Math.ceil(height / 2) + 0.01
-                        }
-                    }
-                });
+                move(character.real_x, character.real_y + 0.00001);
                 socket.emit("stop");
                 code_eval_if_r("smart.moving=false")
             } else {
@@ -671,12 +778,12 @@ function use_skill(b, h, k) {
                                     })
                                 }
                             } else {
-                                if (in_arr(b, ["invis", "partyheal", "darkblessing", "agitate", "cleave", "stomp", "charge", "light", "hardshell", "track", "warcry", "mcourage"])) {
+                                if (in_arr(b, ["invis", "partyheal", "darkblessing", "agitate", "cleave", "stomp", "charge", "light", "hardshell", "track", "warcry", "mcourage", "scare"])) {
                                     socket.emit("skill", {
                                         name: b
                                     })
                                 } else {
-                                    if (in_arr(b, ["supershot", "quickpunch", "quickstab", "taunt", "curse", "burst", "4fingers", "magiport", "absorb", "mluck", "rspeed"])) {
+                                    if (in_arr(b, ["supershot", "quickpunch", "quickstab", "taunt", "curse", "burst", "4fingers", "magiport", "absorb", "mluck", "rspeed", "charm"])) {
                                         socket.emit("skill", {
                                             name: b,
                                             id: h
@@ -728,24 +835,36 @@ function use_skill(b, h, k) {
                                                             num: d
                                                         })
                                                     } else {
-                                                        if (b == "blink") {
+                                                        if (b == "throw") {
+                                                            if (!character.items[k]) {
+                                                                add_log("Inventory slot is empty", "gray");
+                                                                return
+                                                            }
                                                             socket.emit("skill", {
-                                                                name: "blink",
-                                                                x: h[0],
-                                                                y: h[1]
+                                                                name: b,
+                                                                num: k,
+                                                                id: h
                                                             })
                                                         } else {
-                                                            if (b == "energize") {
+                                                            if (b == "blink") {
                                                                 socket.emit("skill", {
-                                                                    name: "energize",
-                                                                    id: h,
-                                                                    mana: k
+                                                                    name: "blink",
+                                                                    x: h[0],
+                                                                    y: h[1]
                                                                 })
                                                             } else {
-                                                                if (b == "stack") {
-                                                                    on_skill("attack")
+                                                                if (b == "energize") {
+                                                                    socket.emit("skill", {
+                                                                        name: "energize",
+                                                                        id: h,
+                                                                        mana: k
+                                                                    })
                                                                 } else {
-                                                                    add_log("Skill not found: " + b, "gray")
+                                                                    if (b == "stack") {
+                                                                        on_skill("attack")
+                                                                    } else {
+                                                                        add_log("Skill not found: " + b, "gray")
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -777,7 +896,7 @@ function on_skill(d, h) {
                 break
             }
         }
-        if (b > 0) {
+        if (b >= 0) {
             var g = character.items[b];
             if (G.items[g.name].type == "stand") {
                 if (character.stand) {
@@ -848,11 +967,25 @@ function on_skill(d, h) {
                                                 var f = [];
                                                 hide_modal();
                                                 f.push({
-                                                    button: "Jump",
+                                                    button: "Travel",
+                                                    onclick: function() {
+                                                        hide_modal();
+                                                        render_travel(1)
+                                                    }
+                                                });
+                                                f.push({
+                                                    button: "P Jump",
                                                     onclick: function() {
                                                         socket.emit("gm", {
                                                             action: "jump_list"
                                                         })
+                                                    }
+                                                });
+                                                f.push({
+                                                    button: "M Jump",
+                                                    onclick: function() {
+                                                        hide_modal();
+                                                        render_gmonsters(1)
                                                     }
                                                 });
                                                 f.push({
@@ -903,10 +1036,22 @@ function on_skill(d, h) {
                                                     }
                                                 });
                                                 f.push({
-                                                    button: "Travel",
+                                                    button: "Ban",
                                                     onclick: function() {
                                                         hide_modal();
-                                                        render_travel(1)
+                                                        get_input({
+                                                            button: "Ban",
+                                                            onclick: function() {
+                                                                socket.emit("gm", {
+                                                                    action: "ban",
+                                                                    id: $(".mglocx").val()
+                                                                });
+                                                                hide_modal()
+                                                            },
+                                                            input: "mglocx",
+                                                            placeholder: "Name",
+                                                            title: "Character"
+                                                        })
                                                     }
                                                 });
                                                 get_input({
@@ -961,7 +1106,11 @@ function on_skill(d, h) {
                                                                                             title: "Magiport"
                                                                                         })
                                                                                     } else {
-                                                                                        use_skill(c, ctarget)
+                                                                                        if (c == "throw") {
+                                                                                            use_skill(c, ctarget, a.num || 0)
+                                                                                        } else {
+                                                                                            use_skill(c, ctarget)
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -1237,6 +1386,13 @@ function lf_click(a) {
         lostandfound: true
     })
 }
+function wishlist_item_click(b, a) {
+    render_wishlist_item(b, a)
+}
+function wishlist_click(b) {
+    var a = parseInt(b.substr(5, 123));
+    render_wishlist(a, 0)
+}
 function slot_click(a) {
     if (ctarget && ctarget.slots && ctarget.slots[a]) {
         dialogs_target = ctarget;
@@ -1403,6 +1559,11 @@ function hide_transports() {
     $("#rightcornerui").html("");
     topright_npc = false
 }
+function execute_codemirror(a) {
+    $(".executei").remove();
+    window.the_example = $(a).parent()[0].CodeMirror.getValue();
+    $(a).parent().append("<div class='clickable enableclicks' style='position: absolute; top: 4px; right: 4px; z-index: 4;' onclick='$(\".executei\").remove();'><iframe src='/executor' style='width: 200px; height: 26px; border: 1px solid white; pointer-events: none;' class='executei' /></div>")
+}
 function eval_snippet() {
     var a = codemirror_render3.getValue();
     if (a.search("output=") != -1 || a.search("json_output=") != -1) {
@@ -1412,7 +1573,10 @@ function eval_snippet() {
     }
 }
 function show_snippet(b) {
-    var a = "<textarea id='rendererx'></textarea><div class='gamebutton' style='position: absolute; bottom: -68px; right: -5px' onclick='eval_snippet()'>EXECUTE</div>";
+    if ($(".snippetbtn").length) {
+        return
+    }
+    var a = "<textarea id='rendererx'></textarea><div class='gamebutton snippetbtn' style='position: absolute; bottom: -68px; right: -5px' onclick='eval_snippet()'>EXECUTE</div>";
     show_modal(a);
     var c = "";
     if (window.codemirror_render3) {
@@ -1468,20 +1632,26 @@ function get_active_characters() {
     }
     a[character.name] = "self";
     $("iframe").each(function() {
-        var g = $(this)
-            , c = g.data("name");
+        var h = $(this)
+            , c = h.data("name")
+            , g = null;
         if (c) {
             var f = "starting"
                 , b = c.toLowerCase()
-                , d = "ichar" + c.toLowerCase();
+                , d = h.attr("id");
             if (document.getElementById(d) && document.getElementById(d).contentWindow) {
                 f = "loading";
                 if (document.getElementById(d).contentWindow.character) {
+                    g = document.getElementById(d).contentWindow.character.name;
                     f = "active";
                     if (document.getElementById(d).contentWindow.code_active) {
                         f = "code"
                     }
                 }
+            }
+            if (g && g != c) {
+                c = g,
+                    h.attr("id", "ichar" + c.toLowerCase())
             }
             a[c] = f
         }
@@ -1492,7 +1662,7 @@ function character_code_eval(name, snippet) {
     var rid = "ichar" + name.toLowerCase();
     var weval = document.getElementById(rid) && document.getElementById(rid).contentWindow && document.getElementById(rid).contentWindow.eval;
     if (!weval) {
-        add_log("Character not found!", "#993D42");
+        add_log("Character not found! ", "#993D42");
         return undefined
     }
     if (document.getElementById(rid).contentWindow.code_active) {
@@ -1554,6 +1724,9 @@ function direct_travel(b, a) {
 }
 function start_character_runner(b, d) {
     var c = "ichar" + b.toLowerCase();
+    if (gameplay == "test") {
+        c += randomStr(10)
+    }
     $("#" + c).remove();
     var a = window.location + "";
     a = a.replace(character.name, b);
@@ -1566,7 +1739,7 @@ function start_character_runner(b, d) {
     if (!d) {
         d = ""
     }
-    $("#iframelist").append('<div class="clickable" onclick="show_character_snippet(\'' + b + '\')"><iframe src="' + a + "?no_html=true&code=" + d + '" id="' + c + '" style="border: 5px solid gray; background-color: black; margin-top: -5px; height: 60px; width: 128px; overflow: hidden; pointer-events: none" data-name="' + b + '"></iframe></div>');
+    $("#iframelist").append('<div class="clickable" onclick="show_character_snippet(\'' + b + '\')"><iframe src="' + a + "?no_html=true&is_bot=1&code=" + d + '" id="' + c + '" style="border: 5px solid gray; background-color: black; margin-top: -5px; height: 60px; width: 128px; overflow: hidden; pointer-events: none" data-name="' + b + '"></iframe></div>');
     $("#iframelist").css("display", "inline-block");
     if (!is_electron) {}
 }
@@ -1610,20 +1783,22 @@ function stop_runner(a) {
     });
     code_persistence_logic();
     if (sounds.empty) {
-        sounds.empty.stop()
+        sounds.empty.stop(),
+            sounds.empty.cplaying = false
     }
 }
 function set_setting(b, d, g) {
-    var f = window.localStorage.getItem("settings_cache")
+    var f = storage_get("settings_cache")
         , c = ""
         , a = false;
     f = f && JSON.parse(f) || {};
     f[b] = f[b] || {};
     f[b][d] = g;
-    window.localStorage.setItem("settings_cache", JSON.stringify(f))
+    storage_set("settings_cache", JSON.stringify(f))
 }
 function get_settings(b) {
-    var d = window.localStorage.getItem("settings_cache")
+    return [];
+    var d = storage_get("settings_cache")
         , c = ""
         , a = false;
     d = d && JSON.parse(d) || {};
@@ -1638,28 +1813,14 @@ function free_character(c) {
         }
     });
     if (f) {
-        var d = window.localStorage.getItem("code_cache")
+        var d = storage_get("code_cache")
             , b = ""
             , a = false;
         d = d && JSON.parse(d) || {};
         try {
             delete d["run_" + f.id]
         } catch (g) {}
-        try {
-            delete d["code_" + f.id]
-        } catch (g) {}
-        window.localStorage.setItem("code_cache", JSON.stringify(d));
-        var d = window.localStorage.getItem("settings_cache")
-            , b = ""
-            , a = false;
-        d = d && JSON.parse(d) || {};
-        try {
-            delete d[f.id]
-        } catch (g) {}
-        try {
-            delete d.global
-        } catch (g) {}
-        window.localStorage.setItem("settings_cache", JSON.stringify(d));
+        storage_set("code_cache", JSON.stringify(d));
         smart_eval($(".onbackbutton").attr("onclick"));
         add_log("Done!")
     } else {
@@ -1669,13 +1830,17 @@ function free_character(c) {
 function code_persistence_logic() {
     if (persist_code) {
         try {
-            var c = window.localStorage.getItem("code_cache")
+            var c = storage_get("code_cache")
                 , b = ""
-                , a = false;
+                , a = false
+                , f = "";
+            if (gameplay != "normal") {
+                f = "gameplay"
+            }
             c = c && JSON.parse(c) || {};
-            c["run_" + real_id] = actual_code && code_run && "1" || "";
-            c["code_" + real_id] = codemirror_render.getValue();
-            window.localStorage.setItem("code_cache", JSON.stringify(c));
+            c["run_" + real_id + f] = actual_code && code_run && "1" || "";
+            c["code_" + real_id + f] = codemirror_render.getValue();
+            storage_set("code_cache", JSON.stringify(c));
             console.log("Code saved!")
         } catch (d) {
             console.log(d)
@@ -1689,9 +1854,11 @@ function toggle_runner() {
         start_runner()
     }
 }
+var last_hint = undefined;
 function code_logic() {
     window.codemirror_render = CodeMirror(function(a) {
-        $("#code").replaceWith(a)
+        $("#code").replaceWith(a);
+        a.classList.add("maincode")
     }, {
         value: $("#dcode").val(),
         mode: "javascript",
@@ -1702,6 +1869,29 @@ function code_logic() {
         gutters: ["CodeMirror-linenumbers", "lspacer"],
         theme: "pixel",
         cursorHeight: 0.75,
+    });
+    listen_for_hints(codemirror_render)
+}
+function listen_for_hints(a) {
+    a.on("cursorActivity", function() {
+        if (!code) {
+            return
+        }
+        var b = a.findWordAt(a.getCursor());
+        var c = a.getRange(b.anchor, b.head);
+        if (c) {
+            if (last_hint === undefined) {
+                $("body").append("<div id='codehint' onclick='load_documentation($(this).html())'></div>")
+            }
+            last_hint = c;
+            $("#codehint").html(c);
+            $("#codehint").show()
+        } else {
+            if (last_hint) {
+                $("#codehint").remove(),
+                    last_hint = undefined
+            }
+        }
     })
 }
 function load_code(a, b) {
@@ -1721,7 +1911,9 @@ function toggle_code() {
         $(".codeui").hide();
         code = false;
         $(":focus").blur();
-        remove_code_fx()
+        remove_code_fx();
+        $("#codehint").remove();
+        last_hint = undefined
     } else {
         $(".codeui").show();
         code = true;
@@ -1810,6 +2002,34 @@ function the_door() {
         }
     }, 3300)
 }
+function the_lever() {
+    socket.emit("interaction", "the_lever");
+    if (animatables.the_lever) {
+        h_minor()
+    }
+    draw_timeout(function() {
+        if (animatables.the_lever) {
+            set_texture(animatables.the_lever, "1")
+        }
+    }, 100);
+    draw_timeout(function() {
+        if (animatables.the_lever) {
+            set_texture(animatables.the_lever, "2")
+        }
+    }, 200)
+}
+function v_shake_minor() {
+    function b(c) {
+        return function() {
+            stage.y += c;
+            character.real_y -= c
+        }
+    }
+    var a = 0;
+    [-1, 1].forEach(function(c) {
+        setTimeout(b(c), a++ * 20)
+    })
+}
 function v_shake() {
     function b(c) {
         return function() {
@@ -1831,6 +2051,28 @@ function v_shake_i(c) {
     var a = 0;
     [-1, 1, -2, 2, -2, 2, -1, 1].forEach(function(f) {
         setTimeout(b(c, f), a++ * 40)
+    })
+}
+function v_shake_i2(c) {
+    function b(d, f) {
+        return function() {
+            d.real_y -= f
+        }
+    }
+    var a = 0;
+    [-1, 1, -1, 1, -1, 1, -1, 1].forEach(function(f) {
+        setTimeout(b(c, f), a++ * 20)
+    })
+}
+function v_shake_i_minor(c) {
+    function b(d, f) {
+        return function() {
+            d.y -= f
+        }
+    }
+    var a = 0;
+    [-1, 1].forEach(function(f) {
+        setTimeout(b(c, f), a++ * 20)
     })
 }
 function v_dive() {
@@ -1867,6 +2109,18 @@ function no_no_no(d) {
     if (d == 2) {
         a = [-1, 1, -1, 1, -1, 1, -1, 1]
     }
+    a.forEach(function(f) {
+        setTimeout(c(f), b++ * 40)
+    })
+}
+function jump_up(d) {
+    function c(f) {
+        return function() {
+            ch_disp_y -= f
+        }
+    }
+    var b = 0
+        , a = [-1, -2, 2, 1];
     a.forEach(function(f) {
         setTimeout(c(f), b++ * 40)
     })
@@ -1924,6 +2178,17 @@ function flurry(d) {
         setTimeout(c(f[0], f[1]), b++ * 16)
     })
 }
+function h_minor() {
+    function b(c) {
+        return function() {
+            stage.x += c
+        }
+    }
+    var a = 0;
+    [-1, 1, -1, 1, -1, 1, -1, 1].forEach(function(c) {
+        setTimeout(b(c), a++ * 30)
+    })
+}
 function h_shake() {
     function b(c) {
         return function() {
@@ -1939,7 +2204,11 @@ function h_shake() {
 function bump_up(a, c) {
     function d(f) {
         return function() {
-            a.real_y -= f
+            if (a == character) {
+                ch_disp_y -= f
+            } else {
+                a.real_y -= f
+            }
         }
     }
     var b = 0;
@@ -1948,6 +2217,9 @@ function bump_up(a, c) {
     })
 }
 function set_direction(a, c) {
+    if (a.moving && a.name_tag) {
+        start_name_tag(a)
+    }
     var b = 70;
     if (c == "npc") {
         b = 45
@@ -2017,13 +2289,6 @@ function set_direction(a, c) {
         }, 60)
     }
 }
-function direction_logic(a, b, c) {
-    if (a.moving) {
-        return
-    }
-    a.angle = Math.atan2(b.real_y - a.real_y, b.real_x - a.real_x) * 180 / Math.PI;
-    set_direction(a, c)
-}
 function free_children(b) {
     if (!b.children) {
         return
@@ -2058,13 +2323,26 @@ function destroy_sprite(a, c) {
         console.log("Couldn't destroy sprite: " + a.type)
     }
 }
-function trade(d, a, c, b) {
-    b = b || 1;
+function wishlist(f, a, b, c, d) {
+    if (!is_string(f)) {
+        f = "trade" + f
+    }
+    socket.emit("trade_wishlist", {
+        q: c,
+        slot: f,
+        price: b,
+        level: d,
+        name: a
+    });
+    $("#topleftcornerdialog").html("")
+}
+function trade(d, a, b, c) {
+    c = c || 1;
     socket.emit("equip", {
-        q: b,
+        q: c,
         slot: d,
         num: a,
-        value: ("" + c).replace_all(",", "").replace_all(".", "")
+        price: b
     });
     $("#topleftcornerdialog").html("")
 }
@@ -2078,23 +2356,35 @@ function trade_buy(d, c, a, b) {
     });
     $("#topleftcornerdialog").html("")
 }
+function trade_sell(d, c, a, b) {
+    b = b || 1;
+    socket.emit("trade_sell", {
+        slot: d,
+        id: c,
+        rid: a,
+        q: b
+    });
+    $("#topleftcornerdialog").html("")
+}
 function secondhand_buy(a) {
     socket.emit("sbuy", {
         rid: a
-    })
+    });
+    $("#topleftcornerdialog").html("")
 }
 function lostandfound_buy(a) {
     socket.emit("sbuy", {
         rid: a,
         f: true
-    })
+    });
+    $("#topleftcornerdialog").html("")
 }
 function buy_shells(a) {
-    if ((a * 15000000 / 100) > character.gold) {
+    if ((a * G.shells_to_gold) > character.gold) {
         render_interaction("noshells")
     } else {
         socket.emit("buy_shells", {
-            gold: (a * 15000000 / 100)
+            gold: (a * G.shells_to_gold)
         });
         render_interaction("yesshells")
     }
@@ -2104,7 +2394,7 @@ function buy(a, b) {
         return
     }
     var c = "buy";
-    if (G.items[a].cash) {
+    if (G.items[a].cash && !G.items[a].p2w && G.items[a].cash <= character.cash) {
         c = "buy_with_cash"
     }
     socket.emit(c, {
@@ -2113,22 +2403,46 @@ function buy(a, b) {
     });
     $(".buynum").html($(".buynum").data("q"))
 }
-function sell(a, b) {
-    if (!b) {
-        b = 1
+function buy_with_shells(a, b) {
+    if (mssince(last_npc_right_click) < 100) {
+        return
+    }
+    socket.emit("buy_with_cash", {
+        name: a,
+        quantity: b
+    });
+    $(".buynum").html($(".buynum").data("q"))
+}
+function buy_with_gold(a, b) {
+    if (mssince(last_npc_right_click) < 100) {
+        return
+    }
+    socket.emit("buy", {
+        name: a,
+        quantity: b
+    });
+    $(".buynum").html($(".buynum").data("q"))
+}
+function sell(a, c) {
+    if (!c) {
+        c = 1
     }
     socket.emit("sell", {
         num: a,
-        quantity: b
+        quantity: c
     });
-    $(".sellnum").html((parseInt($(".sellnum").data("q")) - b) + "");
-    $(".sellnum").data("q", $(".sellnum").html())
+    try {
+        $(".sellnum").html(max(0, character.items[a].q - c))
+    } catch (b) {
+        $(".sellnum").html(0)
+    }
 }
 function call_code_function(c, b, a, f) {
     try {
-        get_code_function(c)(b, a, f)
+        return get_code_function(c)(b, a, f)
     } catch (d) {
-        add_log(c + " " + d, "#E13758")
+        add_log(c + " " + d, "#E13758");
+        log_trace("call_code_function " + c, d)
     }
 }
 function code_eval_if_r(code) {
@@ -2165,8 +2479,10 @@ function say(message, code) {
             , rest = components.join(" ");
         if (command == "help" || command == "list" || command == "") {
             add_chat("", "/list");
+            add_chat("", "/uptime");
             add_chat("", "/guide");
             add_chat("", "/invite NAME");
+            add_chat("", "/request NAME");
             add_chat("", "/friend NAME");
             add_chat("", "/leave");
             add_chat("", "/whisper NAME MESSAGE");
@@ -2204,143 +2520,200 @@ function say(message, code) {
                             event: "leave"
                         })
                     } else {
-                        if (command == "stop") {
-                            var args = rest.split(" ")
-                                , name = args.shift();
-                            if (!name || name == "teleport") {
-                                use_skill("stop")
-                            } else {
-                                if (name == "invis") {
-                                    socket.emit("stop", {
-                                        action: "invis"
-                                    })
-                                } else {
-                                    stop_character_runner(name)
-                                }
-                            }
+                        if (command == "uptime") {
+                            add_chat("", to_pretty_num(parseInt(msince(inception))) + " minutes " + parseInt(ssince(inception) % 60) + " seconds", "gray")
                         } else {
-                            if (command == "disconnect") {
+                            if (command == "stop") {
                                 var args = rest.split(" ")
                                     , name = args.shift();
                                 if (!name) {
-                                    window.location = base_url
+                                    use_skill("stop")
                                 } else {
-                                    api_call("disconnect_character", {
-                                        name: name
-                                    })
+                                    if (name == "teleport" || name == "town") {
+                                        socket.emit("stop", {
+                                            action: "town"
+                                        })
+                                    } else {
+                                        if (name == "revival") {
+                                            socket.emit("stop", {
+                                                action: "revival"
+                                            })
+                                        } else {
+                                            if (name == "invis") {
+                                                socket.emit("stop", {
+                                                    action: "invis"
+                                                })
+                                            } else {
+                                                stop_character_runner(name)
+                                            }
+                                        }
+                                    }
                                 }
                             } else {
-                                if (command == "p") {
-                                    party_say(rest)
-                                } else {
-                                    if (command == "pause") {
-                                        pause()
+                                if (command == "disconnect") {
+                                    var args = rest.split(" ")
+                                        , name = args.shift();
+                                    if (!name) {
+                                        window.location = base_url
                                     } else {
-                                        if (command == "snippet") {
-                                            show_snippet()
+                                        api_call("disconnect_character", {
+                                            name: name
+                                        })
+                                    }
+                                } else {
+                                    if (command == "p") {
+                                        party_say(rest)
+                                    } else {
+                                        if (command == "pause") {
+                                            pause()
                                         } else {
-                                            if (command == "eval" || command == "execute") {
-                                                code_eval(rest)
+                                            if (command == "snippet") {
+                                                show_snippet()
                                             } else {
-                                                if (command == "pure_eval") {
-                                                    eval(rest)
+                                                if (command == "eval" || command == "execute") {
+                                                    code_eval(rest)
                                                 } else {
-                                                    if (command == "w" || command == "whisper" || command == "pm") {
-                                                        var args = rest.split(" ")
-                                                            , name = args.shift()
-                                                            , rest = args.join(" ");
-                                                        if (!name || !rest) {
-                                                            add_chat("", "Format: /w NAME MESSAGE")
-                                                        } else {
-                                                            private_say(name, rest)
-                                                        }
+                                                    if (command == "pure_eval") {
+                                                        eval(rest)
                                                     } else {
-                                                        if (command == "savecode") {
+                                                        if (command == "w" || command == "whisper" || command == "pm") {
                                                             var args = rest.split(" ")
-                                                                , slot = args.shift()
-                                                                , name = args.join(" ");
-                                                            if (slot.length && !parseInt(slot)) {
-                                                                add_chat("", "/savecode NUMBER NAME");
-                                                                add_chat("", "NUMBER can be from 1 to 100")
+                                                                , name = args.shift()
+                                                                , rest = args.join(" ");
+                                                            if (!name || !rest) {
+                                                                add_chat("", "Format: /w NAME MESSAGE")
                                                             } else {
-                                                                if (!slot) {
-                                                                    slot = 1
-                                                                }
-                                                                api_call("save_code", {
-                                                                    code: codemirror_render.getValue(),
-                                                                    slot: slot,
-                                                                    name: name
-                                                                })
+                                                                private_say(name, rest)
                                                             }
                                                         } else {
-                                                            if (command == "loadcode" || command == "runcode") {
+                                                            if (command == "savecode") {
                                                                 var args = rest.split(" ")
-                                                                    , name = args.shift();
-                                                                if (!name) {
-                                                                    name = 1
-                                                                }
-                                                                api_call("load_code", {
-                                                                    name: name,
-                                                                    run: (command == "runcode" && "1" || "")
-                                                                })
-                                                            } else {
-                                                                if (command == "ping") {
-                                                                    ping()
+                                                                    , slot = args.shift()
+                                                                    , name = args.join(" ");
+                                                                if (slot.length && !parseInt(slot)) {
+                                                                    add_chat("", "/savecode NUMBER NAME");
+                                                                    add_chat("", "NUMBER can be from 1 to 100")
                                                                 } else {
-                                                                    if (command == "whisper") {
-                                                                        if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
-                                                                            private_say(ctarget.name, rest)
-                                                                        } else {
-                                                                            add_chat("", "Target someone to whisper")
-                                                                        }
+                                                                    if (!slot) {
+                                                                        slot = 1
+                                                                    }
+                                                                    api_call("save_code", {
+                                                                        code: codemirror_render.getValue(),
+                                                                        slot: slot,
+                                                                        name: name
+                                                                    })
+                                                                }
+                                                            } else {
+                                                                if (command == "loadcode" || command == "runcode") {
+                                                                    var args = rest.split(" ")
+                                                                        , name = args.shift();
+                                                                    if (!name) {
+                                                                        name = 1
+                                                                    }
+                                                                    api_call("load_code", {
+                                                                        name: name,
+                                                                        run: (command == "runcode" && "1" || "")
+                                                                    })
+                                                                } else {
+                                                                    if (command == "ping") {
+                                                                        ping()
                                                                     } else {
-                                                                        if (command == "party" || command == "invite") {
-                                                                            var args = rest.split(" ")
-                                                                                , name = args.shift();
-                                                                            if (name && name.length) {
-                                                                                socket.emit("party", {
-                                                                                    event: "invite",
-                                                                                    name: name
-                                                                                })
+                                                                        if (command == "whisper") {
+                                                                            if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
+                                                                                private_say(ctarget.name, rest)
                                                                             } else {
-                                                                                if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
-                                                                                    socket.emit("party", {
-                                                                                        event: "invite",
-                                                                                        id: ctarget.id
-                                                                                    })
-                                                                                } else {
-                                                                                    add_chat("", "Target someone to invite")
-                                                                                }
+                                                                                add_chat("", "Target someone to whisper")
                                                                             }
                                                                         } else {
-                                                                            if (command == "friend") {
+                                                                            if (command == "party" || command == "invite") {
                                                                                 var args = rest.split(" ")
                                                                                     , name = args.shift();
                                                                                 if (name && name.length) {
-                                                                                    socket.emit("friend", {
-                                                                                        event: "request",
+                                                                                    socket.emit("party", {
+                                                                                        event: "invite",
                                                                                         name: name
                                                                                     })
                                                                                 } else {
                                                                                     if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
-                                                                                        socket.emit("friend", {
-                                                                                            event: "request",
-                                                                                            name: ctarget.name
+                                                                                        socket.emit("party", {
+                                                                                            event: "invite",
+                                                                                            id: ctarget.id
                                                                                         })
                                                                                     } else {
-                                                                                        add_chat("", "Target someone to friend")
+                                                                                        add_chat("", "Target someone to invite")
                                                                                     }
                                                                                 }
                                                                             } else {
-                                                                                if (command == "guide") {
-                                                                                    show_modal($("#gameguide").html())
+                                                                                if (command == "request") {
+                                                                                    var args = rest.split(" ")
+                                                                                        , name = args.shift();
+                                                                                    if (name && name.length) {
+                                                                                        socket.emit("party", {
+                                                                                            event: "request",
+                                                                                            name: name
+                                                                                        })
+                                                                                    } else {
+                                                                                        if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
+                                                                                            socket.emit("party", {
+                                                                                                event: "request",
+                                                                                                id: ctarget.id
+                                                                                            })
+                                                                                        } else {
+                                                                                            add_chat("", "Target someone to request party")
+                                                                                        }
+                                                                                    }
                                                                                 } else {
-                                                                                    if (code_active && document.getElementById("maincode") && document.getElementById("maincode").contentWindow && document.getElementById("maincode").contentWindow.handle_command) {
-                                                                                        if (document.getElementById("maincode").contentWindow.handle_command(command, rest) != -1) {} else {
-                                                                                            add_chat("", "Command not found. You can add a `handle_command` function to your CODE to capture commands.")
+                                                                                    if (command == "friend") {
+                                                                                        var args = rest.split(" ")
+                                                                                            , name = args.shift();
+                                                                                        if (name && name.length) {
+                                                                                            socket.emit("friend", {
+                                                                                                event: "request",
+                                                                                                name: name
+                                                                                            })
+                                                                                        } else {
+                                                                                            if (ctarget && !ctarget.me && !ctarget.npc && ctarget.type == "character") {
+                                                                                                socket.emit("friend", {
+                                                                                                    event: "request",
+                                                                                                    name: ctarget.name
+                                                                                                })
+                                                                                            } else {
+                                                                                                add_chat("", "Target someone to friend")
+                                                                                            }
                                                                                         }
                                                                                     } else {
-                                                                                        add_chat("", "Command not found. Suggestion: /list")
+                                                                                        if (command == "guide") {
+                                                                                            show_game_guide()
+                                                                                        } else {
+                                                                                            if (code_active && document.getElementById("maincode") && document.getElementById("maincode").contentWindow && document.getElementById("maincode").contentWindow.handle_command) {
+                                                                                                if (document.getElementById("maincode").contentWindow.handle_command(command, rest) != -1) {} else {
+                                                                                                    add_chat("", "Command not found. You can add a `handle_command` function to your CODE to capture commands.")
+                                                                                                }
+                                                                                            } else {
+                                                                                                if (screenshot_mode && command == "p1") {
+                                                                                                    add_chat("Wizard", "Adventure Land is a 2D Pixel MMORPG", "#D3C7A2")
+                                                                                                } else {
+                                                                                                    if (screenshot_mode && command == "p2") {
+                                                                                                        add_chat("Amazon", "20% off on all Elixirs", "gray");
+                                                                                                        add_chat("Healer", "Economy is completely Merchant-to-Merchant, players leave their merchants in the town square to sell or buy items", "#58BCA5")
+                                                                                                    } else {
+                                                                                                        if (recording_mode && command == "r1") {
+                                                                                                            ui_log("Item upgrade succeeded", "white");
+                                                                                                            ui_log("Item upgrade succeeded", "white");
+                                                                                                            ui_log("Item upgrade succeeded", "white");
+                                                                                                            ui_log("Item upgrade succeeded", "white");
+                                                                                                            add_chat("NewKid", "hi", "gray");
+                                                                                                            add_chat("Wizard", "hello :)", "gray");
+                                                                                                            add_chat("", "SweetPea received a Mittens +9", "#85C76B");
+                                                                                                            add_chat("", "Maela found a Mistletoe", "#85C76B");
+                                                                                                            add_chat("", "Trexnamedted found a Candy Cane", "#85C76B")
+                                                                                                        } else {
+                                                                                                            add_chat("", "Command not found. Suggestion: /list")
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -2391,6 +2764,32 @@ function close_merchant() {
         close: 1
     })
 }
+function donate(a) {
+    if (a === undefined) {
+        var a = parseInt($(".dgold").html().replace_all(",", ""));
+        if (!a) {
+            a = 100000
+        }
+        a = max(1, a)
+    }
+    socket.emit("donate", {
+        gold: a
+    })
+}
+function dice(c, b, a) {
+    if (c == 1) {
+        c = "up"
+    }
+    if (c == 2) {
+        c = "down"
+    }
+    socket.emit("bet", {
+        type: "dice",
+        dir: c,
+        num: b,
+        gold: a
+    })
+}
 function upgrade() {
     if (u_item == null || (u_scroll == null && u_offering == null)) {
         d_text("INVALID", character)
@@ -2402,6 +2801,33 @@ function upgrade() {
             clevel: (character.items[u_item].level || 0)
         })
     }
+}
+function lock_item(a) {
+    if (a === undefined) {
+        a = l_item
+    }
+    socket.emit("locksmith", {
+        num: a,
+        operation: "lock"
+    })
+}
+function seal_item(a) {
+    if (a === undefined) {
+        a = l_item
+    }
+    socket.emit("locksmith", {
+        num: a,
+        operation: "seal"
+    })
+}
+function unlock_item(a) {
+    if (a === undefined) {
+        a = l_item
+    }
+    socket.emit("locksmith", {
+        num: a,
+        operation: "unlock"
+    })
 }
 function deposit(a) {
     if (!G.maps[current_map].mount) {
@@ -2472,6 +2898,7 @@ function poof(a) {
     if (a) {
         socket.emit("destroy", {
             num: p_item,
+            q: 1,
             statue: true
         });
         return
@@ -2483,6 +2910,7 @@ function poof(a) {
             }
             socket.emit("destroy", {
                 num: d,
+                q: 1,
                 statue: true
             })
         }
@@ -2578,8 +3006,12 @@ function dismantle() {
         num: ds_item
     })
 }
+var u_retain = false;
 function reopen() {
-    u_scroll = c_scroll = e_item = p_item = null;
+    if (u_retain) {
+        u_retain = [u_item, u_scroll, u_offering]
+    }
+    u_offering = u_scroll = c_scroll = e_item = p_item = l_item = null;
     draw_trigger(function() {
         if (rendered_target == "upgrade") {
             render_upgrade_shrine()
@@ -2604,6 +3036,10 @@ function reopen() {
                                 } else {
                                     if (rendered_target == "none") {
                                         render_none_shrine()
+                                    } else {
+                                        if (rendered_target == "locksmith") {
+                                            render_locksmith()
+                                        }
                                     }
                                 }
                             }
@@ -2619,6 +3055,14 @@ function reopen() {
             $(".ering").css("border-color", "gray");
             exchange_animations = false
         }
+        if (u_retain) {
+            for (var a = 0; a < 3; a++) {
+                if ((u_retain[a] || u_retain[a] === 0) && character.items[u_retain[a]]) {
+                    on_rclick($("#citem" + u_retain[a])[0])
+                }
+            }
+            u_retain = false
+        }
     })
 }
 function esc_pressed() {
@@ -2632,7 +3076,7 @@ function esc_pressed() {
                 $("#rightcornerui").html("");
                 topright_npc = false
             } else {
-                if (topleft_npc) {
+                if (topleft_npc && topleft_npc != "dice") {
                     topleft_npc = false
                 } else {
                     if (ctarget && ctarget.type == "character") {
@@ -2643,6 +3087,10 @@ function esc_pressed() {
                         } else {
                             if (skillsui) {
                                 draw_trigger(render_skills)
+                            } else {
+                                if (topleft_npc == "dice") {
+                                    topleft_npc = false
+                                }
                             }
                         }
                     }
@@ -2670,7 +3118,7 @@ function toggle_character() {
 }
 function reset_inventory(a) {
     if (inventory) {
-        if (a && !in_arr(rendered_target, ["upgrade", "compound", "exchange", "npc", "merchant", "craftsman", "dismantler", "none"])) {
+        if (a && !in_arr(rendered_target, ["upgrade", "compound", "exchange", "npc", "merchant", "craftsman", "dismantler", "none", "locksmith"])) {
             return
         }
         render_inventory(),
@@ -2705,13 +3153,13 @@ function open_chest(b) {
 }
 function generate_textures(b, m) {
     console.log("generate_textures " + b + " " + m);
-    if (m == "full") {
-        var l = XYHW[b]
+    if (in_arr(m, ["full", "wings", "body"])) {
+        var l = XYWH[b]
             , c = l[2]
             , p = l[3]
             , r = 0
             , q = 0;
-        var o = G.actual_dimensions[b];
+        var o = G.dimensions[b];
         if (o) {
             c = o[0];
             p = o[1];
@@ -2730,8 +3178,8 @@ function generate_textures(b, m) {
             }
         }
     }
-    if (m == "emblem") {
-        var l = XYHW[b];
+    if (in_arr(m, ["emblem", "gravestone"])) {
+        var l = XYWH[b];
         var n = new PIXI.Rectangle(l[0],l[1],l[2],l[3]);
         textures[b] = new PIXI.Texture(C[FC[b]],n)
     }
@@ -2778,15 +3226,15 @@ function generate_textures(b, m) {
         })
     }
     if (m == "emote") {
-        var l = XYHW[b];
+        var l = XYWH[b];
         textures[b] = [null, null, null];
         for (var k = 0; k < 3; k++) {
             var n = new PIXI.Rectangle(l[0] + k * l[2],l[1],l[2],l[3]);
             textures[b][k] = new PIXI.Texture(C[FC[b]],n)
         }
     }
-    if (m == "v_animation") {
-        var l = XYHW[b];
+    if (in_arr(m, ["v_animation", "head", "hair", "hat", "s_wings"])) {
+        var l = XYWH[b];
         textures[b] = [null, null, null, null];
         for (var k = 0; k < 4; k++) {
             var n = new PIXI.Rectangle(l[0],l[1] + k * l[3],l[2],l[3]);
@@ -2795,21 +3243,24 @@ function generate_textures(b, m) {
     }
 }
 function restore_dimensions(a) {
+    return
     a.height = a.texture.height * (a.cscale || 1) / (a.mscale || 1);
     a.width = a.texture.width * (a.cscale || 1) / (a.mscale || 1)
 }
 function set_texture(d, b, a) {
     var f = b + "" + a;
+    d.i = b;
+    d.j = a;
     if (d.cskin == f) {
         return
     }
-    if (d.stype == "full") {
+    if (in_arr(d.stype, ["full", "wings", "body"])) {
         d.texture = textures[d.skin][b][a]
     }
     if (d.stype == "animation") {
         d.texture = textures[d.skin][b % d.frames]
     }
-    if (d.stype == "v_animation") {
+    if (in_arr(d.stype, ["v_animation", "head", "hair", "hat", "s_wings"])) {
         d.texture = textures[d.skin][b % d.frames]
     }
     if (d.stype == "animatable") {
@@ -2821,7 +3272,7 @@ function set_texture(d, b, a) {
     d.cskin = f
 }
 function new_sprite(h, b, j) {
-    if (b == "full") {
+    if (in_arr(b, ["full", "wings", "body"])) {
         if (j == "renew") {
             var f = h;
             h = f.skin;
@@ -2835,9 +3286,20 @@ function new_sprite(h, b, j) {
             }
             var f = new PIXI.Sprite(textures[h][1][0])
         }
-        f.cskin = "10"
+        f.cskin = "10";
+        f.i = 1;
+        f.j = 0
     }
-    if (b == "emblem") {
+    if (in_arr(b, ["head", "hair", "hat", "s_wings"])) {
+        if (!textures[h]) {
+            generate_textures(h, b)
+        }
+        var f = new PIXI.Sprite(textures[h][0]);
+        f.cskin = "0";
+        f.i = 0;
+        f.frames = 4
+    }
+    if (in_arr(b, ["emblem", "gravestone"])) {
         if (!textures[h]) {
             generate_textures(h, "emblem")
         }
@@ -2849,7 +3311,8 @@ function new_sprite(h, b, j) {
             generate_textures(h, "machine")
         }
         var f = new PIXI.Sprite(textures[h.type][0]);
-        f.cskin = "0"
+        f.cskin = "0";
+        f.i = 0
     }
     if (b == "v_animation") {
         if (!textures[h]) {
@@ -2857,6 +3320,7 @@ function new_sprite(h, b, j) {
         }
         var f = new PIXI.Sprite(textures[h][0]);
         f.cskin = "0" + undefined;
+        f.i = 0;
         f.frame = 0;
         f.frames = textures[h].length
     }
@@ -2866,6 +3330,7 @@ function new_sprite(h, b, j) {
         }
         var f = new PIXI.Sprite(textures[h][0]);
         f.cskin = "0" + undefined;
+        f.i = 0;
         f.frame = 0;
         f.frames = textures[h].length
     }
@@ -2875,6 +3340,7 @@ function new_sprite(h, b, j) {
         }
         var f = new PIXI.Sprite(textures[h][0]);
         f.cskin = "0" + undefined;
+        f.i = 0;
         f.frame = 0;
         f.frames = textures[h].length
     }
@@ -2884,6 +3350,7 @@ function new_sprite(h, b, j) {
         }
         var f = new PIXI.Sprite(textures[h][0]);
         f.cskin = "0" + undefined;
+        f.i = 0;
         f.frame = 0
     }
     if (b == "static") {
@@ -2934,41 +3401,74 @@ function new_map_tile(b) {
     }
     return new PIXI.Sprite(b[5])
 }
-function assassin_smoke(a, f, c) {
-    if (!c) {
-        c = "explode_p"
+function assassin_smoke(m, k, j) {
+    if (!j) {
+        j = "explode_p"
     }
-    var b = new_sprite(c, "animation");
-    if (use_layers) {
-        b.parentGroup = player_layer
-    } else {
-        b.displayGroup = player_layer
-    }
-    b.x = round(a);
-    b.y = round(f);
-    b.real_x = a;
-    b.real_y = f + 1;
-    if (c == "explode_p") {
-        b.width = 16;
-        b.height = 16
-    }
-    b.anchor.set(0.5, 1);
-    map.addChild(b);
-    function d(g) {
-        return function() {
-            if (g >= 12) {
-                destroy_sprite(b)
-            } else {
-                b.y -= 3;
-                b.height += 1;
-                b.width += 1;
-                b.frame++;
-                set_texture(b, b.frame);
-                draw_timeout(d(g + 1), 40)
+    var d = 1
+        , h = 1
+        , f = 3
+        , b = 40
+        , l = 12
+        , g = 0;
+    if (j == "firecrackers") {
+        j = "crackle",
+            d = 1.5,
+            h = 1.5,
+            b = 16,
+            f = 1,
+            l = 6;
+        var a = Math.random();
+        if (a < 0.3) {
+            g = 0.5
+        }
+        if (a > 0.7) {
+            g = -0.5
+        }
+        if (a < 0.25) {
+            draw_timeout(function() {
+                sfx("crackle0")
+            }, a * 40)
+        } else {
+            if (a > 0.75) {
+                draw_timeout(function() {
+                    sfx("crackle1")
+                }, a * 40)
             }
         }
     }
-    draw_timeout(d(1), 40)
+    var n = new_sprite(j, "animation");
+    if (use_layers) {
+        n.parentGroup = player_layer
+    } else {
+        n.displayGroup = player_layer
+    }
+    n.x = round(m);
+    n.y = round(k);
+    n.real_x = m;
+    n.real_y = k + 1;
+    if (j == "explode_p") {
+        n.width = 16;
+        n.height = 16
+    }
+    n.anchor.set(0.5, 1);
+    map.addChild(n);
+    function c(o) {
+        return function() {
+            if (o >= l) {
+                destroy_sprite(n)
+            } else {
+                n.x -= g;
+                n.y -= f;
+                n.height += d;
+                n.width += h;
+                n.frame++;
+                set_texture(n, n.frame);
+                draw_timeout(c(o + 1), b)
+            }
+        }
+    }
+    draw_timeout(c(1), b)
 }
 function confetti_shower(b, h) {
     var a = 200
@@ -2993,6 +3493,27 @@ function confetti_shower(b, h) {
                 }
                 assassin_smoke(b.real_x + (Math.random() * 80 - 40), b.real_y + (Math.random() * 80 - 40), "confetti")
             }, d * a)
+        }
+    }
+}
+function firecrackers(a) {
+    interval = 60,
+        count = 2,
+        times = 15;
+    for (var c = 0; c < times; c++) {
+        for (var b = 0; b < count; b++) {
+            draw_timeout(function() {
+                if (!a.real_x) {
+                    a = get_entity(a)
+                }
+                if (!a) {
+                    return
+                }
+                var d = random_away(a.real_x, a.real_y, 30);
+                assassin_smoke(d[0], d[1], "firecrackers");
+                var d = random_away(a.real_x, a.real_y, 30);
+                assassin_smoke(d[0], d[1], "firecrackers")
+            }, c * interval)
         }
     }
 }
@@ -3028,7 +3549,7 @@ function stop_emblem(b, a) {
         b.emblems[a].frames = 0
     }
 }
-function start_animation(d, c, g) {
+function start_animation(d, c, h) {
     if (d.animations[c]) {
         d.animations[c].frame = 0;
         return
@@ -3036,23 +3557,24 @@ function start_animation(d, c, g) {
     var b = new_sprite(c, "animation")
         , f = (d.hitArea && d.hitArea.width || d.texture.width)
         , a = (d.hitArea && d.hitArea.height || d.texture.height);
+    var g = G.animations[c];
     d.animations[c] = b;
-    if (G.animations[c].alpha) {
-        b.alpha = G.animations[c].alpha
+    if (g.alpha) {
+        b.alpha = g.alpha
     } else {
         b.alpha = 0.5
     }
-    if (g == "stun") {
+    if (h == "stun") {
         b.continuous = true;
         b.width = round(f * 2 / 3);
         b.height = round(a / 3);
         b.y = -a + 8
     }
-    if (c == "transport" || c == "invincible" || c == "hardshell" || c == "revival") {
+    if (g.continuous) {
         b.continuous = true;
         b.height = round(a * 0.95)
     } else {
-        if (G.animations[c].proportional) {
+        if (g.proportional) {
             if (1 * b.height * f / b.width > a) {
                 b.height = a;
                 b.width = ceil(1 * b.width * a / b.height)
@@ -3061,9 +3583,9 @@ function start_animation(d, c, g) {
                 b.width = d.width
             }
         } else {
-            if (G.animations[c].size) {
-                b.width = round(f * G.animations[c].size);
-                b.height = round(a * G.animations[c].size)
+            if (g.size) {
+                b.width = round(f * g.size);
+                b.height = round(a * g.size)
             } else {
                 b.width = f;
                 b.height = a
@@ -3074,12 +3596,13 @@ function start_animation(d, c, g) {
         b.height = d.texture.height;
         b.width = d.texture.width
     }
-    if (G.animations[c].speeding) {
+    if (g.speeding) {
         b.speeding = true
     }
-    b.aspeed = G.animations[c].aspeed;
+    b.aspeed = g.aspeed;
     b.aspeed = (b.aspeed == "fast" && 0.8) || (b.aspeed == "mild" && 1.4) || (b.aspeed == "slow" && 3) || 2;
     b.anchor.set(0.5, 1);
+    b.zy = 12000;
     d.addChild(b)
 }
 function stop_animation(b, a) {
@@ -3659,7 +4182,7 @@ function player_rclick_logic(a) {
         if (character.ctype == "priest" || character.slots.mainhand && character.slots.mainhand.name == "cupid") {
             b = true
         } else {
-            if (!pvp || character.party && a.party == character.party || character.guild && a.guild == character.guild) {} else {
+            if (!pvp) {} else {
                 if (pvp) {
                     b = true
                 }
@@ -3700,6 +4223,8 @@ function rip_logic() {
             }
         }
         rip = true;
+        character.i = 1;
+        character.j = 0;
         if (!no_graphics) {
             var a = new PIXI.filters.ColorMatrixFilter();
             a.desaturate();
@@ -3727,69 +4252,154 @@ function name_logic(a) {
     if (a.type != "character" && a.type != "npc") {
         return
     }
-    if ((!options.show_names && character) && a.name_tag) {
+    if ((!options.show_names && !options.always_hpn && character) && a.name_tag) {
         destroy_sprite(a.name_tag, "children");
         a.name_tag = null;
         a.ntag_cache = null
     } else {
-        if (options.show_names || !character) {
+        if (options.show_names || !character || options.always_hpn) {
             add_name_tag(a)
         }
     }
 }
-function add_name_tag(c) {
-    var g = c.name + "|" + c.level;
-    if (c.name_tag) {
-        if (c.ntag_cache == g) {
+function start_name_tag(b, a) {
+    if (!a) {
+        a = b.name_tag.children[0]
+    }
+    if (!b.me) {
+        a.roundPixels = false
+    }
+}
+function stop_name_tag(c, b) {
+    if (!b) {
+        b = c.name_tag.children[0]
+    }
+    b.roundPixels = true;
+    return;
+    var j = 0
+        , a = 0;
+    var g = b.width;
+    var d = round(g + 10);
+    if (round(g) != g) {
+        j = 0.25
+    }
+    var h = b.worldTransform.tx - floor(b.worldTransform.tx);
+    var f = b.worldTransform.ty - floor(b.worldTransform.ty);
+    b.x = (d / 2) + j + h;
+    b.y = 2.5 + a + f
+}
+function add_name_tag(d) {
+    var h = d.name + "|" + d.level;
+    if (d.name_tag) {
+        if (d.ntag_cache == h) {
             return
         }
-        destroy_sprite(c.name_tag, "children");
-        c.name_tag = null;
-        c.ntag_cache = null
+        destroy_sprite(d.name_tag, "children");
+        d.name_tag = null;
+        d.ntag_cache = null
     }
-    var f = new PIXI.Graphics();
-    var a = "Lv." + c.level + " " + c.name
-        , h = 7433580
+    var g = new PIXI.Graphics();
+    var a = ("Lv." + d.level + " ") + d.name
+        , j = 7433580
         , b = a.length * 4 + 4
-        , j = 11
-        , k = 1;
-    if (c.npc) {
-        a = c.name || "NPC";
-        h = 2531789;
-        if (c.citizen) {
-            h = 14188294
+        , k = 11;
+    if (d.npc && (d.type == "npc" || G.npcs[d.npc])) {
+        a = d.name || "NPC";
+        j = 2531789;
+        if (d.citizen) {
+            j = 14188294
         }
         b = a.length * 4 + 8
     }
-    f.beginFill(h);
-    f.drawRect(0, 0, b, j);
-    f.endFill();
-    f.beginFill(2105119);
-    f.drawRect(1, 1, b - 2, j - 2);
-    f.endFill();
-    f.position = new PIXI.Point(-round(b / 2),2);
-    c.addChild(f);
-    if (!c.me) {
-        k = 4
-    } else {
-        k = 8
+    if (d.role == "gm") {
+        j = 15115055
     }
-    var d = {
+    var l = 1
+        , c = 0;
+    if (!d.me) {
+        l = 4
+    } else {
+        l = 4
+    }
+    var f = {
         fontFamily: S.font,
-        fontSize: 64 * k,
+        fontSize: 8 * l,
         fill: "white",
         align: "center"
     };
-    var a = new PIXI.Text(a,d);
-    a.x = (b / 2);
-    a.y = 2.5;
+    var a = new PIXI.Text(a,f);
+    a.roundPixels = false;
     a.anchor.set(0.5, 0);
-    a.scale = new PIXI.Point(0.125 / k,0.125 / k);
-    f.addChild(a);
-    c.name_tag = f;
-    c.ntag_cache = g;
-    c.addChild(f);
-    f.parentGroup = entity_layer
+    a.scale = new PIXI.Point(1 / l,1 / l);
+    b = round(a.width + 10);
+    if (!d.moving || d.me) {
+        a.roundPixels = true
+    }
+    a.x = (b / 2) + c;
+    a.y = 2.5;
+    g.beginFill(j);
+    g.drawRect(0, 0, b, k);
+    g.endFill();
+    g.beginFill(2105119);
+    g.drawRect(1, 1, b - 2, k - 2);
+    g.endFill();
+    g.position = new PIXI.Point(-round(b / 2),2);
+    d.addChild(g);
+    g.addChild(a);
+    d.name_tag = g;
+    d.ntag_cache = h;
+    d.addChild(g);
+    g.parentGroup = entity_layer
+}
+function add_name_tag_x(f) {
+    var h = f.name + "|" + f.level;
+    if (f.name_tag) {
+        if (f.ntag_cache == h) {
+            return
+        }
+        destroy_sprite(f.name_tag, "children");
+        f.name_tag = null;
+        f.ntag_cache = null
+    }
+    var d = ("" && "Lv." + f.level + " ") + f.name
+        , b = 7433580
+        , g = d.length * 4 + 4
+        , a = 11
+        , j = 1;
+    if (f.npc) {
+        d = f.name || "NPC";
+        b = 2531789;
+        if (f.citizen) {
+            b = 14188294
+        }
+        g = d.length * 4 + 8
+    }
+    if (f.role == "gm") {
+        b = 15115055
+    }
+    if (!f.me) {
+        j = 4
+    } else {
+        j = 2
+    }
+    var c = {
+        fontFamily: S.font,
+        fontSize: 64 * j,
+        fill: "white",
+        align: "center",
+        dropShadow: true,
+        dropShadowDistance: 1
+    };
+    var d = new PIXI.Text(d,c);
+    d.x = (g / 2);
+    d.y = 2.5;
+    d.anchor.set(0.5, 1);
+    d.scale = new PIXI.Point(0.125 / j,0.125 / j);
+    d.position = new PIXI.Point(0,-get_height(f) - 10);
+    f.name_tag = d;
+    f.ntag_cache = h;
+    f.addChild(d);
+    d.parentGroup = entity_layer
 }
 function add_name_tag_large(d) {
     if (d.name_tag) {
@@ -3874,10 +4484,10 @@ function hp_bar_logic(a) {
     if (a.dead && !a.hp_bar) {
         return
     }
-    if (!hp_bars || a.me) {
+    if ((!hp_bars || a.me) && !options.always_hpn) {
         return
     }
-    if (ctarget == a || (character && character.party && character.party == a.party) || (character && character.party && a.target && in_arr(a.target, party_list)) || (character && a.target == character.name) || (character && character.map == "abtesting") || (character && a.controller == character.name)) {
+    if (ctarget == a || (character && character.party && character.party == a.party) || (character && character.party && a.target && in_arr(a.target, party_list)) || (character && a.target == character.name) || (character && character.map == "abtesting") || (character && a.controller == character.name) || options.always_hpn) {
         add_hp_bar(a)
     } else {
         if (a.hp_bar) {
@@ -3963,6 +4573,127 @@ function add_hp_bar(c) {
     c.hp_color = b;
     k.parentGroup = window.hp_layer;
     c.addChild(k)
+}
+function add_hp_bar_x(f) {
+    var c = max(32, round(get_width(f) * 2 * 0.8))
+        , g = 1
+        , m = round(2 * g);
+    var d = 11609895;
+    if (f.npc) {
+        d = 14717952
+    } else {
+        if (f.type == "character" && !pvp && !is_pvp && ctarget == f) {
+            d = 3574827
+        } else {
+            if (f.type == "character" && (pvp || is_pvp) && character && character.guild != f.guild && character.party != f.party && f.target == character.name) {} else {
+                if (character && character.party && character.party == f.party) {
+                    d = 7290759
+                } else {
+                    if (character && character.guild && character.guild == f.guild) {
+                        d = 4110016
+                    } else {
+                        if (character && is_monster(f) && ctarget == f) {} else {
+                            if (f.guild == "A") {
+                                d = 3783508
+                            } else {
+                                if (f.guild == "B") {
+                                    d = 14366627
+                                } else {
+                                    if (character && f.controller == character.name) {
+                                        d = 9018258
+                                    } else {
+                                        if (character && f.target == character.name && is_player(f)) {
+                                            d = 4171985
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    var h = round((c - round(2 * (g + 1))) * f.hp / f.max_hp);
+    if (!f.max_hp) {
+        h = round((c - round(2 * (g + 1))) * 1)
+    }
+    if (f.hp_bar) {
+        if (f.hp_width == h && f.hp_color == d) {
+            return
+        }
+        console.log("new hp_bar " + f.id);
+        destroy_sprite(f.hp_bar, "children");
+        f.hp_bar = null
+    }
+    f.hp_width = h;
+    var q = new PIXI.Graphics();
+    q.beginFill(7433580);
+    q.drawRect(0, 0, c, 6 + m);
+    q.endFill();
+    q.beginFill(2105119);
+    q.drawRect(g, g, c - m, 6);
+    q.endFill();
+    q.beginFill(d);
+    q.drawRect(g + 1, g + 1, f.hp_width, 4);
+    q.endFill();
+    q.beginFill(7433580);
+    q.drawRect(0, 0 - 9, c, 8 + m);
+    q.endFill();
+    q.beginFill(2105119);
+    q.drawRect(g, g - 9, c - m, 8);
+    q.endFill();
+    q.beginFill(7433580);
+    q.drawRect(9, 0 - 9, 1, 8 + m);
+    q.endFill();
+    var b = f.name || f.mtype || f.type
+        , a = f.level || "NPC"
+        , k = b.length * 4 + 4
+        , l = 11
+        , o = 1;
+    if (f.npc) {
+        b = f.name || "NPC";
+        border_color = 2531789;
+        if (f.citizen) {
+            border_color = 14188294
+        }
+        k = b.length * 4 + 8
+    }
+    var j = {
+        fontFamily: S.font,
+        fontSize: 64 * o,
+        fill: "white",
+        align: "center"
+    };
+    var b = new PIXI.Text(b,j);
+    b.x = 12;
+    b.y = -7;
+    b.anchor.set(0, 0);
+    b.scale = new PIXI.Point(0.125 / o,0.125 / o);
+    q.addChild(b);
+    var a = new PIXI.Text(a,j);
+    a.x = 5;
+    a.y = -7;
+    a.anchor.set(0.5, 0);
+    a.scale = new PIXI.Point(0.125 / o,0.125 / o);
+    q.addChild(a);
+    var n = 12
+        , p = 0;
+    if (f.type == "character" && character_names) {
+        n += 8
+    }
+    if (f.mscale == 2) {
+        n += 6,
+            p += c / 2
+    }
+    q.position = new PIXI.Point(-(c / 2) - p,-n - (f.aheight || f.height) + (f.mscale == 2 && -4 || 0));
+    if (f.mscale) {
+        q.scale = new PIXI.Point(f.mscale,f.mscale)
+    }
+    f.hp_bar = q;
+    f.hp_color = d;
+    q.parentGroup = window.hp_layer;
+    f.addChild(q)
 }
 function test_bitmap(a, d, b) {
     var c = new PIXI.BitmapText("YAY BITMAPS!",{
@@ -4082,88 +4813,98 @@ function d_line(start, end, args) {
     }
     draw_timeout(disappear_line(0, e), 20)
 }
-function d_text(n, j, h, g) {
-    var l = null;
+function d_text(p, l, k, j) {
+    var n = null;
     if (mode.dom_tests_pixi || no_graphics || paused) {
         return
     }
-    if (is_object(j)) {
-        l = j;
-        g = h;
-        j = get_x(l);
-        h = get_y(l) - (l.aheight || l.height) - (l.hp_bar && 15 || 2);
-        if (l.mscale == 2) {
-            h += 14
+    if (is_object(l)) {
+        n = l;
+        j = k;
+        l = get_x(n);
+        k = get_y(n) - (n.aheight || n.height) - (n.hp_bar && 15 || 2);
+        if (n.mscale == 2) {
+            k += 14
         }
     }
-    if (!g) {
-        g = {}
+    if (!j) {
+        j = {}
     }
-    var b = g.color || "#4C4C4C";
-    if (b == "hp") {
-        b = "green"
+    var c = j.color || "#4C4C4C"
+        , b = null;
+    if (c == "hp") {
+        c = "green"
     } else {
-        if (b == "mp") {
-            b = "#317188"
+        if (c == "mp") {
+            c = "#317188"
         } else {
-            if (b == "damage") {
-                b = "#C80000"
+            if (c == "damage") {
+                c = "#C80000"
             } else {
-                if (b == "+gold") {
-                    b = "gold"
+                if (c == "+gold") {
+                    c = "gold"
                 } else {
-                    if (b == "stun") {
-                        b = "#FF9601",
-                            h -= 12
+                    if (c == "stun") {
+                        c = "#FF9601",
+                            k -= 12
                     } else {
-                        if (b == "sugar") {
-                            b = "#D64770"
+                        if (c == "sugar") {
+                            c = "#D64770"
                         } else {
-                            if (b == "freeze") {
-                                b = "#53C1FF",
-                                    h -= 12
+                            if (c == "freeze") {
+                                c = "#53C1FF",
+                                    k -= 12
                             } else {
-                                if (b == "crit") {
-                                    b = "#D32D51",
-                                        h -= 12
+                                if (c == "crit") {
+                                    c = "#D32D51",
+                                        k -= 12
                                 } else {
-                                    if (b == "sneak") {
-                                        b = "#2D9B41",
-                                            h -= 12
+                                    if (c == "sneak") {
+                                        c = "#2D9B41",
+                                            k -= 12
                                     } else {
-                                        if (b == "mana") {
-                                            b = colors.mp
+                                        if (c == "mana") {
+                                            c = colors.mp
                                         } else {
-                                            if (b == "elixir") {
-                                                b = "#E06A63"
+                                            if (c == "elixir") {
+                                                c = "#E06A63"
                                             } else {
-                                                if (b == "evade") {
-                                                    b = "#808B94";
-                                                    if (l && g.from && get_entity(g.from)) {
-                                                        d_line(get_entity(g.from), l, {
+                                                if (c == "evade") {
+                                                    c = "#808B94";
+                                                    if (n && j.from && get_entity(j.from)) {
+                                                        d_line(get_entity(j.from), n, {
                                                             color: "evade"
                                                         })
                                                     }
                                                 } else {
-                                                    if (b == "reflect") {
-                                                        b = "#6D62A2"
+                                                    if (c == "reflect") {
+                                                        c = "#6D62A2"
                                                     } else {
-                                                        if (b == "supershot") {
-                                                            b = "#9B172E",
-                                                                h -= 12
+                                                        if (c == "supershot") {
+                                                            c = "#9B172E",
+                                                                k -= 12
                                                         } else {
-                                                            if (b == "quickpunch") {
-                                                                b = "#41338B",
-                                                                    h -= 12
+                                                            if (c == "quickpunch") {
+                                                                c = "#41338B",
+                                                                    k -= 12
                                                             } else {
-                                                                if (b == "burst") {
-                                                                    b = "#2A8A9A",
-                                                                        o = "large"
+                                                                if (c == "burst") {
+                                                                    c = "#2A8A9A",
+                                                                        q = "large"
                                                                 } else {
-                                                                    if (b == "poison") {
-                                                                        b = colors.poison,
-                                                                            o = "large",
-                                                                            h -= 12
+                                                                    if (c == "poison") {
+                                                                        c = colors.poison,
+                                                                            q = "large",
+                                                                            k -= 12
+                                                                    } else {
+                                                                        if (c == "1mxp") {
+                                                                            c = "#FFFFFF",
+                                                                                b = "glow"
+                                                                        } else {
+                                                                            if (colors[c]) {
+                                                                                c = colors[c]
+                                                                            }
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -4181,80 +4922,88 @@ function d_text(n, j, h, g) {
             }
         }
     }
-    var o = S[g.size] || g.size || S.normal;
-    var k = g.parent || window.map;
-    var a = !g.dont_animate;
-    var c = 1000;
-    var m = new PIXI.Text(n,{
+    var q = S[j.size] || j.size || S.normal;
+    var m = j.parent || window.map;
+    var a = !j.dont_animate;
+    var d = 0;
+    var f = 1000;
+    var o = new PIXI.Text(p,{
         fontFamily: S.font,
-        fontSize: o * text_quality,
+        fontSize: q * text_quality,
         fontWeight: "bold",
-        fill: b,
+        fill: c,
         align: "center"
     });
     if (use_layers) {
-        m.parentGroup = text_layer
+        o.parentGroup = text_layer
     } else {
-        m.displayGroup = text_layer
+        o.displayGroup = text_layer
     }
-    m.x = round(j);
-    m.y = round(h);
-    m.disp_m = S.normal / 18;
-    if (o > S.normal) {
-        m.disp_m = (S.normal + 1) / 18
+    o.disp_m = S.normal / 18;
+    if (q > S.normal) {
+        o.disp_m = (S.normal + 1) / 18
     }
-    m.anim_time = max(75, parseInt(100 * 18 / o));
-    m.type = "text";
-    m.alpha = 1;
-    m.last_fade = new Date();
-    m.anchor.set(0.5, 1);
+    o.anim_time = max(75, parseInt(100 * 18 / q));
+    o.type = "text";
+    o.alpha = 1;
+    o.last_fade = new Date();
+    o.anchor.set(0.5, 1);
+    if (b) {
+        start_filter(o, b)
+    }
     if (text_quality > 1) {
-        m.scale = new PIXI.Point(1 / text_quality,1 / text_quality)
+        o.scale = new PIXI.Point(1 / text_quality,1 / text_quality)
     }
-    k.addChild(m);
-    function d(p, q) {
+    o.x = round(l);
+    o.y = round(k) + d;
+    m.addChild(o);
+    function g(r, s) {
         return function() {
-            var r = mssince(q.last_fade)
-                , t = round(4 * r / q.anim_time);
-            if (2 < t && t < 7) {
-                t = 4
+            var t = mssince(s.last_fade)
+                , v = round(4 * t / s.anim_time);
+            if (2 < v && v < 7) {
+                v = 4
             }
-            q.y -= q.disp_m * t;
-            q.alpha = max(0, q.alpha - (0.078 * r / q.anim_time));
-            q.last_fade = new Date();
-            if (q.alpha > 0.25) {
-                draw_timeout(d(p + 1, q), q.anim_time)
+            s.y -= s.disp_m * v;
+            s.alpha = max(0, s.alpha - (0.078 * t / s.anim_time));
+            s.last_fade = new Date();
+            if (s.alpha > 0.25) {
+                draw_timeout(g(r + 1, s), s.anim_time)
             } else {
-                remove_sprite(q);
+                remove_sprite(s);
                 try {
-                    q.destroy({
+                    s.destroy({
                         texture: true,
                         baseTexture: true
                     })
-                } catch (s) {}
+                } catch (u) {
+                    console.log(u)
+                }
             }
         }
     }
-    function f(p, q) {
+    function h(r, s) {
         return function() {
-            q.position.y -= 4;
-            q.alpha -= 0.08;
-            if (p < 10) {
-                draw_timeout(d(p + 1, q), q.anim_time)
+            s.position.y -= 4;
+            s.alpha -= 0.08;
+            if (r < 10) {
+                draw_timeout(g(r + 1, s), s.anim_time)
             } else {
-                remove_sprite(q);
+                remove_sprite(s);
                 try {
-                    q.destroy({
+                    s.destroy({
                         texture: true,
                         baseTexture: true
                     })
-                } catch (r) {}
+                } catch (t) {
+                    console.log(t)
+                }
             }
         }
     }
-    draw_timeout(d(0, m), m.anim_time);
-    if (g.s) {
-        sfx(g.s, m.x, m.y)
+    draw_timeout(g(0, o), o.anim_time);
+    if (j.s) {
+        sfx(j.s, o.x, o.y)
     }
 }
 function api_call(h, c, g) {
@@ -4276,6 +5025,9 @@ function api_call(h, c, g) {
     }
     if (b) {
         b.addClass("disable")
+    }
+    if (window.is_electron) {
+        c.epl = electron_data.platform
     }
     data = {
         method: h,
@@ -4307,7 +5059,19 @@ function api_call(h, c, g) {
             if (k.silent || in_arr(h, auto_api_methods)) {
                 return
             }
-            ui_error("An Unknown Error");
+            ui_error("An Unknown Error [HTTP]");
+            error_ct = l;
+            if (h != "log_error" && l.status + "" != "0") {
+                setTimeout(function(m, n) {
+                    return function() {
+                        api_call("log_error", {
+                            type: "api_call_error",
+                            err: m.status + " " + m.statusText + " on " + n,
+                            info: m.getAllResponseHeaders()
+                        })
+                    }
+                }(l, d), 40000)
+            }
             if (j) {
                 j.removeClass("disable")
             }
@@ -4347,6 +5111,7 @@ var warned = {}
     , map_info = {};
 function new_map_logic(a, b) {
     map_info = b.info || {};
+    console.log(JSON.stringify(map_info));
     if (current_map == "abtesting" && !abtesting) {
         abtesting = {
             A: 0,
@@ -4366,7 +5131,28 @@ function new_map_logic(a, b) {
         add_log("Resort is a prototype with work in progress", "#ADA9E4")
     }
     if (current_map == "tavern") {
+        if (map_info.dice == "roll") {
+            map_machines.dice.shuffling = true,
+                map_machines.dice.num = undefined,
+                delete map_machines.dice.lock_start,
+                map_machines.dice.locked = 0
+        }
+        if (map_info.dice == "lock") {
+            map_machines.dice.shuffling = true,
+                map_machines.dice.num = map_info.num,
+                map_machines.dice.lock_start = future_ms(-1200),
+                map_machines.dice.locked = 0
+        }
+        if (map_info.dice == "bets") {
+            map_machines.dice.shuffling = false,
+                map_machines.dice.num = map_info.num,
+                map_machines.dice.seconds = map_info.seconds,
+                map_machines.dice.count_start = future_s(-map_info.seconds)
+        }
         add_log("Tavern is a prototype with work in progress", "#63ABE4")
+    } else {
+        dice_bet.active = false,
+            topleft_npc = false
     }
     if (is_pvp && (a == "start" || a == "welcome")) {
         add_log("This is a PVP Server. Be careful!", "#E1664C")
@@ -4419,39 +5205,48 @@ setInterval(function() {
         last_servers_and_characters = new Date()
     }
 }, 2000);
-function update_servers_and_characters(c) {
-    var b = {
+function update_servers_and_characters(d) {
+    var c = {
         1: null,
         2: null,
         3: null,
         merchant: null
     }
-        , a = 1;
-    c.characters.forEach(function(d) {
-        if (d.online) {
-            $(".characterav" + d.name).html('<span style="color: #F3A05D">[I]</span>')
+        , a = 1
+        , b = 0;
+    d.characters.forEach(function(f) {
+        if (f.online) {
+            $(".characterav" + f.name).html('<span style="color: #F3A05D">[I]</span>')
         } else {
-            $(".characterav" + d.name).html('<span style="color: #A4FA64">[A]</span>')
+            $(".characterav" + f.name).html('<span style="color: #A4FA64">[A]</span>')
         }
-        if (!d.online) {
+        if (!f.online) {
             return
         }
-        if (d.type == "merchant") {
-            b.merchant = d
+        if (f.type == "merchant") {
+            c.merchant = f
         } else {
             if (a <= 3) {
-                b[a] = d,
+                c[a] = f,
                     a += 1
             }
         }
     });
-    [1, 2, 3, "merchant"].forEach(function(d) {
-        if (!b[d]) {
-            $(".characterr" + d).html("<span style='color: orange'>Offline</span>")
+    [1, 2, 3, "merchant"].forEach(function(f) {
+        if (!c[f]) {
+            $(".characterr" + f).html("<span style='color: orange'>Offline</span>")
         } else {
-            $(".characterr" + d).html("<span style='color: green'>" + b[d].name + "</span>")
+            $(".characterr" + f).html("<span style='color: green'>" + c[f].name + "</span>"),
+                b += 1
         }
-    })
+    });
+    $(".ccount").html(b);
+    if ($(".cclist").length) {
+        load_character_list()
+    }
+    if ($(".sslist").length) {
+        load_servers_list()
+    }
 }
 function handle_information(g) {
     for (var f = 0; f < g.length; f++) {
@@ -4468,7 +5263,9 @@ function handle_information(g) {
                 d += "<div style='margin: 10px 5px 5px 5px; font-size: 24px; line-height: 28px'>";
                 d += "<div>You can also load code's into your code. For example, you can save your 'Functions' in one code slot, let's say 2, and inside your first code slot, you can: <span class='label' style='height: 24px; margin: -2px 0px 0px 0px;'>load_code(2)</span> or <span class='label' style='height: 24px; margin: -2px 0px 0px 0px;'>load_code('Functions')</span></div>";
                 d += "</div>";
-                show_modal(d)
+                show_modal(d, {
+                    keep_code: true
+                })
             } else {
                 if (info.purpose == "save") {
                     var d = ""
@@ -4492,7 +5289,9 @@ function handle_information(g) {
                     }
                     d += "<div style='margin: 10px 5px 5px 5px; font-size: 24px; line-height: 28px'>";
                     d += "</div>";
-                    show_modal(d)
+                    show_modal(d, {
+                        keep_code: true
+                    })
                 } else {
                     show_json(info.list)
                 }
@@ -4506,7 +5305,7 @@ function handle_information(g) {
         }
         if (info.type == "reload") {
             var a = future_s(10);
-            window.localStorage.setItem("reload" + server_region + server_identifier, JSON.stringify({
+            storage_set("reload" + server_region + server_identifier, JSON.stringify({
                 time: a,
                 ip: info.ip,
                 port: "" + info.port
@@ -4524,6 +5323,9 @@ function handle_information(g) {
         }
         if (info.type == "code") {
             codemirror_render.setValue(info.code);
+            if (info.reset) {
+                codemirror_render.clearHistory()
+            }
             if (info.run) {
                 if (code_run) {
                     toggle_runner(),
@@ -4537,6 +5339,18 @@ function handle_information(g) {
             var d = "";
             d += "<textarea id='gcode'>" + info.code + "</textarea>";
             show_modal(d)
+        }
+        if (info.type == "tutorial") {
+            var d = "<div style='background: #E5E5E5; color: #010805; border: 5px solid gray; max-width: 960px; padding: 24px; font-size: 32px; text-align: justify'><div style='margin-top:-15px'></div>";
+            d += info.html;
+            d += "<div style='margin-bottom:-15px'></div></div>";
+            show_modal(d, {
+                wrap: false
+            });
+            $(".code").codemirror({
+                trim: true
+            });
+            position_modals()
         }
         if (info.type == "chat_message") {
             add_chat("", info.message, info.color)
@@ -4601,12 +5415,21 @@ function sfx(b, a, f) {
         if (b == "chat") {
             d = sounds.chat
         }
+        if (b == "walk") {
+            d = sounds.walk
+        }
+        if (b == "npc") {
+            d = sounds.drop
+        }
+        if (!d && sounds[b]) {
+            d = sounds[b]
+        }
         if (d) {
             if (a === undefined) {
                 d.play()
             } else {
                 d.orientation(0, 0, 0);
-                d.pos((a - character.real_x) / 100, 0, (f - character.real_y) / 100);
+                d.pos((-a + map.real_x) / 120, (f - map.real_y) / 120, 0);
                 d.play()
             }
         }
@@ -4628,11 +5451,17 @@ function pcs(a) {
     }
 }
 function init_sounds() {
+    if (!window.Howl) {
+        sound_music = false;
+        sound_sfx = false;
+        add_log("Sound issue (Howl). Turned sound off");
+        return
+    }
     if (no_html) {
         return
     }
     sounds.click = new Howl({
-        src: ["/sounds/effects/click_natural.wav"],
+        src: [url_factory("/sounds/effects/click_natural.wav")],
         volume: 0.5,
     });
     if (sound_sfx) {
@@ -4643,33 +5472,67 @@ function init_sounds() {
     }
 }
 function init_fx() {
+    if (!window.Howl) {
+        sound_music = false;
+        sound_sfx = false;
+        add_log("Sound issue (Howl). Turned sound off");
+        return
+    }
     if (window.fx_init) {
         return
     }
     window.fx_init = 1;
     sounds.fx_explosion = new Howl({
-        src: ["/sounds/fx/EXPLOSION_Short_Kickback_Crackle_stereo.wav"],
-        volume: 0.4,
+        src: [url_factory("/sounds/fx/EXPLOSION_Short_Kickback_Crackle_stereo.wav")],
+        volume: 0.3,
     });
     sounds.coin_collect = new Howl({
-        src: ["/sounds/fx/COINS_Rattle_03_mono.wav"],
-        volume: 0.4,
+        src: [url_factory("/sounds/fx/COINS_Rattle_04_mono.wav")],
+        volume: 0.2,
     });
     sounds.hit_8bit = new Howl({
-        src: ["/sounds/fx/8BIT_RETRO_Hit_Bump_Noise_mono.wav"],
-        volume: 0.4,
+        src: [url_factory("/sounds/fx/8BIT_RETRO_Hit_Bump_Noise_mono.wav")],
+        volume: 0.1,
     });
     sounds.magic_8bit = new Howl({
-        src: ["/sounds/fx/8BIT_RETRO_Fire_Blaster_Short_mono.wav"],
+        src: [url_factory("/sounds/fx/8BIT_RETRO_Fire_Blaster_Short_mono.wav")],
         volume: 0.4,
     });
     sounds.use_8bit = new Howl({
-        src: ["/sounds/fx/VideoGameSFX_blip_07.wav"],
-        volume: 0.4,
+        src: [url_factory("/sounds/fx/VideoGameSFX_blip_07.wav")],
+        volume: 0.1,
     });
     sounds.chat = new Howl({
-        src: ["/sounds/fx/UI_Beep_Double_Quick_Smooth_stereo.wav"],
+        src: [url_factory("/sounds/fx/UI_Beep_Double_Quick_Smooth_stereo.wav")],
+        volume: 0.5,
+    });
+    sounds.walk = new Howl({
+        src: [url_factory("/sounds/fx/FOOTSTEP_Asphalt_Trainers_Walk_Slow_RR5_mono.wav")],
+        volume: 0.6,
+    });
+    sounds.drop = new Howl({
+        src: [url_factory("/sounds/fx/DROP_Designed_mono.wav")],
         volume: 0.4,
+    });
+    sounds.open = new Howl({
+        src: [url_factory("/sounds/fx/CLASP_Plastic_Open_stereo.wav")],
+        volume: 0.4,
+    });
+    sounds.whoosh = new Howl({
+        src: [url_factory("/sounds/fx/WHOOSH_Air_Fast_Wind_RR1_mono.wav")],
+        volume: 0.2,
+    });
+    sounds.reflect = new Howl({
+        src: [url_factory("/sounds/fx/MAGIC_SPELL_Spawn_mono.wav")],
+        volume: 0.15,
+    });
+    sounds.crackle0 = new Howl({
+        src: [url_factory("/sounds/fx/Explosive01.wav")],
+        volume: 0.15,
+    });
+    sounds.crackle0 = new Howl({
+        src: [url_factory("/sounds/fx/Explosive02.wav")],
+        volume: 0.15,
     })
 }
 function performance_trick() {
@@ -4677,19 +5540,26 @@ function performance_trick() {
         return sounds.empty.play()
     }
     sounds.empty = new Howl({
-        src: ["/sounds/loops/empty_loop_for_js_performance.ogg", "/sounds/loops/empty_loop_for_js_performance.wav"],
+        src: [url_factory("/sounds/loops/empty_loop_for_js_performance.ogg"), url_factory("/sounds/loops/empty_loop_for_js_performance.wav")],
         volume: 0.5,
         autoplay: true,
         loop: true,
-    })
+    });
+    sounds.empty.cplaying = true
 }
 function init_music() {
+    if (!window.Howl) {
+        sound_music = false;
+        sound_sfx = false;
+        add_log("Sound issue (Howl). Turned sound off");
+        return
+    }
     if (window.music_init) {
         return
     }
     window.music_init = 1;
     sounds.christmas = new Howl({
-        src: ["/sounds/loops/christmas.ogg"],
+        src: [url_factory("/sounds/loops/christmas.ogg")],
         volume: 0.4 * music_level,
         autoplay: false,
         loop: true,
@@ -4698,13 +5568,43 @@ function init_music() {
         return
     }
     sounds.horror01 = new Howl({
-        src: ["/sounds/loops/horror_01_loop.ogg", "/sounds/loops/horror_01_loop.wav"],
+        src: [url_factory("/sounds/loops/horror_01_loop.ogg")],
+        volume: 0.2 * music_level,
+        autoplay: false,
+        loop: true,
+    });
+    sounds.casual05 = new Howl({
+        src: [url_factory("/sounds/loops/casual_05_loop.ogg")],
+        volume: 0.4 * music_level,
+        autoplay: false,
+        loop: true,
+    });
+    sounds.rpg07 = new Howl({
+        src: [url_factory("/sounds/loops/rpg_07_loop.ogg")],
         volume: 0.4 * music_level,
         autoplay: false,
         loop: true,
     });
     sounds.rpg08 = new Howl({
-        src: ["/sounds/loops/rpg_08_loop.ogg", "/sounds/loops/rpg_08_loop.wav"],
+        src: [url_factory("/sounds/loops/rpg_08_loop.ogg")],
+        volume: 0.4 * music_level,
+        autoplay: false,
+        loop: true,
+    });
+    sounds.rpg10 = new Howl({
+        src: [url_factory("/sounds/loops/rpg_10_loop.ogg")],
+        volume: 0.4 * music_level,
+        autoplay: false,
+        loop: true,
+    });
+    sounds.rpg14 = new Howl({
+        src: [url_factory("/sounds/loops/rpg_14_loop.ogg")],
+        volume: 0.4 * music_level,
+        autoplay: false,
+        loop: true,
+    });
+    sounds.rpg16 = new Howl({
+        src: [url_factory("/sounds/loops/rpg_16_loop.ogg")],
         volume: 0.4 * music_level,
         autoplay: false,
         loop: true,
@@ -4713,6 +5613,12 @@ function init_music() {
 var current_music = null;
 function reflect_music() {
     var a = sounds.rpg08;
+    if (!window.Howl) {
+        sound_music = false;
+        sound_sfx = false;
+        add_log("Sound issue (Howl). Turned sound off");
+        return
+    }
     if (!sound_music) {
         if (current_music) {
             current_music.stop()
@@ -4720,11 +5626,23 @@ function reflect_music() {
         current_music = null;
         return
     }
-    if (current_map == "batcave" || current_map == "halloween") {
-        a = sounds.horror01
+    if (current_map == "tavern") {
+        a = sounds.rpg10
+    }
+    if (in_arr(current_map, ["batcave", "halloween", "spookytown"]) || current_map.startsWith("level")) {
+        a = sounds.rpg14
+    }
+    if (current_map.startsWith("winter_inn")) {
+        a = sounds.rpg16
+    }
+    if (current_map == "desertland") {
+        a = sounds.rpg07
     }
     if (current_map == "winterland" || xmas_tunes) {
         a = sounds.christmas
+    }
+    if (current_map == "bank") {
+        a = sounds.casual05
     }
     if (current_music != a && a) {
         if (current_music) {
@@ -4733,6 +5651,76 @@ function reflect_music() {
         current_music = a;
         a.play()
     }
+}
+function sound_on() {
+    if (is_electron) {
+        Cookies.set("music", "on", {
+            expires: 12 * 365
+        })
+    } else {
+        if (character) {
+            set_setting(real_id, "music", "on")
+        }
+    }
+    sound_music = "1";
+    init_music();
+    reflect_music();
+    $(".musicoff").hide();
+    $(".musicoffi").hide();
+    $(".musicon").show();
+    $(".musiconi").css("display", "inline-block")
+}
+function sound_off(a) {
+    if (!a) {
+        if (is_electron) {
+            Cookies.set("music", "off", {
+                expires: 12 * 365
+            })
+        } else {
+            if (character) {
+                set_setting(real_id, "music", "off")
+            }
+        }
+        sound_music = "";
+        reflect_music()
+    }
+    $(".musicon").hide();
+    $(".musiconi").hide();
+    $(".musicoff").show();
+    $(".musicoffi").css("display", "inline-block")
+}
+function sfx_on() {
+    if (is_electron) {
+        Cookies.set("sfx", "on", {
+            expires: 12 * 365
+        })
+    } else {
+        if (character) {
+            set_setting(real_id, "sfx", "on")
+        }
+    }
+    sound_sfx = "1";
+    init_fx();
+    $(".sfxoff").hide();
+    $(".sfxoffi").hide();
+    $(".sfxon").show();
+    $(".sfxoni").css("display", "inline-block")
+}
+function sfx_off() {
+    if (is_electron) {
+        Cookies.set("sfx", "off", {
+            expires: 12 * 365
+        })
+    } else {
+        if (character) {
+            set_setting(real_id, "sfx", "off")
+        }
+    }
+    sound_sfx = "";
+    $(".sfxon").hide();
+    $(".sfxoni").hide();
+    $(".sfxoff").show();
+    $(".sfxoffi").css("display", "inline-block")
 }
 function gprocess_game_data() {
     if (no_graphics) {
@@ -4776,24 +5764,53 @@ function hide_loader() {}
 function alert_json(a) {
     alert(JSON.stringify(a))
 }
-function game_stringify(d, b) {
-    var a = [];
+function game_stringify(f, c) {
+    var b = [];
     try {
-        return JSON.stringify(d, function(f, g) {
-            if (in_arr(f, ["transform", "parent", "displayGroup", "parentGroup", "vertexData", "animations", "tiles", "placements", "default", "children"]) || f.indexOf("filter_") != -1 || f[0] == "_") {
+        var a = JSON.stringify(f, function(g, h) {
+            if (in_arr(g, ["transform", "parent", "displayGroup", "parentGroup", "vertexData", "animations", "tiles", "placements", "default", "children", "tempDisplayObjectParent", "cachedTint", "vertexTrimmedData", "hp_bar"]) || g.indexOf("filter_") != -1 || g[0] == "_") {
+                return
+            }
+            if (g == "data" && f[g] && f[g].x_lines) {
+                return
+            }
+            if (h != null && typeof h == "object") {
+                if (b.indexOf(h) >= 0) {
+                    return
+                }
+                b.push(h)
+            }
+            return h
+        }, c);
+        if ("x"in f) {
+            a = JSON.parse(a);
+            a.x = f.x;
+            a.y = f.y;
+            a = JSON.stringify(a, undefined, c)
+        }
+        return a
+    } catch (d) {
+        return "safe_stringify_exception"
+    }
+}
+function game_stringify_simple(d, b) {
+    try {
+        var a = JSON.stringify(d, function(f, g) {
+            if (in_arr(f, ["transform", "parent", "displayGroup", "parentGroup", "vertexData", "animations", "tiles", "placements", "default", "children", "tempDisplayObjectParent", "cachedTint", "vertexTrimmedData", "hp_bar"]) || f.indexOf("filter_") != -1 || f[0] == "_") {
                 return
             }
             if (f == "data" && d[f] && d[f].x_lines) {
                 return
             }
-            if (g != null && typeof g == "object") {
-                if (a.indexOf(g) >= 0) {
-                    return
-                }
-                a.push(g)
-            }
             return g
-        }, b)
+        }, b);
+        if ("x"in d) {
+            a = JSON.parse(a);
+            a.x = d.x;
+            a.y = d.y;
+            a = JSON.stringify(a, undefined, b)
+        }
+        return a
     } catch (c) {
         return "safe_stringify_exception"
     }
@@ -4824,6 +5841,13 @@ jQuery.fn.all_html = function() {
     return jQuery("<div />").append(this.eq(0).clone()).html()
 }
 ;
+jQuery.fn.shtml = function(a) {
+    var b = jQuery(this);
+    var c = b.html();
+    c = ("" + c).replace_all(",", "").replace_all(".", "");
+    return c
+}
+;
 jQuery.fn.rval = function(a) {
     var b = jQuery(this);
     var c = b.val();
@@ -4832,6 +5856,63 @@ jQuery.fn.rval = function(a) {
     }
     b.val(a);
     return c
+}
+;
+jQuery.fn.cfocus = function() {
+    var a = jQuery(this).html();
+    var b = "1";
+    if (!(a || "").replace_all(" ", "").length) {
+        if (jQuery(this).data("default") !== undefined) {
+            b = jQuery(this).data("default")
+        }
+        jQuery(this).html(b)
+    }
+    var c = jQuery(this).focus();
+    if (b == "\u00a0") {
+        document.execCommand("delete", false, null)
+    }
+    return c
+}
+;
+jQuery.fn.codemirror = function(a) {
+    if (!a) {
+        a = {}
+    }
+    return this.each(function() {
+        var d = jQuery(this);
+        var c = a.value || d.html();
+        if (a.trim || d.hasClass("trimnl")) {
+            while (c[0] == "\n") {
+                c = c.substr(1, c.length)
+            }
+            while (c[c.length - 1] == "\n") {
+                c = c.substr(0, c.length - 1)
+            }
+        }
+        var b = CodeMirror(function(g) {
+            d.replaceWith(g)
+        }, {
+            value: c,
+            mode: "javascript",
+            indentUnit: 4,
+            indentWithTabs: true,
+            lineWrapping: true,
+            lineNumbers: true,
+            gutters: ["CodeMirror-linenumbers", "lspacer"],
+            theme: "pixel",
+            cursorHeight: 0.75,
+        });
+        var f = $(b.getWrapperElement());
+        if (d.hasClass("executeb")) {
+            f.append("<div class='clickable' style='position: absolute; bottom: 4px; right: 4px; color: white; background: black; padding: 2px 2px 2px 4px; border: 1px solid white; z-index:4; padding-left: 8px; padding-right: 4px;' onclick='execute_codemirror(this)'>Execute!</div>")
+        }
+        if (a.focus) {
+            b.focus()
+        }
+        if (a.hints) {
+            listen_for_hints(b)
+        }
+    })
 }
 ;
 jQuery.fn.rfval = function(a) {
@@ -4849,6 +5930,15 @@ function stkp(a) {
         a.stopPropagation()
     } catch (b) {}
 }
+function stprlink(a) {
+    try {
+        if (a.target.tagName.toLowerCase() === "a") {
+            return true
+        }
+        a.stopPropagation()
+    } catch (b) {}
+    return false
+}
 function stpr(a) {
     try {
         if (a == "manual") {
@@ -4857,9 +5947,202 @@ function stpr(a) {
         a.stopPropagation()
     } catch (b) {}
 }
-function set_fullscreen() {
-    var a = require("electron");
-    var b = a.remote.getCurrentWindow();
-    b.setFullScreen(true)
+function clear_ui() {
+    $("body").children().each(function() {
+        if (this.tagName != "CANVAS") {
+            $(this).remove()
+        }
+        $("iframe").remove()
+    })
+}
+function clear_ui2() {
+    $("body").children().each(function() {
+        if (this.tagName != "CANVAS" && this.id != "topleftcorner") {
+            $(this).remove()
+        }
+        $("iframe").remove()
+    })
+}
+function storage_get(a) {
+    if (is_electron) {
+        if (!electron_store) {
+            var b = require("electron-store");
+            electron_store = new b()
+        }
+        return electron_store.get(a)
+    } else {
+        return window.localStorage.getItem(a)
+    }
+}
+function storage_set(a, b) {
+    if (is_electron) {
+        if (!electron_store) {
+            var c = require("electron-store");
+            electron_store = new c()
+        }
+        electron_store.set(a, b)
+    } else {
+        return window.localStorage.setItem(a, b)
+    }
+}
+var manifest = null;
+var electron = null
+    , path = null
+    , electron_store = null;
+function url_factory(b) {
+    try {
+        if (is_electron && !manifest) {
+            if (!electron) {
+                electron = require("electron")
+            }
+            if (!path) {
+                path = require("path")
+            }
+            manifest = require(path.resolve(electron.remote.app.getAppPath(), "./manifest.js"))
+        } else {
+            if (!manifest) {
+                manifest = {}
+            }
+        }
+        var c = b.split("?v=")[0]
+            , a = b.split("?v=")[1];
+        if (manifest[c]) {
+            if (!a || manifest[c].v == a) {
+                var d = path.resolve(electron.remote.app.getAppPath(), "./files" + c);
+                return "file://" + d
+            }
+        }
+    } catch (f) {
+        console.log("url_factory: " + f)
+    }
+    return b
+}
+function electron_reset() {
+    if (!electron) {
+        electron = require("electron")
+    }
+    if (!path) {
+        path = require("path")
+    }
+    var a = require("fs-extra");
+    getAppPath = path.join(electron.remote.app.getPath("appData"), electron.remote.app.getName());
+    a.unlink(getAppPath, function() {
+        alert("App data cleared");
+        electron.relaunch();
+        electron.exit()
+    })
+}
+function electron_dev_tools() {
+    if (!electron) {
+        electron = require("electron")
+    }
+    var a = electron.remote.getCurrentWindow();
+    a.openDevTools({
+        mode: "detach"
+    })
+}
+var fullscreen = false;
+function electron_fullscreen(b) {
+    if (b == undefined) {
+        b = !fullscreen
+    }
+    fullscreen = b;
+    if (!electron) {
+        electron = require("electron")
+    }
+    var a = electron.remote.getCurrentWindow();
+    a.setFullScreen(fullscreen)
+}
+function electron_screenshot(b, a) {
+    a = a || function() {}
+    ;
+    if (!b) {
+        b = {
+            delay: 0
+        }
+    }
+    if (!a) {
+        a = function() {
+            console.log("Screenshot taken!")
+        }
+    }
+    if (!b.filename) {
+        b.filename = "AL Screenshot " + (new Date()) + ".png"
+    }
+    var c;
+    try {
+        c = require("electron").remote
+    } catch (d) {
+        c = require("remote")
+    }
+    setTimeout(function() {
+        c.getCurrentWindow().capturePage(function f(g) {
+            c.require("fs").writeFile(b.filename, g.toPNG(), a)
+        })
+    }, b.delay)
+}
+function electron_mas_receipt() {
+    try {
+        if (!electron) {
+            electron = require("electron")
+        }
+        var a = electron.remote.app.getPath("exe");
+        a = a.split(".app/Contents/")[0] + ".app/Contents/_MASReceipt/receipt";
+        return electron.remote.require("fs").readFileSync(a).toString("base64")
+    } catch (b) {
+        console.log(b)
+    }
+    return ""
+}
+function electron_steam_ticket() {
+    try {
+        storage_get("ticket") || ""
+    } catch (a) {
+        console.log(a)
+    }
+    return ""
+}
+function electron_get_data() {
+    try {
+        if (!electron) {
+            electron = require("electron")
+        }
+        return electron.remote.getCurrentWindow().cdata || {}
+    } catch (a) {
+        return {}
+    }
+}
+function electron_http_mode(a) {
+    if (a === undefined) {
+        a = true
+    }
+    storage_set("http_mode", a)
+}
+function electron_get_http_mode() {
+    try {
+        return storage_get("http_mode")
+    } catch (a) {
+        console.log(a)
+    }
+    return false
+}
+function electron_is_main() {
+    try {
+        if (!electron) {
+            electron = require("electron")
+        }
+        if (electron.remote.getCurrentWindow().webContents.browserWindowOptions.sideWindow) {
+            return false
+        }
+    } catch (a) {
+        console.log(a)
+    }
+    return true
+}
+function electron_add_webview(a) {
+    if (!a) {
+        a = "http://thegame.com/character/GG/in/EU/I/"
+    }
+    $("body").append("<webview src='" + a + "' style='position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px' disablewebsecurity nodeintegration></webview>")
 }
 ;
