@@ -78,7 +78,7 @@ async function main() {
         if(userData.config.botWebInterface.password === "")
             password = null;
         else
-            password = userData.config.botWebInterface.password
+            password = userData.config.botWebInterface.password;
         BotWebInterface.setPassword(password);
         BotWebInterface.SocketServer.getPublisher().setStructure([
             {name: "name", type: "text", label: "name"},
@@ -115,7 +115,8 @@ async function main() {
 var activeChildren = {};
 function startGame(args) {
     let childProcess = child_process.fork("./game", args, {
-        stdio: [0, 1, 2, 'ipc']
+        stdio: [0, 1, 2, 'ipc'],
+        //execArgv:['--inspect-brk']
     });
     var data = {};
     var botInterface = BotWebInterface.SocketServer.getPublisher().createInterface();

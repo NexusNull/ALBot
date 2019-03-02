@@ -84,6 +84,15 @@ function cached(d, c, b, a) {
 function disappearing_clone(b) {
 
 }
+function fade_out_blink(b, a) {
+    return function() {
+
+    }
+}
+function fade_away_teleport(b, a) {
+    return function() {
+    }
+}
 function fade_away(b, a) {
     return function () {
         if (b == 20 || is_hidden()) {
@@ -93,6 +102,10 @@ function fade_away(b, a) {
             update_sprite(a);
             draw_timeout(fade_away(b + 1, a), 30, 1)
         }
+    }
+}
+function fade_out_magiport(b, a) {
+    return function() {
     }
 }
 function show_game_guide() {
@@ -243,14 +256,7 @@ function use_skill(b, h, k) {
             use("mp")
         } else {
             if (b == "stop") {
-                map_click({
-                    data: {
-                        global: {
-                            x: width / 2,
-                            y: Math.ceil(height / 2) + 0.01
-                        }
-                    }
-                });
+                move(character.real_x, character.real_y + 0.00001);
                 socket.emit("stop");
                 code_eval_if_r("smart.moving=false")
             } else {
@@ -326,12 +332,12 @@ function use_skill(b, h, k) {
                                     })
                                 }
                             } else {
-                                if (in_arr(b, ["invis", "partyheal", "darkblessing", "agitate", "cleave", "stomp", "charge", "light", "hardshell", "track", "warcry", "mcourage"])) {
+                                if (in_arr(b, ["invis", "partyheal", "darkblessing", "agitate", "cleave", "stomp", "charge", "light", "hardshell", "track", "warcry", "mcourage", "scare"])) {
                                     socket.emit("skill", {
                                         name: b
                                     })
                                 } else {
-                                    if (in_arr(b, ["supershot", "quickpunch", "quickstab", "taunt", "curse", "burst", "4fingers", "magiport", "absorb", "mluck", "rspeed"])) {
+                                    if (in_arr(b, ["supershot", "quickpunch", "quickstab", "taunt", "curse", "burst", "4fingers", "magiport", "absorb", "mluck", "rspeed", "charm"])) {
                                         socket.emit("skill", {
                                             name: b,
                                             id: h
@@ -383,24 +389,36 @@ function use_skill(b, h, k) {
                                                             num: d
                                                         })
                                                     } else {
-                                                        if (b == "blink") {
+                                                        if (b == "throw") {
+                                                            if (!character.items[k]) {
+                                                                add_log("Inventory slot is empty", "gray");
+                                                                return
+                                                            }
                                                             socket.emit("skill", {
-                                                                name: "blink",
-                                                                x: h[0],
-                                                                y: h[1]
+                                                                name: b,
+                                                                num: k,
+                                                                id: h
                                                             })
                                                         } else {
-                                                            if (b == "energize") {
+                                                            if (b == "blink") {
                                                                 socket.emit("skill", {
-                                                                    name: "energize",
-                                                                    id: h,
-                                                                    mana: k
+                                                                    name: "blink",
+                                                                    x: h[0],
+                                                                    y: h[1]
                                                                 })
                                                             } else {
-                                                                if (b == "stack") {
-                                                                    on_skill("attack")
+                                                                if (b == "energize") {
+                                                                    socket.emit("skill", {
+                                                                        name: "energize",
+                                                                        id: h,
+                                                                        mana: k
+                                                                    })
                                                                 } else {
-                                                                    add_log("Skill not found: " + b, "gray")
+                                                                    if (b == "stack") {
+                                                                        on_skill("attack")
+                                                                    } else {
+                                                                        add_log("Skill not found: " + b, "gray")
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -432,7 +450,7 @@ function on_skill(d, h) {
                 break
             }
         }
-        if (b > 0) {
+        if (b >= 0) {
             var g = character.items[b];
             if (G.items[g.name].type == "stand") {
                 if (character.stand) {
@@ -503,11 +521,23 @@ function on_skill(d, h) {
                                                 var f = [];
                                                 hide_modal();
                                                 f.push({
-                                                    button: "Jump",
+                                                    button: "Travel",
+                                                    onclick: function() {
+
+                                                    }
+                                                });
+                                                f.push({
+                                                    button: "P Jump",
                                                     onclick: function() {
                                                         socket.emit("gm", {
                                                             action: "jump_list"
                                                         })
+                                                    }
+                                                });
+                                                f.push({
+                                                    button: "M Jump",
+                                                    onclick: function() {
+
                                                     }
                                                 });
                                                 f.push({
@@ -609,7 +639,11 @@ function on_skill(d, h) {
                                                                                             title: "Magiport"
                                                                                         })
                                                                                     } else {
-                                                                                        use_skill(c, ctarget)
+                                                                                        if (c == "throw") {
+                                                                                            use_skill(c, ctarget, a.num || 0)
+                                                                                        } else {
+                                                                                            use_skill(c, ctarget)
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -793,7 +827,8 @@ function move(a, f) {
     last_move = new Date()
 }
 function arrow_movement_logic() {
-    if (!window.character || !window.options.move_with_arrows) {
+    /*
+    if (!character || !options.move_with_arrows) {
         return
     }
     if (up_pressed && left_pressed) {
@@ -827,6 +862,7 @@ function arrow_movement_logic() {
             }
         }
     }
+    */
 }
 function focus_chat() {
     if (inventory) {
@@ -1021,7 +1057,7 @@ function character_code_eval(name, snippet) {
     var rid = "ichar" + name.toLowerCase();
     var weval = document.getElementById(rid) && document.getElementById(rid).contentWindow && document.getElementById(rid).contentWindow.eval;
     if (!weval) {
-        add_log("Character not found!", "#993D42");
+        add_log("Character not found! ", "#993D42");
         return undefined
     }
     if (document.getElementById(rid).contentWindow.code_active) {
@@ -1080,13 +1116,6 @@ function stop_runner(a) {
 function code_persistence_logic() {
 }
 function toggle_runner() {
-    if (code_run) {
-        stop_runner();
-        code_persistence_logic()
-    } else {
-        start_runner();
-        code_persistence_logic()
-    }
 }
 function code_logic() {
     window.codemirror_render = CodeMirror(function (a) {
@@ -1194,13 +1223,6 @@ function set_direction(entity, c) {
         }, 60)
     }
 }
-function direction_logic(a, b, c) {
-    if (a.moving) {
-        return
-    }
-    a.angle = Math.atan2(b.real_y - a.real_y, b.real_x - a.real_x) * 180 / Math.PI;
-    set_direction(a, c)
-}
 function free_children(b) {
     if (!b.children) {
         return
@@ -1280,8 +1302,10 @@ function say(g, f) {
             , c = d.join(" ");
         if (h == "help" || h == "list" || h == "") {
             add_chat("", "/list");
+            add_chat("", "/uptime");
             add_chat("", "/guide");
             add_chat("", "/invite NAME");
+            add_chat("", "/request NAME");
             add_chat("", "/friend NAME");
             add_chat("", "/leave");
             add_chat("", "/whisper NAME MESSAGE");
@@ -1899,7 +1923,7 @@ function assassin_smoke(a, f, c) {
         b.height = 16
     }
     b.anchor.set(0.5, 1);
-    map.addChild(b);
+    world.addChild(b);
     function d(g) {
         return function () {
             if (g >= 12) {
@@ -2408,8 +2432,8 @@ function api_call(command, c, g) {
     if (g.r_id) {
         show_loader(g.r_id)
     }
-    call_args = {type: "POST", dataType: "json", url: base_url + path, data: data, success: success(g, b), error: error(g, b)};
-    $.ajax(call_args)
+    //call_args = {type: "POST", dataType: "json", url: base_url + path, data: data, success: success(g, b), error: error(g, b)};
+    //$.ajax(call_args)
 }
 function api_call_l(c, a, b) {
     if (!a) {
@@ -2430,7 +2454,7 @@ function new_map_logic(a, b) {
     if (current_map != "abtesting" && abtesting_ui) {
         abtesting = false;
         abtesting_ui = false;
-        $("#abtesting").remove()
+        //$("#abtesting").remove()
     }
     if (current_map == "resort") {
         add_log("Resort is a prototype with work in progress", "#ADA9E4")

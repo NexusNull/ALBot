@@ -1,35 +1,26 @@
-var Map = require("./map");
+var World = require("./world");
+var process = require("./mapPreprocessor");
+var aStar = require("./aStar");
+var quickAStar = require("./quickAStar");
 
-var PathFinding = function (gameData) {
+var PathFinding = function () {
     this.G = null;
     this.maps = {};
 };
-/**
- *
- * @param start {object}
- * @param start.map {string}
- * @param start.x {number}
- * @param start.y {number}
- * @param end {object}
- * @param end.map {string}
- * @param end.x {number}
- * @param end.y {number}
- * @param options
- */
-PathFinding.prototype.findPath = function (start, end, options) {
 
+PathFinding.prototype.findPath = function (x, y, endX, endY, mapName) {
+    return quickAStar.findPath(x, y, endX, endY, this.maps[mapName]);
 };
 
 PathFinding.prototype.initialize = function (gameData) {
     this.G = gameData;
-    for(let mapName in this.G.maps){
-        if(!this.G.maps[mapName].ignore){
-            console.log("Initializing map:"+mapName)
-            console.log(gameData.maps.main.data)
-            this.maps[mapName] = new Map().fromGateData(this.G.maps[mapName]);
+    //for (let mapName in this.G.maps) {
+        mapName = "winterland"
+        if (!this.G.maps[mapName].ignore) {
+            console.log("Initializing map: " + mapName);
+            this.maps[mapName] = new process(this.G.maps[mapName]);
         }
-
-    }
+    //}
 };
 
 module.exports = new PathFinding();

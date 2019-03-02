@@ -58,6 +58,7 @@ Game.prototype.init = function () {
     var first_coords = false,
         first_x = 0,
         first_y = 0;
+    var protocol = "https";
 
     var code_active = false;
     var current_map = "";
@@ -105,10 +106,10 @@ Game.prototype.init = function () {
     gprocess_game_data();
     init_socket();
     this.socket = socket;
-
+    /*
     game.pathfinding = require("./PathFinding/pathFinding");
     game.pathfinding.initialize(this.G);
-
+    */
     var glob = {
         localStorage: localStorage,
         gameplay: gameplay,
@@ -141,6 +142,7 @@ Game.prototype.init = function () {
         say: say,
         private_say: private_say,
         party_list: party_list,
+        party: party,
         calculate_move: calculate_move,
         chests: chests,
         entities: entities,
@@ -157,7 +159,9 @@ Game.prototype.init = function () {
         bot_mode: true,
         botKey: botKey,
         require: require,
-        game: this
+        game: this,
+        close_merchant: close_merchant,
+        open_merchant: open_merchant,
     };
     Object.defineProperty(glob, "entities", {
         get: function () {
