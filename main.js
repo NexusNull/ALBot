@@ -88,10 +88,11 @@ async function main() {
             {name: "xp", type: "progressBar", label: "Experience", options: {color: "green"}},
             {name: "health", type: "progressBar", label: "Health", options: {color: "red"}},
             {name: "mana", type: "progressBar", label: "Mana", options: {color: "blue"}},
+            {name: "party", type: "text", label: "Party"},
             {name: "target", type: "text", label: "Target"},
             {name: "status", type: "text", label: "Status"},
             {name: "dps", type: "text", label: "Damage/s"},
-            {name: "gps", type: "text", label: "Gold/s"},
+            {name: "gph", type: "text", label: "Gold/hr"},
             {name: "xpps", type: "text", label: "XP/s"},
             {name: "tlu", type: "text", label: "TLU"}
         ]);

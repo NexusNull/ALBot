@@ -235,14 +235,14 @@ Game.prototype.init = function () {
                     thenDamage = damageTimeline.shift();
                 var dps = (damage - thenDamage) / damageTimeline.length;
 
-                //calculate gold per second
+                //calculate gold per hour
                 goldTimeline.push(character.gold);
                 var thenGold;
                 if (goldTimeline.length < timeFrame)
                     thenGold = goldTimeline[0];
                 else
                     thenGold = goldTimeline.shift();
-                var gps = (character.gold - thenGold) / goldTimeline.length;
+                var gph = (character.gold - thenGold) * 720;
 
                 //calculate xp per second
                 xpTimeline.push(character.xp);
@@ -279,6 +279,7 @@ Game.prototype.init = function () {
                     data: {
                         name: character.id,
                         level: character.level,
+                        party: character.party,
                         inv: character.isize - character.esize + " / " + character.isize,
                         xp: Math.floor(character.xp * 10000 / character.max_xp) / 100,
                         health: Math.floor(character.hp * 10000 / character.max_hp) / 100,
@@ -287,7 +288,7 @@ Game.prototype.init = function () {
                         status: character.rip ? "Dead" : "Alive",
                         gold: character.gold,
                         dps: Math.floor(dps),
-                        gps: Math.floor(gps),
+                        gph: Math.floor(gph),
                         xpps: Math.floor(xpps),
                         tlu: days + "d " + hours + ":" + minutes + ":" + seconds
                     }
