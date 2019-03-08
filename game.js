@@ -15,7 +15,34 @@ function close(error) {
     console.error(error);
     process.exit(1);
 }
-
+function to_pretty_num(a) {
+    if (!a) {
+        return "0"
+    }
+    a = round(a);
+    var b = "";
+    while (a) {
+        var c = a % 1000;
+        if (!c) {
+            c = "000"
+        } else {
+            if (c < 10 && c != a) {
+                c = "00" + c
+            } else {
+                if (c < 100 && c != a) {
+                    c = "0" + c
+                }
+            }
+        }
+        if (!b) {
+            b = c
+        } else {
+            b = c + "," + b
+        }
+        a = (a - a % 1000) / 1000
+    }
+    return "" + b
+}
 
 var Game = function (ip, port, characterId, script, botKey, G, httpWrapper) {
     this.ip = ip;
@@ -110,6 +137,7 @@ Game.prototype.init = function () {
     game.pathfinding = require("./PathFinding/pathFinding");
     game.pathfinding.initialize(this.G);
     */
+    var bwi = {};
     var glob = {
         localStorage: localStorage,
         gameplay: gameplay,
@@ -162,6 +190,7 @@ Game.prototype.init = function () {
         game: this,
         close_merchant: close_merchant,
         open_merchant: open_merchant,
+        bwi: bwi
     };
     Object.defineProperty(glob, "entities", {
         get: function () {
@@ -285,10 +314,10 @@ Game.prototype.init = function () {
                         mana: Math.floor(character.mp * 10000 / character.max_mp) / 100,
                         target: targetName,
                         status: character.rip ? "Dead" : "Alive",
-                        gold: character.gold,
+                        gold: to_pretty_num(character.gold),
                         dps: Math.floor(dps),
-                        gps: Math.floor(gps),
-                        xpps: Math.floor(xpps),
+                        gps: to_pretty_num(Math.floor(gps))*3600,
+                        xpps: to_pretty_num(Math.floor(xpps))*3600,
                         tlu: days + "d " + hours + ":" + minutes + ":" + seconds
                     }
                 })

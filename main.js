@@ -91,9 +91,10 @@ async function main() {
             {name: "target", type: "text", label: "Target"},
             {name: "status", type: "text", label: "Status"},
             {name: "dps", type: "text", label: "Damage/s"},
-            {name: "gps", type: "text", label: "Gold/s"},
-            {name: "xpps", type: "text", label: "XP/s"},
-            {name: "tlu", type: "text", label: "TLU"}
+            {name: "gps", type: "text", label: "Gold/h"},
+            {name: "xpps", type: "text", label: "XP/h"},
+            {name: "tlu", type: "text", label: "TLU"},
+            {name: "count", type: "text", label: "COUNT"}
         ]);
     }
 
@@ -116,7 +117,7 @@ var activeChildren = {};
 function startGame(args) {
     let childProcess = child_process.fork("./game", args, {
         stdio: [0, 1, 2, 'ipc'],
-        //execArgv:['--inspect-brk']
+        //execArgv:["--max_old_space_size=4096",/*'--inspect-brk'*/]
     });
     var data = {};
     var botInterface = BotWebInterface.SocketServer.getPublisher().createInterface();
