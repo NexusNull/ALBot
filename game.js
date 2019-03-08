@@ -20,7 +20,7 @@ function to_pretty_num(a) {
     if (!a) {
         return "0"
     }
-    a = round(a);
+    a = Math.round(a);
     let sign = false;
     if (a < 0) {
         a = -1 * a;
