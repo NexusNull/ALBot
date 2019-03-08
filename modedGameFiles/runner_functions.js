@@ -492,6 +492,11 @@ function send_cm(to, data) {
         from: character.name,
     })
 }
+process.on("message",function(m){
+    if(m.type === "send_cm_failed"){
+        parent.send_code_message(m.characterName,m.data);
+    }
+})
 
 function on_cm(name, data) {
     game_log("Received a code message from: " + name);
