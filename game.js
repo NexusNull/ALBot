@@ -16,7 +16,7 @@ function close(error) {
     process.exit(1);
 }
 
-function to_pretty_num(a) {
+function toPrettyNum(a) {
     if (!a) {
         return "0"
     }
@@ -321,10 +321,10 @@ Game.prototype.init = function () {
                         mana: Math.floor(character.mp * 10000 / character.max_mp) / 100,
                         target: targetName,
                         status: character.rip ? "Dead" : "Alive",
-                        gold: to_pretty_num(character.gold),
+                        gold: toPrettyNum(character.gold),
                         dps: Math.floor(dps),
-                        gph: to_pretty_num(Math.floor(gps) * 3600),
-                        xpph: to_pretty_num(Math.floor(xpps) * 3600),
+                        gph: toPrettyNum(Math.floor(gps) * 3600),
+                        xpph: toPrettyNum(Math.floor(xpps) * 3600),
                         tlu: (time > 0) ? days + "d " + hours + ":" + minutes + ":" + seconds : "Infinity",
                     }
                 })
