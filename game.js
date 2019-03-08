@@ -15,11 +15,17 @@ function close(error) {
     console.error(error);
     process.exit(1);
 }
+
 function to_pretty_num(a) {
     if (!a) {
         return "0"
     }
     a = round(a);
+    let sign = false;
+    if (a < 0) {
+        a = -1 * a;
+        sign = true;
+    }
     var b = "";
     while (a) {
         var c = a % 1000;
@@ -41,7 +47,7 @@ function to_pretty_num(a) {
         }
         a = (a - a % 1000) / 1000
     }
-    return "" + b
+    return (sign ? "-" : "") + b
 }
 
 var Game = function (ip, port, characterId, script, botKey, G, httpWrapper) {
@@ -284,7 +290,7 @@ Game.prototype.init = function () {
 
                 //calculate time until level up
                 var time = Math.floor((character.max_xp - character.xp) / xpps);
-                if(time>0){
+                if (time > 0) {
                     //prettify time
                     var days = Math.floor(time / (3600 * 24));
                     time -= 3600 * 24 * days;
@@ -317,9 +323,9 @@ Game.prototype.init = function () {
                         status: character.rip ? "Dead" : "Alive",
                         gold: to_pretty_num(character.gold),
                         dps: Math.floor(dps),
-                        gph: to_pretty_num(Math.floor(gps)*3600),
-                        xpph: to_pretty_num(Math.floor(xpps)*3600),
-                        tlu: (time>0)? days + "d " + hours + ":" + minutes + ":" + seconds:"Infinity",
+                        gph: to_pretty_num(Math.floor(gps) * 3600),
+                        xpph: to_pretty_num(Math.floor(xpps) * 3600),
+                        tlu: (time > 0) ? days + "d " + hours + ":" + minutes + ":" + seconds : "Infinity",
                     }
                 })
             }, 1000);
