@@ -91,10 +91,9 @@ async function main() {
             {name: "target", type: "text", label: "Target"},
             {name: "status", type: "text", label: "Status"},
             {name: "dps", type: "text", label: "Damage/s"},
-            {name: "gps", type: "text", label: "Gold/h"},
-            {name: "xpps", type: "text", label: "XP/h"},
-            {name: "tlu", type: "text", label: "TLU"},
-            {name: "count", type: "text", label: "COUNT"}
+            {name: "gph", type: "text", label: "Gold/h"},
+            {name: "xpph", type: "text", label: "XP/h"},
+            {name: "tlu", type: "text", label: "TLU"}
         ]);
     }
 

@@ -284,24 +284,25 @@ Game.prototype.init = function () {
 
                 //calculate time until level up
                 var time = Math.floor((character.max_xp - character.xp) / xpps);
+                if(time>0){
+                    //prettify time
+                    var days = Math.floor(time / (3600 * 24));
+                    time -= 3600 * 24 * days;
+                    var hours = Math.floor(time / 3600);
+                    time -= 3600 * hours;
+                    var minutes = Math.floor(time / 60);
+                    time -= 60 * minutes;
+                    var seconds = time;
 
-                //prettify time
-                var days = Math.floor(time / (3600 * 24));
-                time -= 3600 * 24 * days;
-                var hours = Math.floor(time / 3600);
-                time -= 3600 * hours;
-                var minutes = Math.floor(time / 60);
-                time -= 60 * minutes;
-                var seconds = time;
-
-                if (hours < 10) {
-                    hours = "0" + hours;
-                }
-                if (minutes < 10) {
-                    minutes = "0" + minutes;
-                }
-                if (seconds < 10) {
-                    seconds = "0" + seconds;
+                    if (hours < 10) {
+                        hours = "0" + hours;
+                    }
+                    if (minutes < 10) {
+                        minutes = "0" + minutes;
+                    }
+                    if (seconds < 10) {
+                        seconds = "0" + seconds;
+                    }
                 }
                 process.send({
                     type: "bwiUpdate",
@@ -316,9 +317,9 @@ Game.prototype.init = function () {
                         status: character.rip ? "Dead" : "Alive",
                         gold: to_pretty_num(character.gold),
                         dps: Math.floor(dps),
-                        gps: to_pretty_num(Math.floor(gps))*3600,
-                        xpps: to_pretty_num(Math.floor(xpps))*3600,
-                        tlu: days + "d " + hours + ":" + minutes + ":" + seconds
+                        gph: to_pretty_num(Math.floor(gps)*3600),
+                        xpph: to_pretty_num(Math.floor(xpps)*3600),
+                        tlu: (time>0)? days + "d " + hours + ":" + minutes + ":" + seconds:"Infinity",
                     }
                 })
             }, 1000);
