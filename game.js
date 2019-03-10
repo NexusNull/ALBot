@@ -9,6 +9,7 @@ process.on('uncaughtException', function (exception) {
 
 var LocalStorage = require('node-localstorage').LocalStorage;
 var HttpWrapper = require("./httpWrapper");
+const PNG = require('pngjs').PNG;
 localStorage = new LocalStorage('./localStorage');
 
 function close(error) {
@@ -249,6 +250,90 @@ Game.prototype.init = function () {
         }
     })
     socket.on("start", function () {
+        function clamp(x, low, high) {
+            return Math.min(Math.max(x, low), high);
+        }
+
+        function draw_line(x1, y1, x2, y2, png, color) {
+            x1 = clamp(Math.floor(x1), 0, png.width);
+            y1 = clamp(Math.floor(y1), 0, png.height);
+            x2 = clamp(Math.floor(x2), 0, png.width);
+            y2 = clamp(Math.floor(y2), 0, png.height);
+            if (Math.abs(x2 - x1) > Math.abs(y2 - y1)) {
+                if (x1 > x2) {
+                    let tmp = x2;
+                    x2 = x1;
+                    x1 = tmp;
+
+                    let tmp1 = y2;
+                    y2 = y1;
+                    y1 = tmp1;
+                }
+                let vecX = x2 - x1;
+                let vecY = y2 - y1;
+                if (!color)
+                    color = [0, 0, 0, 255];
+
+                for (let x = x1, i = 0; x < x2; i++, x++) {
+                    let y = y1 + Math.round((vecY / vecX) * i);
+                    let idx = (png.width * y + x) << 2;
+                    png.data[idx] = color[0];
+                    png.data[idx + 1] = color[1];
+                    png.data[idx + 2] = color[2];
+                    png.data[idx + 3] = color[3];
+                }
+            } else {
+                if (y1 > y2) {
+                    let tmp = x2;
+                    x2 = x1;
+                    x1 = tmp;
+
+                    let tmp1 = y2;
+                    y2 = y1;
+                    y1 = tmp1;
+                }
+                let vecY = y2 - y1;
+                let vecX = x2 - x1;
+                if (!color)
+                    color = [0, 0, 0, 255];
+
+                for (let y = y1, i = 0; y < y2; i++, y++) {
+                    let x = x1 + Math.round((vecX / vecY) * i);
+                    let idx = (png.width * y + x) << 2;
+                    png.data[idx] = color[0];
+                    png.data[idx + 1] = color[1];
+                    png.data[idx + 2] = color[2];
+                    png.data[idx + 3] = color[3];
+                }
+            }
+        }
+
+        function draw_dot(x, y, png, color) {
+            x = clamp(Math.floor(x), 0, png.width);
+            y = clamp(Math.floor(y), 0, png.height);
+            for(let i=-1;i<2;i++)
+                for(let j=-1;j<2;j++){
+                    let idx = (png.width * (y+j) + x+i) << 2;
+                    png.data[idx] = color[0];
+                    png.data[idx + 1] = color[1];
+                    png.data[idx + 2] = color[2];
+                    png.data[idx + 3] = color[3];
+                }
+        }
+
+        function bSearch(search, arr) {
+            let low = 0, high = arr.length - 1;
+            while (low + 1 !== high) {
+                let mid = Math.floor((low + high) / 2);
+                if (arr[mid][0] >= search) {
+                    high = mid;
+                } else {
+                    low = mid;
+                }
+            }
+            return high;
+        }
+
         setTimeout(function () {
             setInterval(function () {
                 var targetName = "nothing";
@@ -310,6 +395,69 @@ Game.prototype.init = function () {
                         seconds = "0" + seconds;
                     }
                 }
+                //Minimap creation
+                var png = new PNG({
+                    width: 188,
+                    height: 100,
+                    filterType: -1
+                });
+                for (let j = 0; j < Math.floor(png.data.length / 4); j++) {
+                    let idx = j << 2;
+                    png.data[idx] = 5;
+                    png.data[idx + 1] = 0;
+                    png.data[idx + 2] = 0;
+                    png.data[idx + 3] = 255;
+
+                }
+                var screenSize = {width: 800, height: 600};
+                var pos = {
+                    x: character.real_x - Math.floor(screenSize.width / 2),
+                    y: character.real_y - Math.floor(screenSize.height / 2)
+                };
+                var map = character.in;
+
+                if (G.maps[map]) {
+                    let xLines = G.maps[map].data.x_lines;
+                    let yLines = G.maps[map].data.y_lines;
+
+                    for (let i = bSearch(pos.x, xLines); xLines[i][0] < pos.x + screenSize.width; i++) {
+                        let line = xLines[i];
+                        let x = ((line[0] - pos.x) / screenSize.width) * png.width;
+                        let y1 = ((line[1] - pos.y) / screenSize.height) * png.height;
+                        let y2 = ((line[2] - pos.y) / screenSize.height) * png.height;
+                        draw_line(x, y1, x, y2, png, [255, 255, 255, 255]);
+                    }
+
+                    for (let i = bSearch(pos.y, yLines); yLines[i][0] < pos.y + screenSize.height; i++) {
+                        let line = yLines[i];
+                        let y = ((line[0] - pos.y) / screenSize.height) * png.height;
+                        let x1 = ((line[1] - pos.x) / screenSize.width) * png.width;
+                        let x2 = ((line[2] - pos.x) / screenSize.width) * png.width;
+                        draw_line(x1, y, x2, y, png, [255, 255, 255, 255]);
+                    }
+
+                }
+                if (entities) {
+                    for (let id in entities) {
+                        let entity = entities[id];
+                        let color = [255,255,255,255];
+                        if (entity.type === "monster") {
+                            color = [200,0,0,255];
+                        }
+                        draw_dot(
+                            ((entity.real_x - pos.x) / screenSize.width) * png.width,
+                            ((entity.real_y - pos.y) / screenSize.height) * png.height,
+                            png, color);
+                    }
+                }
+                draw_dot(
+                    ((character.real_x - pos.x) / screenSize.width) * png.width,
+                    ((character.real_y - pos.y) / screenSize.height) * png.height,
+                    png, [0,200,0,255]);
+
+
+                let buffer = PNG.sync.write(png, options);
+
                 process.send({
                     type: "bwiUpdate",
                     data: {
@@ -326,6 +474,7 @@ Game.prototype.init = function () {
                         gph: toPrettyNum(Math.floor(gps) * 3600),
                         xpph: toPrettyNum(Math.floor(xpps) * 3600),
                         tlu: (time > 0) ? days + "d " + hours + ":" + minutes + ":" + seconds : "Infinity",
+                        minimap: "data:image/png;base64," + buffer.toString("base64"),
                     }
                 })
             }, 1000);

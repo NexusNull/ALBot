@@ -75,7 +75,7 @@ async function main() {
     if (userData.config.botWebInterface.start) {
         BotWebInterface.startOnPort(userData.config.botWebInterface.port);
         var password;
-        if(userData.config.botWebInterface.password === "")
+        if (userData.config.botWebInterface.password === "")
             password = null;
         else
             password = userData.config.botWebInterface.password;
@@ -93,12 +93,10 @@ async function main() {
             {name: "dps", type: "text", label: "Damage/s"},
             {name: "gph", type: "text", label: "Gold/h"},
             {name: "xpph", type: "text", label: "XP/h"},
-            {name: "tlu", type: "text", label: "TLU"}
+            {name: "tlu", type: "text", label: "TLU"},
+            {name: "minimap", type: "image", label: "Minimap", options: {width: 376, height: 200}}
         ]);
     }
-
-
-
 
     //Checks are done, starting bots.
     for (let i = 0; i < bots.length; i++) {
@@ -115,11 +113,16 @@ async function main() {
         startGame(args);
     }
 }
+
 var activeChildren = {};
+
 function startGame(args) {
     let childProcess = child_process.fork("./game", args, {
         stdio: [0, 1, 2, 'ipc'],
-        //execArgv:["--max_old_space_size=4096",/*'--inspect-brk'*/]
+        execArgv: [
+            //"--max_old_space_size=4096",
+            //'--inspect-brk'
+        ]
     });
     var data = {};
     var botInterface = BotWebInterface.SocketServer.getPublisher().createInterface();
@@ -129,8 +132,8 @@ function startGame(args) {
     childProcess.on('message', (m) => {
         if (m.type === "status" && m.status === "disconnected") {
             childProcess.kill();
-            for(var i in activeChildren){
-                if(activeChildren[i] == childProcess){
+            for (var i in activeChildren) {
+                if (activeChildren[i] == childProcess) {
                     activeChildren[i] = null;
                 }
             }
@@ -140,8 +143,8 @@ function startGame(args) {
             data = m.data;
         } else if (m.type === "startupClient") {
             activeChildren[m.characterName] = childProcess;
-        } else  if(m.type === "send_cm") {
-            if(activeChildren[m.characterName]){
+        } else if (m.type === "send_cm") {
+            if (activeChildren[m.characterName]) {
                 activeChildren[m.characterName].send({
                     type: "on_cm",
                     from: m.from,
@@ -163,6 +166,7 @@ async function sleep(ms) {
         setTimeout(resolve, ms);
     });
 }
+
 main();
 
 
