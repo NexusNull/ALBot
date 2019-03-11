@@ -136,7 +136,7 @@ Game.prototype.init = function () {
         log_in(user_id, character_to_load, user_auth);
     }
 
-    eval(fs.readFileSync('modedGameFiles/game.js') + '');
+    eval(fs.readFileSync('moddedGameFiles/game.js') + '');
     gprocess_game_data();
     init_socket();
     this.socket = socket;
