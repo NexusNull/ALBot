@@ -334,67 +334,9 @@ Game.prototype.init = function () {
             return high;
         }
 
+
         setTimeout(function () {
-            setInterval(function () {
-                var targetName = "nothing";
-                if (character.target && entities[character.target]) {
-                    if (entities[character.target].player) {
-                        targetName = entities[character.target].id
-                    } else {
-                        targetName = entities[character.target].mtype;
-                    }
-                }
-
-
-                //calculate damage per second
-                damageTimeline.push(damage);
-                var thenDamage;
-                if (damageTimeline.length < timeFrame)
-                    thenDamage = damageTimeline[0];
-                else
-                    thenDamage = damageTimeline.shift();
-                var dps = (damage - thenDamage) / damageTimeline.length;
-
-                //calculate gold per second
-                goldTimeline.push(character.gold);
-                var thenGold;
-                if (goldTimeline.length < timeFrame)
-                    thenGold = goldTimeline[0];
-                else
-                    thenGold = goldTimeline.shift();
-                var gps = (character.gold - thenGold) / goldTimeline.length;
-
-                //calculate xp per second
-                xpTimeline.push(character.xp);
-                var thenXP;
-                if (xpTimeline.length < timeFrame)
-                    thenXP = xpTimeline[0];
-                else
-                    thenXP = xpTimeline.shift();
-                var xpps = (character.xp - thenXP) / xpTimeline.length;
-
-                //calculate time until level up
-                var time = Math.floor((character.max_xp - character.xp) / xpps);
-                if (time > 0) {
-                    //prettify time
-                    var days = Math.floor(time / (3600 * 24));
-                    time -= 3600 * 24 * days;
-                    var hours = Math.floor(time / 3600);
-                    time -= 3600 * hours;
-                    var minutes = Math.floor(time / 60);
-                    time -= 60 * minutes;
-                    var seconds = time;
-
-                    if (hours < 10) {
-                        hours = "0" + hours;
-                    }
-                    if (minutes < 10) {
-                        minutes = "0" + minutes;
-                    }
-                    if (seconds < 10) {
-                        seconds = "0" + seconds;
-                    }
-                }
+            setInterval(function(){
                 //Minimap creation
                 var png = new PNG({
                     width: 188,
@@ -459,6 +401,72 @@ Game.prototype.init = function () {
                 let buffer = PNG.sync.write(png, options);
 
                 process.send({
+                    type: "bwiPush",
+                    name: "minimap",
+                    data: "data:image/png;base64," + buffer.toString("base64"),
+                });
+            },500);
+            setInterval(function () {
+                var targetName = "nothing";
+                if (character.target && entities[character.target]) {
+                    if (entities[character.target].player) {
+                        targetName = entities[character.target].id
+                    } else {
+                        targetName = entities[character.target].mtype;
+                    }
+                }
+                //calculate damage per second
+                damageTimeline.push(damage);
+                var thenDamage;
+                if (damageTimeline.length < timeFrame)
+                    thenDamage = damageTimeline[0];
+                else
+                    thenDamage = damageTimeline.shift();
+                var dps = (damage - thenDamage) / damageTimeline.length;
+
+                //calculate gold per second
+                goldTimeline.push(character.gold);
+                var thenGold;
+                if (goldTimeline.length < timeFrame)
+                    thenGold = goldTimeline[0];
+                else
+                    thenGold = goldTimeline.shift();
+                var gps = (character.gold - thenGold) / goldTimeline.length;
+
+                //calculate xp per second
+                xpTimeline.push(character.xp);
+                var thenXP;
+                if (xpTimeline.length < timeFrame)
+                    thenXP = xpTimeline[0];
+                else
+                    thenXP = xpTimeline.shift();
+                var xpps = (character.xp - thenXP) / xpTimeline.length;
+
+                //calculate time until level up
+                var time = Math.floor((character.max_xp - character.xp) / xpps);
+                if (time > 0) {
+                    //prettify time
+                    var days = Math.floor(time / (3600 * 24));
+                    time -= 3600 * 24 * days;
+                    var hours = Math.floor(time / 3600);
+                    time -= 3600 * hours;
+                    var minutes = Math.floor(time / 60);
+                    time -= 60 * minutes;
+                    var seconds = time;
+
+                    if (hours < 10) {
+                        hours = "0" + hours;
+                    }
+                    if (minutes < 10) {
+                        minutes = "0" + minutes;
+                    }
+                    if (seconds < 10) {
+                        seconds = "0" + seconds;
+                    }
+                }
+
+
+                process.send({
                     type: "bwiUpdate",
                     data: {
                         name: character.id,
@@ -474,7 +482,6 @@ Game.prototype.init = function () {
                         gph: toPrettyNum(Math.floor(gps) * 3600),
                         xpph: toPrettyNum(Math.floor(xpps) * 3600),
                         tlu: (time > 0) ? days + "d " + hours + ":" + minutes + ":" + seconds : "Infinity",
-                        minimap: "data:image/png;base64," + buffer.toString("base64"),
                     }
                 })
             }, 1000);

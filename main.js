@@ -80,7 +80,7 @@ async function main() {
         else
             password = userData.config.botWebInterface.password;
         BotWebInterface.setPassword(password);
-        BotWebInterface.SocketServer.getPublisher().setStructure([
+        BotWebInterface.SocketServer.getPublisher().setDefaultStructure([
             {name: "name", type: "text", label: "name"},
             {name: "inv", type: "text", label: "Inventory"},
             {name: "level", type: "text", label: "Level"},
@@ -141,6 +141,8 @@ function startGame(args) {
             startGame(args);
         } else if (m.type === "bwiUpdate") {
             data = m.data;
+        } else if (m.type === "bwiPush") {
+            botInterface.pushData(m.name,m.data);
         } else if (m.type === "startupClient") {
             activeChildren[m.characterName] = childProcess;
         } else if (m.type === "send_cm") {
