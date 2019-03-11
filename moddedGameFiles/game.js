@@ -983,7 +983,9 @@ function on_disappear(event) {
             entities[event.id].tpd = true
         }
         call_code_function("on_disappear", entities[event.id], event);
-        delete entities[event.id]
+        setTimeout(function(){
+            delete entities[event.id];
+        },500);
     } else {
         if (character && character.id == event.id) {
             if (event.invis) {
@@ -3841,7 +3843,7 @@ function map_click_release() {
 }
 
 function draw_entities() {
-    for (entity in entities) {
+    for (let entity in entities) {
         var a = entities[entity];
         if (character && !within_xy_range(character, a) || !character && !within_xy_range({
                 map: current_map,
@@ -3869,7 +3871,10 @@ function draw_entities() {
                     destroy_sprite(entities[entity], "just")
                 }
             }
-            delete entities[entity];
+            setTimeout(function(){
+                delete entities[entity];
+            },500)
+
             continue
         } else {
             if (!a.drawn) {

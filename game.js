@@ -255,10 +255,10 @@ Game.prototype.init = function () {
         }
 
         function draw_line(x1, y1, x2, y2, png, color) {
-            x1 = clamp(Math.floor(x1), 0, png.width);
-            y1 = clamp(Math.floor(y1), 0, png.height);
-            x2 = clamp(Math.floor(x2), 0, png.width);
-            y2 = clamp(Math.floor(y2), 0, png.height);
+            x1 = Math.floor(x1);
+            y1 = Math.floor(y1);
+            x2 = Math.floor(x2);
+            y2 = Math.floor(y2);
             if (Math.abs(x2 - x1) > Math.abs(y2 - y1)) {
                 if (x1 > x2) {
                     let tmp = x2;
@@ -276,6 +276,9 @@ Game.prototype.init = function () {
 
                 for (let x = x1, i = 0; x < x2; i++, x++) {
                     let y = y1 + Math.round((vecY / vecX) * i);
+                    //out of bounds check
+                    if (x > png.width || x < 0 || y > png.height || y < 0)
+                        continue;
                     let idx = (png.width * y + x) << 2;
                     png.data[idx] = color[0];
                     png.data[idx + 1] = color[1];
@@ -299,6 +302,8 @@ Game.prototype.init = function () {
 
                 for (let y = y1, i = 0; y < y2; i++, y++) {
                     let x = x1 + Math.round((vecX / vecY) * i);
+                    if (x > png.width || x < 0 || y > png.height || y < 0)
+                        continue;
                     let idx = (png.width * y + x) << 2;
                     png.data[idx] = color[0];
                     png.data[idx + 1] = color[1];
@@ -309,10 +314,12 @@ Game.prototype.init = function () {
         }
 
         function draw_dot(x, y, png, color) {
-            x = clamp(Math.floor(x), 0, png.width);
-            y = clamp(Math.floor(y), 0, png.height);
+            x = Math.floor(x);
+            y = Math.floor(y);
             for (let i = -1; i < 2; i++)
                 for (let j = -1; j < 2; j++) {
+                    if (x + j > png.width || x + j < 0 || y + i > png.height || y + i < 0)
+                        continue;
                     let idx = (png.width * (y + j) + x + i) << 2;
                     png.data[idx] = color[0];
                     png.data[idx + 1] = color[1];
@@ -334,13 +341,17 @@ Game.prototype.init = function () {
             return high;
         }
 
+        var hitLog = [];
+        socket.on("hit", function (data) {
+            hitLog.push(data);
+        });
 
         setTimeout(function () {
-            setInterval(function(){
+            setInterval(function () {
                 //Minimap creation
                 var png = new PNG({
-                    width: 188,
-                    height: 100,
+                    width: 188 * 2,
+                    height: 100 * 2,
                     filterType: -1
                 });
                 for (let j = 0; j < Math.floor(png.data.length / 4); j++) {
@@ -362,7 +373,7 @@ Game.prototype.init = function () {
                     let xLines = G.maps[map].data.x_lines;
                     let yLines = G.maps[map].data.y_lines;
 
-                    for (let i = bSearch(pos.x, xLines);i < xLines.length && xLines[i][0] < pos.x + screenSize.width; i++) {
+                    for (let i = bSearch(pos.x, xLines); i < xLines.length && xLines[i][0] < pos.x + screenSize.width; i++) {
                         let line = xLines[i];
                         let x = ((line[0] - pos.x) / screenSize.width) * png.width;
                         let y1 = ((line[1] - pos.y) / screenSize.height) * png.height;
@@ -379,12 +390,44 @@ Game.prototype.init = function () {
                     }
 
                 }
+                // draw hit lines
+                for (let hit of hitLog) {
+                    let source = entities[hit.hid];
+                    let target = entities[hit.id];
+                    if (hit.hid === character.id)
+                        source = character;
+                    if (hit.id === character.id)
+                        target = character;
+
+                    if (source && target) {
+                        let color = [255, 255, 255, 255];
+                        if (hit.anim === "heal") {
+                            color = [0, 250, 0, 255];
+                        } else
+                            color = [250, 0, 0, 255];
+                        draw_line(
+                            ((source.real_x - pos.x) / screenSize.width) * png.width,
+                            ((source.real_y - pos.y) / screenSize.height) * png.height,
+                            ((target.real_x - pos.x) / screenSize.width) * png.width,
+                            ((target.real_y - pos.y) / screenSize.height) * png.height,
+                            png, [200, 0, 0, 255]);
+                    } else {
+                        console.log(hit);
+                    }
+
+                }
+                hitLog = [];
+                //draw entities
                 if (entities) {
                     for (let id in entities) {
                         let entity = entities[id];
                         let color = [255, 255, 255, 255];
                         if (entity.type === "monster") {
-                            color = [200, 0, 0, 255];
+                            if (!entity.dead) {
+                                color = [200, 0, 0, 255];
+                            } else {
+                                color = [100, 100, 100, 255];
+                            }
                         }
                         draw_dot(
                             ((entity.real_x - pos.x) / screenSize.width) * png.width,
@@ -392,6 +435,7 @@ Game.prototype.init = function () {
                             png, color);
                     }
                 }
+                //draw character
                 draw_dot(
                     ((character.real_x - pos.x) / screenSize.width) * png.width,
                     ((character.real_y - pos.y) / screenSize.height) * png.height,
@@ -405,7 +449,7 @@ Game.prototype.init = function () {
                     name: "minimap",
                     data: "data:image/png;base64," + buffer.toString("base64"),
                 });
-            },500);
+            }, 200);
             setInterval(function () {
                 var targetName = "nothing";
                 if (character.target && entities[character.target]) {
