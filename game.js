@@ -311,9 +311,9 @@ Game.prototype.init = function () {
         function draw_dot(x, y, png, color) {
             x = clamp(Math.floor(x), 0, png.width);
             y = clamp(Math.floor(y), 0, png.height);
-            for(let i=-1;i<2;i++)
-                for(let j=-1;j<2;j++){
-                    let idx = (png.width * (y+j) + x+i) << 2;
+            for (let i = -1; i < 2; i++)
+                for (let j = -1; j < 2; j++) {
+                    let idx = (png.width * (y + j) + x + i) << 2;
                     png.data[idx] = color[0];
                     png.data[idx + 1] = color[1];
                     png.data[idx + 2] = color[2];
@@ -420,7 +420,7 @@ Game.prototype.init = function () {
                     let xLines = G.maps[map].data.x_lines;
                     let yLines = G.maps[map].data.y_lines;
 
-                    for (let i = bSearch(pos.x, xLines); xLines[i][0] < pos.x + screenSize.width; i++) {
+                    for (let i = bSearch(pos.x, xLines);i < xLines.length && xLines[i][0] < pos.x + screenSize.width; i++) {
                         let line = xLines[i];
                         let x = ((line[0] - pos.x) / screenSize.width) * png.width;
                         let y1 = ((line[1] - pos.y) / screenSize.height) * png.height;
@@ -428,7 +428,7 @@ Game.prototype.init = function () {
                         draw_line(x, y1, x, y2, png, [255, 255, 255, 255]);
                     }
 
-                    for (let i = bSearch(pos.y, yLines); yLines[i][0] < pos.y + screenSize.height; i++) {
+                    for (let i = bSearch(pos.y, yLines); i < yLines.length && yLines[i][0] < pos.y + screenSize.height; i++) {
                         let line = yLines[i];
                         let y = ((line[0] - pos.y) / screenSize.height) * png.height;
                         let x1 = ((line[1] - pos.x) / screenSize.width) * png.width;
@@ -440,9 +440,9 @@ Game.prototype.init = function () {
                 if (entities) {
                     for (let id in entities) {
                         let entity = entities[id];
-                        let color = [255,255,255,255];
+                        let color = [255, 255, 255, 255];
                         if (entity.type === "monster") {
-                            color = [200,0,0,255];
+                            color = [200, 0, 0, 255];
                         }
                         draw_dot(
                             ((entity.real_x - pos.x) / screenSize.width) * png.width,
@@ -453,7 +453,7 @@ Game.prototype.init = function () {
                 draw_dot(
                     ((character.real_x - pos.x) / screenSize.width) * png.width,
                     ((character.real_y - pos.y) / screenSize.height) * png.height,
-                    png, [0,200,0,255]);
+                    png, [0, 200, 0, 255]);
 
 
                 let buffer = PNG.sync.write(png, options);
