@@ -28,7 +28,7 @@ var mode = {
 };
 var paused = false;
 var log_flags = {
-    timers: 1,
+    timers: 0,
 };
 var ptimers = true;
 var mdraw_mode = "redraw"
