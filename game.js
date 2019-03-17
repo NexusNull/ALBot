@@ -9,6 +9,7 @@ process.on('uncaughtException', function (exception) {
 
 var LocalStorage = require('node-localstorage').LocalStorage;
 var HttpWrapper = require("./httpWrapper");
+const pngUtil = require("./pngUtil");
 const PNG = require('pngjs').PNG;
 localStorage = new LocalStorage('./localStorage');
 
@@ -254,80 +255,6 @@ Game.prototype.init = function () {
             return Math.min(Math.max(x, low), high);
         }
 
-        function draw_line(x1, y1, x2, y2, png, color) {
-            x1 = Math.floor(x1);
-            y1 = Math.floor(y1);
-            x2 = Math.floor(x2);
-            y2 = Math.floor(y2);
-            if (Math.abs(x2 - x1) > Math.abs(y2 - y1)) {
-                if (x1 > x2) {
-                    let tmp = x2;
-                    x2 = x1;
-                    x1 = tmp;
-
-                    let tmp1 = y2;
-                    y2 = y1;
-                    y1 = tmp1;
-                }
-                let vecX = x2 - x1;
-                let vecY = y2 - y1;
-                if (!color)
-                    color = [0, 0, 0, 255];
-
-                for (let x = x1, i = 0; x < x2; i++, x++) {
-                    let y = y1 + Math.round((vecY / vecX) * i);
-                    //out of bounds check
-                    if (x > png.width - 1 || x < 0 || y > png.height - 1 || y < 0)
-                        continue;
-                    let idx = (png.width * y + x) << 2;
-                    png.data[idx] = color[0];
-                    png.data[idx + 1] = color[1];
-                    png.data[idx + 2] = color[2];
-                    png.data[idx + 3] = color[3];
-                }
-            } else {
-                if (y1 > y2) {
-                    let tmp = x2;
-                    x2 = x1;
-                    x1 = tmp;
-
-                    let tmp1 = y2;
-                    y2 = y1;
-                    y1 = tmp1;
-                }
-                let vecY = y2 - y1;
-                let vecX = x2 - x1;
-                if (!color)
-                    color = [0, 0, 0, 255];
-
-                for (let y = y1, i = 0; y < y2; i++, y++) {
-                    let x = x1 + Math.round((vecX / vecY) * i);
-                    if (x > png.width - 1 || x < 0 || y > png.height - 1 || y < 0)
-                        continue;
-                    let idx = (png.width * y + x) << 2;
-                    png.data[idx] = color[0];
-                    png.data[idx + 1] = color[1];
-                    png.data[idx + 2] = color[2];
-                    png.data[idx + 3] = color[3];
-                }
-            }
-        }
-
-        function draw_dot(x, y, png, color) {
-            x = Math.floor(x);
-            y = Math.floor(y);
-            for (let i = -1; i < 2; i++)
-                for (let j = -1; j < 2; j++) {
-                    if (x + j > png.width - 1 || x + j < 0 || y + i > png.height - 1 || y + i < 0)
-                        continue;
-                    let idx = (png.width * (y + j) + x + i) << 2;
-                    png.data[idx] = color[0];
-                    png.data[idx + 1] = color[1];
-                    png.data[idx + 2] = color[2];
-                    png.data[idx + 3] = color[3];
-                }
-        }
-
         function bSearch(search, arr) {
             let low = 0, high = arr.length - 1;
             while (low + 1 !== high) {
@@ -377,7 +304,7 @@ Game.prototype.init = function () {
                         let x = ((line[0] - pos.x) / screenSize.width) * png.width;
                         let y1 = ((line[1] - pos.y) / screenSize.height) * png.height;
                         let y2 = ((line[2] - pos.y) / screenSize.height) * png.height;
-                        draw_line(x, y1, x, y2, png, [255, 255, 255, 255]);
+                        pngUtil.draw_line(x, y1, x, y2, png, [255, 255, 255, 255]);
                     }
 
                     for (let i = bSearch(pos.y, yLines); i < yLines.length && yLines[i][0] < pos.y + screenSize.height; i++) {
@@ -385,7 +312,7 @@ Game.prototype.init = function () {
                         let y = ((line[0] - pos.y) / screenSize.height) * png.height;
                         let x1 = ((line[1] - pos.x) / screenSize.width) * png.width;
                         let x2 = ((line[2] - pos.x) / screenSize.width) * png.width;
-                        draw_line(x1, y, x2, y, png, [255, 255, 255, 255]);
+                        pngUtil.draw_line(x1, y, x2, y, png, [255, 255, 255, 255]);
                     }
                 }
                 // draw hit lines
@@ -403,7 +330,7 @@ Game.prototype.init = function () {
                             color = [0, 250, 0, 255];
                         } else
                             color = [250, 0, 0, 255];
-                        draw_line(
+                        pngUtil.draw_line(
                             ((source.real_x - pos.x) / screenSize.width) * png.width,
                             ((source.real_y - pos.y) / screenSize.height) * png.height,
                             ((target.real_x - pos.x) / screenSize.width) * png.width,
@@ -424,14 +351,14 @@ Game.prototype.init = function () {
                                 color = [100, 100, 100, 255];
                             }
                         }
-                        draw_dot(
+                        pngUtil.draw_dot(
                             ((entity.real_x - pos.x) / screenSize.width) * png.width,
                             ((entity.real_y - pos.y) / screenSize.height) * png.height,
                             png, color);
                     }
                 }
                 //draw character
-                draw_dot(
+                pngUtil.draw_dot(
                     ((character.real_x - pos.x) / screenSize.width) * png.width,
                     ((character.real_y - pos.y) / screenSize.height) * png.height,
                     png, [0, 200, 0, 255]);
