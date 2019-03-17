@@ -277,7 +277,7 @@ Game.prototype.init = function () {
                 for (let x = x1, i = 0; x < x2; i++, x++) {
                     let y = y1 + Math.round((vecY / vecX) * i);
                     //out of bounds check
-                    if (x > png.width || x < 0 || y > png.height || y < 0)
+                    if (x > png.width - 1 || x < 0 || y > png.height - 1 || y < 0)
                         continue;
                     let idx = (png.width * y + x) << 2;
                     png.data[idx] = color[0];
@@ -302,7 +302,7 @@ Game.prototype.init = function () {
 
                 for (let y = y1, i = 0; y < y2; i++, y++) {
                     let x = x1 + Math.round((vecX / vecY) * i);
-                    if (x > png.width || x < 0 || y > png.height || y < 0)
+                    if (x > png.width - 1 || x < 0 || y > png.height - 1 || y < 0)
                         continue;
                     let idx = (png.width * y + x) << 2;
                     png.data[idx] = color[0];
@@ -318,7 +318,7 @@ Game.prototype.init = function () {
             y = Math.floor(y);
             for (let i = -1; i < 2; i++)
                 for (let j = -1; j < 2; j++) {
-                    if (x + j > png.width || x + j < 0 || y + i > png.height || y + i < 0)
+                    if (x + j > png.width - 1 || x + j < 0 || y + i > png.height - 1 || y + i < 0)
                         continue;
                     let idx = (png.width * (y + j) + x + i) << 2;
                     png.data[idx] = color[0];
@@ -360,7 +360,6 @@ Game.prototype.init = function () {
                     png.data[idx + 1] = 0;
                     png.data[idx + 2] = 0;
                     png.data[idx + 3] = 255;
-
                 }
                 var screenSize = {width: 800, height: 600};
                 var pos = {
@@ -388,7 +387,6 @@ Game.prototype.init = function () {
                         let x2 = ((line[2] - pos.x) / screenSize.width) * png.width;
                         draw_line(x1, y, x2, y, png, [255, 255, 255, 255]);
                     }
-
                 }
                 // draw hit lines
                 for (let hit of hitLog) {
@@ -411,10 +409,7 @@ Game.prototype.init = function () {
                             ((target.real_x - pos.x) / screenSize.width) * png.width,
                             ((target.real_y - pos.y) / screenSize.height) * png.height,
                             png, [200, 0, 0, 255]);
-                    } else {
-                        console.log(hit);
                     }
-
                 }
                 hitLog = [];
                 //draw entities

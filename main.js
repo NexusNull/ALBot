@@ -30,7 +30,8 @@ async function main() {
                 characterName: characters[i].name,
                 characterId: characters[i].id,
                 runScript: "default.js",
-                server: "US I"
+                server: "US I",
+                enabled: false,
             }
         }
         userData.config.fetch = false;
@@ -44,8 +45,8 @@ async function main() {
     }
 
     for (let i = 0; i < bots.length; i++) {
-        if (!(bots[i] && bots[i].characterId && bots[i].runScript && bots[i].server))
-            throw new Error("One or more necessary fields are missing from userData.json \n The following fields need to be present for a working executor:\n characterId runScript\n server\n");
+        if (!(bots[i] && bots[i].characterId && bots[i].runScript && bots[i].server && typeof bots[i].enabled === "boolean"))
+            throw new Error("One or more necessary fields are missing from userData.json \n The following fields need to be present for a working executor:\n characterId runScript\n server\n enabled\n To fix this automatically simply set fetch: true in userdata.json");
     }
 
     //Reverse lookup name to characterId, names can't be used for starting a bot.
@@ -99,9 +100,14 @@ async function main() {
     }
 
     //Checks are done, starting bots.
+    let botCount = 0;
     for (let i = 0; i < bots.length; i++) {
-        let ip = "54.169.213.59";
-        let port = 8090;
+        if(!bots[i].enabled)
+            continue;
+        botCount++;
+        //TODO fix for no online server
+        let ip = null;
+        let port = null;
         for (let j = 0; j < serverList.length; j++) {
             let server = serverList[j];
             if (bots[i].server === server.region + " " + server.name) {
@@ -109,8 +115,18 @@ async function main() {
                 port = server.port;
             }
         }
-        var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId, ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
-        startGame(args);
+        if (ip && port) {
+            var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId, ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
+            startGame(args);
+        } else {
+            console.warn("Couldn't find server: '"+bots[i].server+"'.");
+        }
+    }
+    if(bots.length === 0){
+        console.warn("Couldn't find any bots to start you can set the fetch flag the pull all characters from the server.");
+    } else
+    if(botCount === 0){
+        console.warn("Couldn't find any bots to start, make sure the enable flag is set to true");
     }
 }
 
@@ -142,7 +158,7 @@ function startGame(args) {
         } else if (m.type === "bwiUpdate") {
             data = m.data;
         } else if (m.type === "bwiPush") {
-            botInterface.pushData(m.name,m.data);
+            botInterface.pushData(m.name, m.data);
         } else if (m.type === "startupClient") {
             activeChildren[m.characterName] = childProcess;
         } else if (m.type === "send_cm") {
