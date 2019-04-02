@@ -57,11 +57,12 @@ function draw_line(x1, y1, x2, y2, png, color) {
     }
 }
 
-function draw_dot(x, y, png, color) {
+function draw_dot(x, y, size, png, color) {
     x = Math.floor(x);
     y = Math.floor(y);
-    for (let i = -1; i < 2; i++)
-        for (let j = -1; j < 2; j++) {
+
+    for (let i = -size + 1; i < size; i++)
+        for (let j = -size + 1; j < size; j++) {
             if (x + j > png.width - 1 || x + j < 0 || y + i > png.height - 1 || y + i < 0)
                 continue;
             let idx = (png.width * (y + j) + x + i) << 2;
@@ -73,6 +74,6 @@ function draw_dot(x, y, png, color) {
 }
 
 module.exports = {
-    draw_line:draw_line,
-    draw_dot:draw_dot,
+    draw_line: draw_line,
+    draw_dot: draw_dot,
 }

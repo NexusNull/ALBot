@@ -6,7 +6,6 @@ process.on('uncaughtException', function (exception) {
     console.log(exception);
     console.log(exception.stack);
 });
-
 var LocalStorage = require('node-localstorage').LocalStorage;
 var HttpWrapper = require("./httpWrapper");
 const pngUtil = require("./pngUtil");
@@ -146,6 +145,8 @@ Game.prototype.init = function () {
     game.pathfinding.initialize(this.G);
     */
     var bwi = {};
+
+    //static variables
     var glob = {
         localStorage: localStorage,
         gameplay: gameplay,
@@ -178,7 +179,6 @@ Game.prototype.init = function () {
         say: say,
         private_say: private_say,
         party_list: party_list,
-        party: party,
         calculate_move: calculate_move,
         chests: chests,
         entities: entities,
@@ -200,11 +200,12 @@ Game.prototype.init = function () {
         open_merchant: open_merchant,
         bwi: bwi
     };
+    //non static variables
     Object.defineProperty(glob, "entities", {
         get: function () {
             return entities;
         }
-    })
+    });
     Object.defineProperty(glob, "code_active", {
         get: function () {
             return code_active;
@@ -235,7 +236,22 @@ Game.prototype.init = function () {
         get: function () {
             return M;
         }
-    })
+    });
+    Object.defineProperty(glob, "party", {
+        get: function () {
+            return party;
+        }
+    });
+    Object.defineProperty(glob, "is_pvp", {
+        get: function () {
+            return is_pvp;
+        }
+    });
+    Object.defineProperty(glob, "pvp", {
+        get: function () {
+            return pvp;
+        }
+    });
     var damage = 0;
     var timeFrame = 60 * 5;
     var goldTimeline = [],
@@ -354,6 +370,7 @@ Game.prototype.init = function () {
                         pngUtil.draw_dot(
                             ((entity.real_x - pos.x) / screenSize.width) * png.width,
                             ((entity.real_y - pos.y) / screenSize.height) * png.height,
+                            2,
                             png, color);
                     }
                 }
@@ -361,6 +378,7 @@ Game.prototype.init = function () {
                 pngUtil.draw_dot(
                     ((character.real_x - pos.x) / screenSize.width) * png.width,
                     ((character.real_y - pos.y) / screenSize.height) * png.height,
+                    2,
                     png, [0, 200, 0, 255]);
 
 

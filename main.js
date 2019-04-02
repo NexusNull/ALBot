@@ -131,13 +131,12 @@ async function main() {
 }
 
 var activeChildren = {};
-
 function startGame(args) {
     let childProcess = child_process.fork("./game", args, {
         stdio: [0, 1, 2, 'ipc'],
         execArgv: [
+            //'--inspect-brk',
             //"--max_old_space_size=4096",
-            //'--inspect-brk'
         ]
     });
     var data = {};
