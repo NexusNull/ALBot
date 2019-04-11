@@ -449,6 +449,26 @@ Game.prototype.init = function () {
                     }
                 }
 
+                var targetIds = [];
+                if(character.target)
+                    targetIds.push(character.target);
+                for (let id in entities) {
+                    let entity = entities[id];
+                    if (entity.target === character.id)
+                        if(!targetIds.includes(entity.id))
+                            targetIds.push(entity.id);
+                }
+
+                var targets = [];
+                for(let id of targetIds){
+                    if(entities[id])
+                        targets.push({
+                            name: entities[id].name,
+                            health: Math.floor(entities[id].hp * 10000 / entities[id].max_hp) / 100,
+                            level: entities[id].level,
+                        })
+
+                }
 
                 process.send({
                     type: "bwiUpdate",
@@ -459,7 +479,7 @@ Game.prototype.init = function () {
                         xp: Math.floor(character.xp * 10000 / character.max_xp) / 100,
                         health: Math.floor(character.hp * 10000 / character.max_hp) / 100,
                         mana: Math.floor(character.mp * 10000 / character.max_mp) / 100,
-                        target: targetName,
+                        targets: targets,
                         status: character.rip ? "Dead" : "Alive",
                         gold: toPrettyNum(character.gold),
                         dps: Math.floor(dps),
@@ -468,6 +488,7 @@ Game.prototype.init = function () {
                         tlu: (time > 0) ? days + "d " + hours + ":" + minutes + ":" + seconds : "Infinity",
                     }
                 })
+
             }, 1000);
 
 
