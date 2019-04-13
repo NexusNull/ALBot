@@ -89,7 +89,7 @@ async function main() {
             {name: "xp", type: "progressBar", label: "Experience", options: {color: "green"}},
             {name: "health", type: "progressBar", label: "Health", options: {color: "red"}},
             {name: "mana", type: "progressBar", label: "Mana", options: {color: "blue"}},
-            {name: "target", type: "text", label: "Target"},
+            {name: "targets", type: "botUI", label: "Targets"},
             {name: "status", type: "text", label: "Status"},
             {name: "dps", type: "text", label: "Damage/s"},
             {name: "gph", type: "text", label: "Gold/h"},
@@ -102,7 +102,7 @@ async function main() {
     //Checks are done, starting bots.
     let botCount = 0;
     for (let i = 0; i < bots.length; i++) {
-        if(!bots[i].enabled)
+        if (!bots[i].enabled)
             continue;
         botCount++;
         //TODO fix for no online server
@@ -119,18 +119,18 @@ async function main() {
             var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId, ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
             startGame(args);
         } else {
-            console.warn("Couldn't find server: '"+bots[i].server+"'.");
+            console.warn("Couldn't find server: '" + bots[i].server + "'.");
         }
     }
-    if(bots.length === 0){
+    if (bots.length === 0) {
         console.warn("Couldn't find any bots to start you can set the fetch flag the pull all characters from the server.");
-    } else
-    if(botCount === 0){
+    } else if (botCount === 0) {
         console.warn("Couldn't find any bots to start, make sure the enable flag is set to true");
     }
 }
 
 var activeChildren = {};
+
 function startGame(args) {
     let childProcess = child_process.fork("./game", args, {
         stdio: [0, 1, 2, 'ipc'],
@@ -141,9 +141,21 @@ function startGame(args) {
     });
     var data = {};
     var botInterface = BotWebInterface.SocketServer.getPublisher().createInterface();
+    var subBotStructure = [
+        {name: "name", type: "text", label: "name"},
+        {name: "level", type: "text", label: "level"},
+        {name: "health", type: "progressBar", label: "Health", options: {color: "red"}},
+    ];
+
+    /**
+     *
+     * @type {Array<BotUI>}
+     */
+    let subUIs = [];
     botInterface.setDataSource(() => {
         return data;
     });
+
     childProcess.on('message', (m) => {
         if (m.type === "status" && m.status === "disconnected") {
             childProcess.kill();
@@ -156,6 +168,19 @@ function startGame(args) {
             startGame(args);
         } else if (m.type === "bwiUpdate") {
             data = m.data;
+            if (subUIs.length < data.targets.length) {
+                for (let i = 0; i < data.targets.length - subUIs.length; i++) {
+                    let botUi = botInterface.createSubBotUI(subBotStructure, "targets");
+                    botUi.setDataSource(function(){
+                        return data.targets[subUIs.length-1];
+                    });
+                    subUIs.push(botUi);
+                }
+            } else if (subUIs.length > data.targets.length) {
+                for (let i = 0; i < subUIs.length - data.targets.length; i++) {
+                    BotWebInterface.SocketServer.getPublisher().removeInterface(subUIs.splice(0, 1)[0]);
+                }
+            }
         } else if (m.type === "bwiPush") {
             botInterface.pushData(m.name, m.data);
         } else if (m.type === "startupClient") {
