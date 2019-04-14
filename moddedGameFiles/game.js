@@ -1893,11 +1893,9 @@ function init_socket() {
                 } else {
                     if (response == "storage_full") {
                         ui_log("Storage is full", "gray");
-                        reopen()
                     } else {
                         if (response == "inventory_full") {
                             ui_log("Inventory is full", "gray");
-                            reopen()
                         } else {
                             if (response == "invalid") {
                                 ui_log("Invalid", "gray")
@@ -1956,12 +1954,12 @@ function init_socket() {
                                                                                             if (response == "exchange_full") {
                                                                                                 d_text("NO SPACE", character);
                                                                                                 ui_log("Inventory is full", "gray");
-                                                                                                reopen()
+
                                                                                             } else {
                                                                                                 if (response == "exchange_notenough") {
                                                                                                     d_text("NOT ENOUGH", character);
                                                                                                     ui_log("Need more", "gray");
-                                                                                                    reopen()
+
                                                                                                 } else {
                                                                                                     if (in_arr(response, ["mistletoe_success", "leather_success", "candycane_success", "ornament_success", "seashell_success", "gemfragment_success"])) {
                                                                                                         render_interaction(response)
@@ -3042,9 +3040,6 @@ function init_socket() {
             chest = add_chest(data)
         })
     });
-    socket.on("reopen", function (data) {
-        reopen()
-    });
     socket.on("simple_eval", function (data) {
         eval(data.code || data || "")
     });
@@ -3058,11 +3053,6 @@ function init_socket() {
         if (character) {
             adopt_soft_properties(character, data),
                 rip_logic()
-        }
-        if (data.reopen) {
-            draw_trigger(function () {
-                reopen()
-            })
         }
     });
     socket.on("end", function (data) {

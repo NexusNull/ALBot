@@ -7,8 +7,8 @@ var draw_timeouts = []
     , modal_count = 0
     , last_ping = new Date();
 var DTM = 1;
-var DMS = 0;
-var ping_sent
+var DMS = 32;
+var ping_sent;
 function is_hidden() {
     return false
 }
@@ -2196,7 +2196,8 @@ function dismantle() {
 var u_retain = false;
 
 function reopen() {
-    throw new Error("esc_pressed is not supported.");
+    throw new Error("reopen is not supported.");
+    return;
     u_scroll = c_scroll = e_item = null;
     draw_trigger(function () {
         if (rendered_target == "upgrade") {
@@ -2709,10 +2710,19 @@ function draw_timeouts_logic(f) {
         }
         if (currentDate >= timeout[1]) {
             indices.push(i);
+            DTM = 1;
+            DMS = currentDate - timeout[3];
+            if (timeout[4]) {
+                try {
+                    DTM = (currentDate - timeout[3]) / timeout[4]
+                } catch (d) {}
+            }
+            indices.push(i);
             try {
                 timeout[0]()
             } catch (d) {
-                console.log("draw_timeout_error: " + d)
+                //Never append an exception to a string you basically lose the stacktrace which contains very useful info
+                console.log("draw_timeout_error: ", d);
                 console.log(timeout[0])
             }
         }
@@ -2778,9 +2788,9 @@ function attack_timeout(a) {
     next_attack = next_skill.attack = future_ms(a);
     draw_trigger(function () {
         tint_c.a++;
-        skill_timeout("attack", -mssince(next_skill.attack) - DMS);
-        skill_timeout("heal", -mssince(next_skill.attack) - DMS)
-    })
+    skill_timeout("attack", -mssince(next_skill.attack) - DMS);
+    skill_timeout("heal", -mssince(next_skill.attack) - DMS)
+})
 }
 
 function pot_timeout(a) {
@@ -2888,7 +2898,6 @@ function rip_logic() {
         rip = true;
         character.moving = false;
         skill_timeout("use_town", 12000);
-        reopen()
     }
     if (!character.rip && rip) {
         rip = false;

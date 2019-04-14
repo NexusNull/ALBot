@@ -14,7 +14,7 @@ var colors = {
     speed: "#36B89E",
     cash: "#5DAC40",
     hp: "#FF2E46",
-    mp: "#3a62ce",
+    mp: "#3A62CE",
     stat_xp: "#4570B1",
     party_xp: "#AD73E0",
     xp: "#CBFFFF",
@@ -28,8 +28,9 @@ var colors = {
     ability: "#ff9100",
     xmas: "#C82F17",
     xmasgreen: "#33BF6D",
-    codeblue: "#32A3B0",
-    codepink: "#E13758",
+    code_blue: "#32A3B0",
+    code_pink: "#E13758",
+    code_error: "#E13758",
     A: "#39BB54",
     B: "#DB37A3",
     npc_white: "#EBECEE",
@@ -235,6 +236,74 @@ function can_add_items(d, b, c) {
     }
     return false
 }
+var deferreds = {}
+    , current_deferred = null;
+function deferred() {
+    var a = this;
+    this.promise = new Promise(function(c, b) {
+            a.reject = b;
+            a.resolve = c
+        }
+    )
+}
+function push_deferred(a) {
+    var b = new deferred();
+    if (["attack", "heal"].includes(a)) {
+        b.start = new Date()
+    }
+    if (!deferreds[a]) {
+        deferreds[a] = []
+    }
+    deferreds[a].push(b);
+    return b.promise
+}
+function resolve_deferred(a, b) {
+    if (!deferreds[a] || !deferreds[a].length) {
+        return add_log("Weird resolve_deferred issue: " + a, "gray"),
+            add_log("If you emit socket events manually, ignore this message", "gray")
+    }
+    current_deferred = deferreds[a].shift();
+    if (current_deferred.start) {
+        push_ping(mssince(current_deferred.start))
+    }
+    try {
+        current_deferred.resolve(b)
+    } catch (c) {
+        try {
+            call_code_function("game_log", "resolve_callback_exception: " + c, colors.code_error);
+            current_deferred.reject({
+                exception: "resolve_callback_exception",
+                reason: "exception"
+            })
+        } catch (c) {}
+    }
+    current_deferred = null
+}
+function reject_deferred(a, b) {
+    if (!deferreds[a] || !deferreds[a].length) {
+        return add_log("Weird reject_deferred issue: " + a, "gray"),
+            add_log("If you emit socket events manually, ignore this message", "gray")
+    }
+    current_deferred = deferreds[a].shift();
+    try {
+        current_deferred.reject(b)
+    } catch (c) {
+        try {
+            call_code_function("game_log", "reject_callback_exception: " + c, colors.code_error);
+            current_deferred.reject({
+                exception: "reject_callback_exception",
+                reason: "exception"
+            })
+        } catch (c) {}
+    }
+    current_deferred = null
+}
+function rejecting_promise(a) {
+    return new Promise(function(c, b) {
+            b(a)
+        }
+    )
+}
 function object_sort(e, d) {
     function b(h, g) {
         if (h[0] < g[0]) {
@@ -425,11 +494,8 @@ function calculate_item_value(c) {
             if (b == 10) {
                 e *= 5
             }
-            if (b == 11) {
-                e *= 2
-            }
             if (b == 12) {
-                e *= 1.8
+                e *= 0.8
             }
         }
         e += d
@@ -909,13 +975,13 @@ function calculate_move(k, g, e) {
         var o = q[0]
             , s = q[1];
         if (can_move({
-                map: a,
-                x: j,
-                y: f,
-                going_x: o,
-                going_y: s,
-                base: k.base
-            })) {
+            map: a,
+            x: j,
+            y: f,
+            going_x: o,
+            going_y: s,
+            base: k.base
+        })) {
             var r = point_distance(g, e, o, s);
             if (r < h) {
                 h = r;
@@ -972,12 +1038,12 @@ function can_move(l, t) {
             var z = c[0]
                 , y = c[1];
             if (!n || !can_move({
-                    map: l.map,
-                    x: w + z,
-                    y: f + y,
-                    going_x: v + z,
-                    going_y: e + y
-                }, 1)) {
+                map: l.map,
+                x: w + z,
+                y: f + y,
+                going_x: v + z,
+                going_y: e + y
+            }, 1)) {
                 n = false
             }
         });
@@ -1001,21 +1067,21 @@ function can_move(l, t) {
             m_dx = -s;
             m_dy = -b;
             if (!n || !can_move({
-                    map: l.map,
-                    x: v + s,
-                    y: e + d,
-                    going_x: v + s,
-                    going_y: e + b
-                }, 1)) {
+                map: l.map,
+                x: v + s,
+                y: e + d,
+                going_x: v + s,
+                going_y: e + b
+            }, 1)) {
                 n = false
             }
             if (!n || !can_move({
-                    map: l.map,
-                    x: v + u,
-                    y: e + b,
-                    going_x: v + s,
-                    going_y: e + b
-                }, 1)) {
+                map: l.map,
+                x: v + u,
+                y: e + b,
+                going_x: v + s,
+                going_y: e + b
+            }, 1)) {
                 n = false
             }
             m_line_x = m_line_y = false
@@ -1095,33 +1161,33 @@ function closest_line(c, a, d) {
 }
 function unstuck_logic(a) {
     if (!can_move({
-            map: a.map,
-            x: get_x(a),
-            y: get_y(a),
-            going_x: get_x(a),
-            going_y: get_y(a) + EPS / 2,
-            base: a.base
-        })) {
+        map: a.map,
+        x: get_x(a),
+        y: get_y(a),
+        going_x: get_x(a),
+        going_y: get_y(a) + EPS / 2,
+        base: a.base
+    })) {
         var b = false;
         if (can_move({
-                map: a.map,
-                x: get_x(a),
-                y: get_y(a) + 8.1,
-                going_x: get_x(a),
-                going_y: get_y(a) + 8.1 + EPS / 2,
-                base: a.base
-            })) {
+            map: a.map,
+            x: get_x(a),
+            y: get_y(a) + 8.1,
+            going_x: get_x(a),
+            going_y: get_y(a) + 8.1 + EPS / 2,
+            base: a.base
+        })) {
             set_xy(a, get_x(a), get_y(a) + 8.1);
             b = true
         } else {
             if (can_move({
-                    map: a.map,
-                    x: get_x(a),
-                    y: get_y(a) - 8.1,
-                    going_x: get_x(a),
-                    going_y: get_y(a) - 8.1 - EPS / 2,
-                    base: a.base
-                })) {
+                map: a.map,
+                x: get_x(a),
+                y: get_y(a) - 8.1,
+                going_x: get_x(a),
+                going_y: get_y(a) - 8.1 - EPS / 2,
+                base: a.base
+            })) {
                 set_xy(a, get_x(a), get_y(a) - 8.1);
                 b = true
             }
@@ -1162,16 +1228,16 @@ function is_door_close(e, b, a, f) {
         return true
     }
     if (distance({
-            x: a,
-            y: f,
-            width: 26,
-            height: 35
-        }, {
-            x: b[0],
-            y: b[1],
-            width: b[2],
-            height: b[3]
-        }) < 40) {
+        x: a,
+        y: f,
+        width: 26,
+        height: 35
+    }, {
+        x: b[0],
+        y: b[1],
+        width: b[2],
+        height: b[3]
+    }) < 40) {
         return true
     }
     return false
@@ -1180,36 +1246,36 @@ function can_use_door(f, b, a, g) {
     var e = G.maps[f]
         , c = e.spawns[b[6]];
     if (point_distance(a, g, c[0], c[1]) < 40 && can_move({
-            map: f,
-            x: a,
-            y: g,
-            going_x: c[0],
-            going_y: c[1]
-        })) {
+        map: f,
+        x: a,
+        y: g,
+        going_x: c[0],
+        going_y: c[1]
+    })) {
         return true
     }
     if (distance({
-            x: a,
-            y: g,
-            width: 26,
-            height: 35
-        }, {
-            x: b[0],
-            y: b[1],
-            width: b[2],
-            height: b[3]
-        }) < 40) {
+        x: a,
+        y: g,
+        width: 26,
+        height: 35
+    }, {
+        x: b[0],
+        y: b[1],
+        width: b[2],
+        height: b[3]
+    }) < 40) {
         var d = false;
         [[0, 0], [-b[2] / 2, 0], [b[2] / 2, 0], [-b[2] / 2, -b[3]], [b[2] / 2, -b[3]], [0, -b[3]], ].forEach(function(h) {
             var k = h[0]
                 , j = h[1];
             if (can_move({
-                    map: f,
-                    x: a,
-                    y: g,
-                    going_x: b[0] + k,
-                    going_y: b[1] + j
-                })) {
+                map: f,
+                x: a,
+                y: g,
+                going_x: b[0] + k,
+                going_y: b[1] + j
+            })) {
                 d = true
             }
         });
@@ -1319,6 +1385,9 @@ function clone(d, b) {
 function safe_stringify(f, c) {
     var b = [];
     try {
+        if (f === undefined) {
+            return "undefined"
+        }
         var a = JSON.stringify(f, function(e, g) {
             if (g != null && typeof g == "object") {
                 if (b.indexOf(g) >= 0) {
@@ -1328,12 +1397,14 @@ function safe_stringify(f, c) {
             }
             return g
         }, c);
-        if ("x"in f) {
-            a = JSON.parse(a);
-            a.x = f.x;
-            a.y = f.y;
-            a = JSON.stringify(a)
-        }
+        try {
+            if ("x"in f) {
+                a = JSON.parse(a);
+                a.x = f.x;
+                a.y = f.y;
+                a = JSON.stringify(a)
+            }
+        } catch (d) {}
         return a
     } catch (d) {
         return "safe_stringify_exception"
@@ -1512,6 +1583,12 @@ function lstack(a, c, b) {
         a.pop()
     }
 }
+String.prototype.toTitleCase = function() {
+    return this.replace(/\w\S*/g, function(a) {
+        return a.charAt(0).toUpperCase() + a.substr(1).toLowerCase()
+    })
+}
+;
 String.prototype.replace_all = function(c, a) {
     var b = this;
     return b.replace(new RegExp(c.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&"),"g"), a)
@@ -1529,6 +1606,8 @@ function he(a) {
     return html_escape(a)
 }
 function future_ms(a) {
+    if(isNaN(a))
+        a=0;
     var b = new Date();
     b.setMilliseconds(b.getMilliseconds() + a);
     return b

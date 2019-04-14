@@ -89,11 +89,12 @@ Game.prototype.init = function () {
     var auto_reload = "auto", reload_times = '0', code_to_load = null, mstand_to_load = null;
     var EPS = 1e-16;
     var no_graphics = true;
+    var is_bot = false;
     var first_coords = false,
         first_x = 0,
         first_y = 0;
     var protocol = "https";
-
+    var is_electron = false;
     var code_active = false;
     var current_map = "";
     var pull_all_next = false;
@@ -153,12 +154,12 @@ Game.prototype.init = function () {
         is_pvp: is_pvp,
         server_region: server_region,
         server_identifier: server_identifier,
+        is_electron: is_electron,
         current_map: current_map,
         ctarget: ctarget,
         transporting: transporting,
         party_list: party_list,
         G: G,
-        chests: chests,
         entities: entities,
         next_potion: next_potion,
         drawings: drawings,
@@ -179,6 +180,7 @@ Game.prototype.init = function () {
         player_attack: player_attack,
         monster_attack: monster_attack,
         player_heal: player_heal,
+        open_chest:open_chest,
         buy: buy,
         sell: sell,
         trade: trade,
@@ -199,6 +201,18 @@ Game.prototype.init = function () {
         game: this,
         close_merchant: close_merchant,
         open_merchant: open_merchant,
+        start_character_runner:function(){},
+        stop_character_runner: function(){},
+        character_code_eval: function(){},
+        get_active_characters: function(){},
+        skill_timeout:skill_timeout,
+        buy_with_gold:buy_with_gold,
+        buy_with_shells:buy_with_shells,
+        craft:craft,
+        dismantle:dismantle,
+        storage_get:storage_get,
+        storage_set:storage_set
+
     };
     //non static variables
     Object.defineProperty(glob, "entities", {
@@ -250,6 +264,16 @@ Game.prototype.init = function () {
     Object.defineProperty(glob, "pvp", {
         get: function () {
             return pvp;
+        }
+    });
+    Object.defineProperty(glob, "next_skill", {
+        get: function () {
+            return next_skill;
+        }
+    });
+    Object.defineProperty(glob, "chests", {
+        get: function () {
+            return chests;
         }
     });
     var damage = 0;
