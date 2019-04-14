@@ -153,19 +153,29 @@ Game.prototype.init = function () {
         is_pvp: is_pvp,
         server_region: server_region,
         server_identifier: server_identifier,
+        current_map: current_map,
+        ctarget: ctarget,
+        transporting: transporting,
+        party_list: party_list,
         G: G,
+        chests: chests,
+        entities: entities,
+        next_potion: next_potion,
+        drawings: drawings,
+        prop_cache: prop_cache,
+        next_attack: next_attack,
+        botKey: botKey,
+        require: require,
+        bwi: bwi,
         activate: activate,
         shift: shift,
         use_skill: use_skill,
         can_use: can_use,
         socket: socket,
-        current_map: current_map,
         add_log: add_log,
-        ctarget: ctarget,
         send_target_logic: send_target_logic,
         distance: distance,
         is_disabled: is_disabled,
-        transporting: transporting,
         player_attack: player_attack,
         monster_attack: monster_attack,
         player_heal: player_heal,
@@ -178,27 +188,17 @@ Game.prototype.init = function () {
         exchange: exchange,
         say: say,
         private_say: private_say,
-        party_list: party_list,
         calculate_move: calculate_move,
-        chests: chests,
-        entities: entities,
         calculate_vxy: calculate_vxy,
         show_json: show_json,
-        next_potion: next_potion,
         send_code_message: send_code_message,
         call_code_function: call_code_function,
-        drawings: drawings,
         move: move,
         show_modal: show_modal,
-        prop_cache: prop_cache,
-        next_attack: next_attack,
         bot_mode: true,
-        botKey: botKey,
-        require: require,
         game: this,
         close_merchant: close_merchant,
         open_merchant: open_merchant,
-        bwi: bwi
     };
     //non static variables
     Object.defineProperty(glob, "entities", {
@@ -213,7 +213,7 @@ Game.prototype.init = function () {
         set: function (value) {
             code_active = value;
         }
-    })
+    });
     Object.defineProperty(glob, "sandbox", {
         get: function () {
             return sandbox;
@@ -221,17 +221,17 @@ Game.prototype.init = function () {
         set: function (value) {
             sandbox = value;
         }
-    })
+    });
     Object.defineProperty(glob, "character", {
         get: function () {
             return character;
         }
-    })
+    });
     Object.defineProperty(glob, "map", {
         get: function () {
             return map;
         }
-    })
+    });
     Object.defineProperty(glob, "M", {
         get: function () {
             return M;
@@ -265,7 +265,7 @@ Game.prototype.init = function () {
                 damage += data.damage;
             }
         }
-    })
+    });
     socket.on("start", function () {
         function clamp(x, low, high) {
             return Math.min(Math.max(x, low), high);
@@ -530,7 +530,7 @@ Game.prototype.on = function (event, callback) {
         this.events[event].push(callback);
     } else {
         if (typeof event != "string")
-            throw new Error("Event has to be a string")
+            throw new Error("Event has to be a string");
         if (typeof callback == "function")
             throw new Error("Callback has to be a function")
     }
@@ -544,7 +544,7 @@ Game.prototype.emit = function (event, arguments) {
             });
         }
     }
-}
+};
 
 Game.prototype.stop = function () {
     if (this.socket)
