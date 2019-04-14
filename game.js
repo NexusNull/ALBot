@@ -551,11 +551,27 @@ Game.prototype.stop = function () {
         this.socket.close();
 };
 
+async function sleep(ms) {
+    return new Promise(function (resolve) {
+        setTimeout(resolve, ms);
+    });
+}
+
 async function main() {
     try {
         let args = process.argv.slice(2);
         let httpWrapper = new HttpWrapper(args[0], args[1], args[2]);
-        let gameData = await httpWrapper.getGameData();
+        let gameData;
+        let success = false;
+        while(!success){
+            try{
+                gameData = await httpWrapper.getGameData();
+                success = true;
+            }catch(e){
+                console.log("Fetch for game data failed trying again in 10 seconds");
+                await sleep(10000);
+            }
+        }
         let game = new Game(args[3], args[4], args[5], args[6], args[7], gameData, httpWrapper);
         game.init();
     } catch (e) {
