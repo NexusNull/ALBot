@@ -477,7 +477,7 @@ function get_nearest_monster(args) {
     if (args && args.type == "monster") game_log("get_nearest_monster: you used monster.type, which is always 'monster', use monster.mtype instead");
     if (args && args.mtype) game_log("get_nearest_monster: you used 'mtype', you should use 'type'");
 
-    for (id in parent.entities) {
+    for (var id in parent.entities) {
         var current = parent.entities[id];
         if (current.type != "monster" || current.dead) continue;
         if (args.type && current.mtype != args.type) continue;
