@@ -18,6 +18,7 @@ Object.defineProperty(character, 'x', {
         game_log("You can't set coordinates manually, use the move(x,y) function!");
     }, enumerable: true
 });
+
 Object.defineProperty(character, 'y', {
     get: function () {
         return parent.character.real_y;
@@ -145,12 +146,14 @@ function reduce_cooldown(name, ms) {
 }
 
 function bank_deposit(gold) {
-    if (!character.bank) return game_log("Not inside the bank");
+    if (!character.bank)
+        return game_log("Not inside the bank");
     parent.socket.emit("bank", {operation: "deposit", amount: gold});
 }
 
 function bank_withdraw(gold) {
-    if (!character.bank) return game_log("Not inside the bank");
+    if (!character.bank)
+        return game_log("Not inside the bank");
     parent.socket.emit("bank", {operation: "withdraw", amount: gold});
 }
 
@@ -451,8 +454,11 @@ function show_json(e) // renders the object as json inside the game
 function get_player(name) // returns the player by name, if the player is within the vision area
 {
     var target = null, entities = parent.entities;
-    if (name == character.name) target = character;
-    for (i in entities) if (entities[i].type == "character" && entities[i].name == name) target = entities[i];
+    if (character && name == character.name)
+        target = character;
+    for (let i in entities)
+        if (entities[i] && entities[i].type == "character" && entities[i].name == name)
+            target = entities[i];
     return target;
 }
 
@@ -473,7 +479,7 @@ function get_nearest_monster(args) {
 
     for (id in parent.entities) {
         var current = parent.entities[id];
-        if (current.type != "monster" || !current.visible || current.dead) continue;
+        if (current.type != "monster" || current.dead) continue;
         if (args.type && current.mtype != args.type) continue;
         if (args.min_xp && current.xp < args.min_xp) continue;
         if (args.max_att && current.attack > args.max_att) continue;
@@ -495,7 +501,7 @@ function get_nearest_hostile(args) // mainly as an example [08/02/17]
 
     for (id in parent.entities) {
         var current = parent.entities[id];
-        if (current.type != "character" || !current.visible || current.rip || current.invincible || current.npc) continue;
+        if (current.type != "character" || current.rip || current.invincible || current.npc) continue;
         if (current.party && character.party == current.party) continue;
         if (current.guild && character.guild == current.guild) continue;
         if (args.friendship && in_arr(current.owner, parent.friends)) continue;
@@ -526,7 +532,7 @@ function loot(commander) {
     var looted = 0;
     if (safeties && mssince(last_loot) < min(300, character.ping * 3)) return;
     last_loot = new Date();
-    for (id in parent.chests) {
+    for (let id in parent.chests) {
         var chest = parent.chests[id];
         if (safeties && (chest.items > character.esize || chest.last_loot && mssince(chest.last_loot) < 1600))
             continue;

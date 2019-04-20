@@ -1457,7 +1457,7 @@ function init_socket() {
     }
     */
     console.log(server_addr, port)
-    if (protocol == "https") {
+    if (protocol === "https") {
         socket = new Socket("wss://" + server_addr + ":" + port, {
             autoConnect: false,
             extraHeaders: {
@@ -1487,7 +1487,7 @@ function init_socket() {
     var original_onevent = socket.onevent;
     var original_emit = socket.emit;
 
-    var logging = false
+    var logging = false;
     socket.emit = function (packet) {
         var is_transport = in_arr(arguments && arguments["0"], ["transport", "enter", "leave"]);
         if (logging) {
@@ -3063,7 +3063,8 @@ function init_socket() {
         disconnect()
     });
     socket.on("disconnect_reason", function (reason) {
-        disconnect_reason = reason
+        disconnect_reason = reason;
+        disconnect()
     });
     socket.on("hit", function (data) {
         if (1) {
