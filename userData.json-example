@@ -7,7 +7,7 @@
             "port": 2080,
             "password": "",
             "minimap": {
-                "enable":true
+                "enable": true,
                 "speed": 1000,
                 "size": {
                     "height": 200,
