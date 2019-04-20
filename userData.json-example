@@ -5,7 +5,15 @@
         "botWebInterface": {
             "start": false,
             "port": 2080,
-            "password": ""
+            "password": "",
+            "minimap": {
+                "enable":true
+                "speed": 1000,
+                "size": {
+                    "height": 200,
+                    "width": 376
+                }
+            }
         }
     },
     "login": {

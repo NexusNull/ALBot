@@ -1,7 +1,6 @@
 process.on('uncaughtException', function (exception) {
     console.log(exception);
     console.log(exception.stack);
-
 });
 
 var child_process = require("child_process");
@@ -10,6 +9,7 @@ var httpWrapper = new HttpWrapper();
 var BotWebInterface = require("bot-web-interface");
 var fs = require("fs");
 var userData = require("./userData.json");
+var uiGenerator = require("./uiGenerator");
 var login = userData.login;
 var bots = userData.bots;
 
@@ -81,22 +81,8 @@ async function main() {
         else
             password = userData.config.botWebInterface.password;
         BotWebInterface.setPassword(password);
-        BotWebInterface.SocketServer.getPublisher().setDefaultStructure([
-            {name: "name", type: "text", label: "name"},
-            {name: "inv", type: "text", label: "Inventory"},
-            {name: "level", type: "text", label: "Level"},
-            {name: "gold", type: "text", label: "Gold"},
-            {name: "xp", type: "progressBar", label: "Experience", options: {color: "green"}},
-            {name: "health", type: "progressBar", label: "Health", options: {color: "red"}},
-            {name: "mana", type: "progressBar", label: "Mana", options: {color: "blue"}},
-            {name: "targets", type: "botUI", label: "Targets"},
-            {name: "status", type: "text", label: "Status"},
-            {name: "dps", type: "text", label: "Damage/s"},
-            {name: "gph", type: "text", label: "Gold/h"},
-            {name: "xpph", type: "text", label: "XP/h"},
-            {name: "tlu", type: "text", label: "TLU"},
-            {name: "minimap", type: "image", label: "Minimap", options: {width: 376, height: 200}}
-        ]);
+        BotWebInterface.SocketServer.getPublisher()
+            .setDefaultStructure(uiGenerator.getDefaultStructure());
     }
 
     //Checks are done, starting bots.
@@ -168,19 +154,6 @@ function startGame(args) {
             startGame(args);
         } else if (m.type === "bwiUpdate") {
             data = m.data;
-            if (subUIs.length < data.targets.length) {
-                for (let i = 0; i < data.targets.length - subUIs.length; i++) {
-                    let botUi = botInterface.createSubBotUI(subBotStructure, "targets");
-                    botUi.setDataSource(function(){
-                        return data.targets[subUIs.length-1];
-                    });
-                    subUIs.push(botUi);
-                }
-            } else if (subUIs.length > data.targets.length) {
-                for (let i = 0; i < subUIs.length - data.targets.length; i++) {
-                    BotWebInterface.SocketServer.getPublisher().removeInterface(subUIs.splice(0, 1)[0]);
-                }
-            }
         } else if (m.type === "bwiPush") {
             botInterface.pushData(m.name, m.data);
         } else if (m.type === "startupClient") {
