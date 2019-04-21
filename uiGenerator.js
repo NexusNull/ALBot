@@ -144,34 +144,55 @@ uiGenerator.prototype.generateMiniMap = function (hitLog, entities) {
                 } else {
                     color = [100, 100, 100, 255];
                 }
-            } else{
-                if(entity.npc){
+            } else {
+                if (entity.npc) {
                     color = [224, 221, 38, 255];
                 } else {
                     color = [38, 159, 224, 255];
                 }
             }
+
             pngUtil.draw_dot(
                 ((entity.real_x - pos.x) / screenSize.width) * png.width,
                 ((entity.real_y - pos.y) / screenSize.height) * png.height,
                 2,
                 png, color);
+            if (entity.hp && !(entity.hp<=0) && !entity.dead) {
+                let percentage = Math.max(Math.min(Math.floor((entity.hp/entity.max_hp)*11),11),1);
+                let startX = ((entity.real_x - pos.x) / screenSize.width) * png.width - 5;
+                pngUtil.draw_line(
+                    ((entity.real_x - pos.x) / screenSize.width) * png.width - 5,
+                    ((entity.real_y - pos.y) / screenSize.height) * png.height - 3,
+                    ((entity.real_x - pos.x) / screenSize.width) * png.width + 5,
+                    ((entity.real_y - pos.y) / screenSize.height) * png.height - 3,
+                    png,
+                    [100, 100, 100, 255]
+                );
+                pngUtil.draw_line(
+                    startX,
+                    ((entity.real_y - pos.y) / screenSize.height) * png.height - 3,
+                    startX+percentage,
+                    ((entity.real_y - pos.y) / screenSize.height) * png.height - 3,
+                    png,
+                    [255, 0, 0, 255]
+                );
+            }
         }
     }
 
     var targetIds = [];
-    if(character.target)
+    if (character.target)
         targetIds.push(character.target);
     for (let id in entities) {
         let entity = entities[id];
         if (entity.target === character.id)
-            if(!targetIds.includes(entity.id))
+            if (!targetIds.includes(entity.id))
                 targetIds.push(entity.id);
     }
 
     var targets = [];
-    for(let id of targetIds){
-        if(entities[id])
+    for (let id of targetIds) {
+        if (entities[id])
             targets.push({
                 name: entities[id].name,
                 health: Math.floor(entities[id].hp * 10000 / entities[id].max_hp) / 100,
