@@ -9,7 +9,7 @@ var character = {
     "note": "This is a proxy object, the real character is in parent.character",
     "properties": ["x", "y"],
     "read_only": ["x", "y", "real_x", "real_y", "from_x", "from_y", "going_x", "going_y", "moving", "target", "vx", "vy", "move_num", "attack", "speed", "hp", "mp", "xp", "max_hp", "max_mp", "range", "level", "rip", "s", "c", "in", "map", "stand", "items", "slots"],
-}
+};
 
 Object.defineProperty(character, 'x', {
     get: function () {
@@ -26,7 +26,8 @@ Object.defineProperty(character, 'y', {
         game_log("You can't set coordinates manually, use the move(x,y) function!");
     }, enumerable: true
 });
-for (var p in parent.character) proxy(p); // Not all properties are sadly available right away, new properties are captured imperfectly
+for (var p in parent.character)
+    proxy(p); // Not all properties are sadly available right away, new properties are captured imperfectly
 // var character=parent.character; // Old [25/06/2018]
 
 var G = parent.G; // Game Data - Use show_json(Object.keys(G)); and inspect individual data with show_json(G.skills) and alike

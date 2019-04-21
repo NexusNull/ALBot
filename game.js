@@ -181,7 +181,7 @@ Game.prototype.init = function () {
         player_attack: player_attack,
         monster_attack: monster_attack,
         player_heal: player_heal,
-        open_chest:open_chest,
+        open_chest: open_chest,
         buy: buy,
         sell: sell,
         trade: trade,
@@ -202,17 +202,21 @@ Game.prototype.init = function () {
         game: this,
         close_merchant: close_merchant,
         open_merchant: open_merchant,
-        start_character_runner:function(){},
-        stop_character_runner: function(){},
-        character_code_eval: function(){},
-        get_active_characters: function(){},
-        skill_timeout:skill_timeout,
-        buy_with_gold:buy_with_gold,
-        buy_with_shells:buy_with_shells,
-        craft:craft,
-        dismantle:dismantle,
-        storage_get:storage_get,
-        storage_set:storage_set
+        start_character_runner: function () {
+        },
+        stop_character_runner: function () {
+        },
+        character_code_eval: function () {
+        },
+        get_active_characters: function () {
+        },
+        skill_timeout: skill_timeout,
+        buy_with_gold: buy_with_gold,
+        buy_with_shells: buy_with_shells,
+        craft: craft,
+        dismantle: dismantle,
+        storage_get: storage_get,
+        storage_set: storage_set
 
     };
     //non static variables
@@ -300,94 +304,96 @@ Game.prototype.init = function () {
         });
 
         setTimeout(function () {
-            setInterval(function () {
-                let buffer = uiGenerator.generateMiniMap(hitLog,entities);
-                hitLog= [];
-                process.send({
-                    type: "bwiPush",
-                    name: "minimap",
-                    data: "data:image/png;base64," + buffer.toString("base64"),
-                });
-            }, 200);
-            setInterval(function () {
-                var targetName = "nothing";
-                if (character.target && entities[character.target]) {
-                    if (entities[character.target].player) {
-                        targetName = entities[character.target].id
-                    } else {
-                        targetName = entities[character.target].mtype;
+            if (uiGenerator.enableMiniMap)
+                setInterval(function () {
+                    let buffer = uiGenerator.generateMiniMap(hitLog, entities);
+                    hitLog = [];
+                    process.send({
+                        type: "bwiPush",
+                        name: "minimap",
+                        data: "data:image/png;base64," + buffer.toString("base64"),
+                    });
+                }, uiGenerator.updateTiming);
+            if (uiGenerator.enableBotWebInterface)
+                setInterval(function () {
+                    var targetName = "nothing";
+                    if (character.target && entities[character.target]) {
+                        if (entities[character.target].player) {
+                            targetName = entities[character.target].id
+                        } else {
+                            targetName = entities[character.target].mtype;
+                        }
                     }
-                }
-                //calculate damage per second
-                damageTimeline.push(damage);
-                var thenDamage;
-                if (damageTimeline.length < timeFrame)
-                    thenDamage = damageTimeline[0];
-                else
-                    thenDamage = damageTimeline.shift();
-                var dps = (damage - thenDamage) / damageTimeline.length;
+                    //calculate damage per second
+                    damageTimeline.push(damage);
+                    var thenDamage;
+                    if (damageTimeline.length < timeFrame)
+                        thenDamage = damageTimeline[0];
+                    else
+                        thenDamage = damageTimeline.shift();
+                    var dps = (damage - thenDamage) / damageTimeline.length;
 
-                //calculate gold per second
-                goldTimeline.push(character.gold);
-                var thenGold;
-                if (goldTimeline.length < timeFrame)
-                    thenGold = goldTimeline[0];
-                else
-                    thenGold = goldTimeline.shift();
-                var gps = (character.gold - thenGold) / goldTimeline.length;
+                    //calculate gold per second
+                    goldTimeline.push(character.gold);
+                    var thenGold;
+                    if (goldTimeline.length < timeFrame)
+                        thenGold = goldTimeline[0];
+                    else
+                        thenGold = goldTimeline.shift();
+                    var gps = (character.gold - thenGold) / goldTimeline.length;
 
-                //calculate xp per second
-                xpTimeline.push(character.xp);
-                var thenXP;
-                if (xpTimeline.length < timeFrame)
-                    thenXP = xpTimeline[0];
-                else
-                    thenXP = xpTimeline.shift();
-                var xpps = (character.xp - thenXP) / xpTimeline.length;
+                    //calculate xp per second
+                    xpTimeline.push(character.xp);
+                    var thenXP;
+                    if (xpTimeline.length < timeFrame)
+                        thenXP = xpTimeline[0];
+                    else
+                        thenXP = xpTimeline.shift();
+                    var xpps = (character.xp - thenXP) / xpTimeline.length;
 
-                //calculate time until level up
-                var time = Math.floor((character.max_xp - character.xp) / xpps);
-                if (time > 0) {
-                    //prettify time
-                    var days = Math.floor(time / (3600 * 24));
-                    time -= 3600 * 24 * days;
-                    var hours = Math.floor(time / 3600);
-                    time -= 3600 * hours;
-                    var minutes = Math.floor(time / 60);
-                    time -= 60 * minutes;
-                    var seconds = time;
+                    //calculate time until level up
+                    var time = Math.floor((character.max_xp - character.xp) / xpps);
+                    if (time > 0) {
+                        //prettify time
+                        var days = Math.floor(time / (3600 * 24));
+                        time -= 3600 * 24 * days;
+                        var hours = Math.floor(time / 3600);
+                        time -= 3600 * hours;
+                        var minutes = Math.floor(time / 60);
+                        time -= 60 * minutes;
+                        var seconds = time;
 
-                    if (hours < 10) {
-                        hours = "0" + hours;
+                        if (hours < 10) {
+                            hours = "0" + hours;
+                        }
+                        if (minutes < 10) {
+                            minutes = "0" + minutes;
+                        }
+                        if (seconds < 10) {
+                            seconds = "0" + seconds;
+                        }
                     }
-                    if (minutes < 10) {
-                        minutes = "0" + minutes;
-                    }
-                    if (seconds < 10) {
-                        seconds = "0" + seconds;
-                    }
-                }
 
 
-                process.send({
-                    type: "bwiUpdate",
-                    data: {
-                        name: character.id,
-                        level: character.level,
-                        inv: character.isize - character.esize + " / " + character.isize,
-                        xp: Math.floor(character.xp * 10000 / character.max_xp) / 100,
-                        health: Math.floor(character.hp * 10000 / character.max_hp) / 100,
-                        mana: Math.floor(character.mp * 10000 / character.max_mp) / 100,
-                        status: character.rip ? "Dead" : "Alive",
-                        gold: toPrettyNum(character.gold),
-                        dps: Math.floor(dps),
-                        gph: toPrettyNum(Math.floor(gps) * 3600),
-                        xpph: toPrettyNum(Math.floor(xpps) * 3600),
-                        tlu: (time > 0) ? days + "d " + hours + ":" + minutes + ":" + seconds : "Infinity",
-                    }
-                })
+                    process.send({
+                        type: "bwiUpdate",
+                        data: {
+                            name: character.id,
+                            level: character.level,
+                            inv: character.isize - character.esize + " / " + character.isize,
+                            xp: Math.floor(character.xp * 10000 / character.max_xp) / 100,
+                            health: Math.floor(character.hp * 10000 / character.max_hp) / 100,
+                            mana: Math.floor(character.mp * 10000 / character.max_mp) / 100,
+                            status: character.rip ? "Dead" : "Alive",
+                            gold: toPrettyNum(character.gold),
+                            dps: Math.floor(dps),
+                            gph: toPrettyNum(Math.floor(gps) * 3600),
+                            xpph: toPrettyNum(Math.floor(xpps) * 3600),
+                            tlu: (time > 0) ? days + "d " + hours + ":" + minutes + ":" + seconds : "Infinity",
+                        }
+                    })
 
-            }, 1000);
+                }, 1000);
 
 
             self.executor = new Executor(glob, script);
@@ -461,11 +467,11 @@ async function main() {
         let httpWrapper = new HttpWrapper(args[0], args[1], args[2]);
         let gameData;
         let success = false;
-        while(!success){
-            try{
+        while (!success) {
+            try {
                 gameData = await httpWrapper.getGameData();
                 success = true;
-            }catch(e){
+            } catch (e) {
                 console.log("Fetch for game data failed trying again in 10 seconds");
                 await sleep(10000);
             }

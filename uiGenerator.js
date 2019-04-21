@@ -37,7 +37,9 @@ function get(from, what) {
 let uiGenerator = function () {
     this.miniMapHeight = get(config, ["botWebInterface", "minimap", "size", "height"]) || 200;
     this.miniMapWidth = get(config, ["botWebInterface", "minimap", "size", "width"]) || 376;
-    let enableMiniMap = get(config, ["botWebInterface", "minimap", "enable"]);
+    this.enableMiniMap = get(config, ["botWebInterface", "minimap", "enable"]) || false;
+    this.enableBotWebInterface = get(config, ["botWebInterface", "start"]) || false;
+    this.updateTiming = get(config, ["botWebInterface", "minimap", "speed"]) || 1000;
 
     this.defaultStructure = [
         {name: "name", type: "text", label: "name"},
@@ -55,13 +57,12 @@ let uiGenerator = function () {
         {name: "tlu", type: "text", label: "TLU"}
     ];
 
-    if (enableMiniMap) {
+    if (this.enableMiniMap) {
         this.defaultStructure.push({
             name: "minimap", type: "image", label: "Minimap", options:
                 {width: this.miniMapWidth, height: this.miniMapHeight}
         })
     }
-
 };
 
 uiGenerator.prototype.getDefaultStructure = function () {
@@ -142,6 +143,12 @@ uiGenerator.prototype.generateMiniMap = function (hitLog, entities) {
                     color = [200, 0, 0, 255];
                 } else {
                     color = [100, 100, 100, 255];
+                }
+            } else{
+                if(entity.npc){
+                    color = [224, 221, 38, 255];
+                } else {
+                    color = [38, 159, 224, 255];
                 }
             }
             pngUtil.draw_dot(
