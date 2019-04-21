@@ -500,7 +500,7 @@ function get_nearest_hostile(args) // mainly as an example [08/02/17]
     if (!args) args = {};
     if (args.friendship === undefined && character.owner) args.friendship = true;
 
-    for (id in parent.entities) {
+    for (var id in parent.entities) {
         var current = parent.entities[id];
         if (current.type != "character" || current.rip || current.invincible || current.npc) continue;
         if (current.party && character.party == current.party) continue;
