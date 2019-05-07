@@ -7,7 +7,7 @@ var G = {
 };
 var canMove;
 (function () {
-    var common_functions = fs.readFileSync("./modedGameFiles/common_functions.js") + "";
+    var common_functions = fs.readFileSync("./moddedGameFiles/common_functions.js") + "";
     eval(common_functions);
     canMove = can_move;
 })();
@@ -24,7 +24,7 @@ var canMove;
  * @param map
  * @constructor
  */
-var World = function ({name, size, position, boxSize, spawns, doors, rasterMap,nodeMap, geo, lines}) {
+var World = function ({name, size, position, boxSize, spawns, doors, rasterMap, qtn,boxMap,boxes, qtg, geo, lines}) {
     this.name = name;
     this.size = size;
     this.position = position;
@@ -33,8 +33,11 @@ var World = function ({name, size, position, boxSize, spawns, doors, rasterMap,n
     this.doors = doors;
     this.map = rasterMap;
     this.geometry = geo;
-    this.nodeMap = nodeMap;
+    this.qtg = qtg;
+    this.qtn = qtn;
+    this.boxes = boxes;
     this.lines = lines;
+    this.boxMap = boxMap;
     this.meta = {
         rasterMapCount: 0,
         quickTravelMapNodeCount: 0,

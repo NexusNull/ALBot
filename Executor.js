@@ -9,8 +9,8 @@ character = {};
 G = {};
 active = false, catch_errors = true, is_code = 1, is_server = 0, is_game = 0;
 
-(1, eval)(fs.readFileSync('modedGameFiles/common_functions.js') + '');
-(1, eval)(fs.readFileSync('modedGameFiles/runner_functions.js') + '');
+(1, eval)(fs.readFileSync('moddedGameFiles/common_functions.js') + '');
+(1, eval)(fs.readFileSync('moddedGameFiles/runner_functions.js') + '');
 
 var Executor = function (glob, file) {
     var self = this;

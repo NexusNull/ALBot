@@ -1,7 +1,6 @@
 process.on('uncaughtException', function (exception) {
     console.log(exception);
     console.log(exception.stack);
-
 });
 
 var child_process = require("child_process");
@@ -10,6 +9,7 @@ var httpWrapper = new HttpWrapper();
 var BotWebInterface = require("bot-web-interface");
 var fs = require("fs");
 var userData = require("./userData.json");
+var uiGenerator = require("./uiGenerator");
 var login = userData.login;
 var bots = userData.bots;
 
@@ -30,7 +30,8 @@ async function main() {
                 characterName: characters[i].name,
                 characterId: characters[i].id,
                 runScript: "default.js",
-                server: "US I"
+                server: "US I",
+                enabled: false,
             }
         }
         userData.config.fetch = false;
@@ -44,8 +45,8 @@ async function main() {
     }
 
     for (let i = 0; i < bots.length; i++) {
-        if (!(bots[i] && bots[i].characterId && bots[i].runScript && bots[i].server))
-            throw new Error("One or more necessary fields are missing from userData.json \n The following fields need to be present for a working executor:\n characterId runScript\n server\n");
+        if (!(bots[i] && bots[i].characterId && bots[i].runScript && bots[i].server && typeof bots[i].enabled === "boolean"))
+            throw new Error("One or more necessary fields are missing from userData.json \n The following fields need to be present for a working executor:\n characterId runScript\n server\n enabled\n To fix this automatically simply set fetch: true in userdata.json");
     }
 
     //Reverse lookup name to characterId, names can't be used for starting a bot.
@@ -75,32 +76,24 @@ async function main() {
     if (userData.config.botWebInterface.start) {
         BotWebInterface.startOnPort(userData.config.botWebInterface.port);
         var password;
-        if(userData.config.botWebInterface.password === "")
+        if (userData.config.botWebInterface.password === "")
             password = null;
         else
             password = userData.config.botWebInterface.password;
         BotWebInterface.setPassword(password);
-        BotWebInterface.SocketServer.getPublisher().setStructure([
-            {name: "name", type: "text", label: "name"},
-            {name: "inv", type: "text", label: "Inventory"},
-            {name: "level", type: "text", label: "Level"},
-            {name: "gold", type: "text", label: "Gold"},
-            {name: "xp", type: "progressBar", label: "Experience", options: {color: "green"}},
-            {name: "health", type: "progressBar", label: "Health", options: {color: "red"}},
-            {name: "mana", type: "progressBar", label: "Mana", options: {color: "blue"}},
-            {name: "target", type: "text", label: "Target"},
-            {name: "status", type: "text", label: "Status"},
-            {name: "dps", type: "text", label: "Damage/s"},
-            {name: "gps", type: "text", label: "Gold/s"},
-            {name: "xpps", type: "text", label: "XP/s"},
-            {name: "tlu", type: "text", label: "TLU"}
-        ]);
+        BotWebInterface.SocketServer.getPublisher()
+            .setDefaultStructure(uiGenerator.getDefaultStructure());
     }
 
     //Checks are done, starting bots.
+    let botCount = 0;
     for (let i = 0; i < bots.length; i++) {
-        let ip = "54.169.213.59";
-        let port = 8090;
+        if (!bots[i].enabled)
+            continue;
+        botCount++;
+        //TODO fix for no online server
+        let ip = null;
+        let port = null;
         for (let j = 0; j < serverList.length; j++) {
             let server = serverList[j];
             if (bots[i].server === server.region + " " + server.name) {
@@ -108,26 +101,52 @@ async function main() {
                 port = server.port;
             }
         }
-        var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId, ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
-        startGame(args);
+        if (ip && port) {
+            var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId, ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
+            startGame(args);
+        } else {
+            console.warn("Couldn't find server: '" + bots[i].server + "'.");
+        }
+    }
+    if (bots.length === 0) {
+        console.warn("Couldn't find any bots to start you can set the fetch flag the pull all characters from the server.");
+    } else if (botCount === 0) {
+        console.warn("Couldn't find any bots to start, make sure the enable flag is set to true");
     }
 }
+
 var activeChildren = {};
+
 function startGame(args) {
     let childProcess = child_process.fork("./game", args, {
         stdio: [0, 1, 2, 'ipc'],
-        //execArgv:['--inspect-brk']
+        execArgv: [
+            //'--inspect-brk',
+            //"--max_old_space_size=4096",
+        ]
     });
     var data = {};
     var botInterface = BotWebInterface.SocketServer.getPublisher().createInterface();
+    var subBotStructure = [
+        {name: "name", type: "text", label: "name"},
+        {name: "level", type: "text", label: "level"},
+        {name: "health", type: "progressBar", label: "Health", options: {color: "red"}},
+    ];
+
+    /**
+     *
+     * @type {Array<BotUI>}
+     */
+    let subUIs = [];
     botInterface.setDataSource(() => {
         return data;
     });
+
     childProcess.on('message', (m) => {
         if (m.type === "status" && m.status === "disconnected") {
             childProcess.kill();
-            for(var i in activeChildren){
-                if(activeChildren[i] == childProcess){
+            for (var i in activeChildren) {
+                if (activeChildren[i] == childProcess) {
                     activeChildren[i] = null;
                 }
             }
@@ -135,10 +154,12 @@ function startGame(args) {
             startGame(args);
         } else if (m.type === "bwiUpdate") {
             data = m.data;
+        } else if (m.type === "bwiPush") {
+            botInterface.pushData(m.name, m.data);
         } else if (m.type === "startupClient") {
             activeChildren[m.characterName] = childProcess;
-        } else  if(m.type === "send_cm") {
-            if(activeChildren[m.characterName]){
+        } else if (m.type === "send_cm") {
+            if (activeChildren[m.characterName]) {
                 activeChildren[m.characterName].send({
                     type: "on_cm",
                     from: m.from,
@@ -160,6 +181,7 @@ async function sleep(ms) {
         setTimeout(resolve, ms);
     });
 }
+
 main();
 
 

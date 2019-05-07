@@ -3,8 +3,12 @@ var auto_api_methods = []
 var sounds = {};
 var draw_timeouts = []
     , timers = {}
-    , ping_sent = new Date()
-    , modal_count = 0;
+    , pingts = {}
+    , pings = []
+    , modal_count = 0
+    , last_ping = new Date();
+var DTM = 1;
+var DMS = 0;
 function is_hidden() {
     return document.hidden
 }
@@ -48,9 +52,34 @@ function cfocus(a) {
     }
     b.html(b.html())
 }
-function ping() {
-    ping_sent = new Date();
-    socket.emit("ping_trig", {})
+setInterval(function() {
+    if (ssince(last_ping) > 15) {
+        if (window.socket) {
+            ping(true)
+        }
+    }
+}, 16000);
+function push_ping(a) {
+    pings.push(a);
+    if (pings.length > 40) {
+        pings.shift()
+    }
+    if (character) {
+        character.ping = 0;
+        pings.forEach(function(b) {
+            character.ping += b / pings.length
+        })
+    }
+}
+function ping(a) {
+    var b = {
+        id: randomStr(5)
+    };
+    pingts[b.id] = new Date();
+    if (!a) {
+        b.ui = true
+    }
+    socket.emit("ping_trig", b)
 }
 function reset_ms_check(c, b, a) {
     c["ms_" + b] = null
@@ -249,7 +278,6 @@ function keymap_modal_logic() {
     $(".skbkeys").html(a)
 }
 function show_game_guide() {
-    return
     if (gameplay == "hardcore") {
         show_modal($("#hardcoreguide").html(), {
             styles: ""
@@ -303,6 +331,11 @@ function hide_modal() {
             $("#codeui").show();
             codemirror_render.refresh()
         }
+    }
+}
+function hide_modals() {
+    while (modal_count) {
+        hide_modal()
     }
 }
 function show_modal(mhtml, args) {
@@ -783,7 +816,7 @@ function use_skill(b, h, k) {
                                         name: b
                                     })
                                 } else {
-                                    if (in_arr(b, ["supershot", "quickpunch", "quickstab", "taunt", "curse", "burst", "4fingers", "magiport", "absorb", "mluck", "rspeed", "charm"])) {
+                                    if (in_arr(b, ["supershot", "quickpunch", "quickstab", "taunt", "curse", "burst", "4fingers", "magiport", "absorb", "mluck", "rspeed", "charm", "mentalburst", "piercingshot", "huntersmark"])) {
                                         socket.emit("skill", {
                                             name: b,
                                             id: h
@@ -942,18 +975,22 @@ function on_skill(d, h) {
                     last_blink_pressed = new Date()
                 } else {
                     if (c == "move_up") {
+                        arrow_up = true;
                         next_minteraction = "up";
                         setTimeout(arrow_movement_logic, 40)
                     } else {
                         if (c == "move_down") {
+                            arrow_down = true;
                             next_minteraction = "down";
                             setTimeout(arrow_movement_logic, 40)
                         } else {
                             if (c == "move_left") {
+                                arrow_left = true;
                                 next_minteraction = "left";
                                 setTimeout(arrow_movement_logic, 40)
                             } else {
                                 if (c == "move_right") {
+                                    arrow_right = true;
                                     next_minteraction = "right";
                                     setTimeout(arrow_movement_logic, 40)
                                 } else {
@@ -1142,6 +1179,22 @@ function on_skill_up(c) {
     if (a == "blink") {
         blink_pressed = false;
         last_blink_pressed = new Date()
+    } else {
+        if (b == "move_up") {
+            arrow_up = false
+        } else {
+            if (b == "move_down") {
+                arrow_down = false
+            } else {
+                if (b == "move_left") {
+                    arrow_left = false
+                } else {
+                    if (b == "move_right") {
+                        arrow_right = false
+                    }
+                }
+            }
+        }
     }
 }
 function map_keys_and_skills() {
@@ -1294,31 +1347,31 @@ function move(a, f) {
     last_move = new Date()
 }
 function arrow_movement_logic() {
-    if (!window.character || !window.options.move_with_arrows) {
+    if (!window.character || !window.options.move_with_arrows || !can_walk(character)) {
         return
     }
-    if (up_pressed && left_pressed) {
+    if (arrow_up && arrow_left) {
         move(character.real_x - 50, character.real_y - 50)
     } else {
-        if (up_pressed && right_pressed) {
+        if (arrow_up && arrow_right) {
             move(character.real_x + 50, character.real_y - 50)
         } else {
-            if (up_pressed) {
+            if (arrow_up) {
                 move(character.real_x, character.real_y - 50)
             } else {
-                if (left_pressed && down_pressed) {
+                if (arrow_left && arrow_down) {
                     move(character.real_x - 50, character.real_y + 50)
                 } else {
-                    if (left_pressed) {
+                    if (arrow_left) {
                         move(character.real_x - 50, character.real_y)
                     } else {
-                        if (right_pressed && down_pressed) {
+                        if (arrow_right && arrow_down) {
                             move(character.real_x + 50, character.real_y + 50)
                         } else {
-                            if (right_pressed) {
+                            if (arrow_right) {
                                 move(character.real_x + 50, character.real_y)
                             } else {
-                                if (down_pressed) {
+                                if (arrow_down) {
                                     move(character.real_x, character.real_y + 50)
                                 }
                             }
@@ -1797,7 +1850,6 @@ function set_setting(b, d, g) {
     storage_set("settings_cache", JSON.stringify(f))
 }
 function get_settings(b) {
-    return [];
     var d = storage_get("settings_cache")
         , c = ""
         , a = false;
@@ -1879,7 +1931,7 @@ function listen_for_hints(a) {
         }
         var b = a.findWordAt(a.getCursor());
         var c = a.getRange(b.anchor, b.head);
-        if (c) {
+        if (c && !in_arr(c, ["0"]) && (window[c] || in_arr(c, G.docs.functions))) {
             if (last_hint === undefined) {
                 $("body").append("<div id='codehint' onclick='load_documentation($(this).html())'></div>")
             }
@@ -2022,7 +2074,7 @@ function v_shake_minor() {
     function b(c) {
         return function() {
             stage.y += c;
-            character.real_y -= c
+            ch_disp_y -= c
         }
     }
     var a = 0;
@@ -2034,7 +2086,7 @@ function v_shake() {
     function b(c) {
         return function() {
             stage.y += c;
-            character.real_y -= c
+            ch_disp_y -= c
         }
     }
     var a = 0;
@@ -2045,7 +2097,11 @@ function v_shake() {
 function v_shake_i(c) {
     function b(d, f) {
         return function() {
-            d.real_y -= f
+            if (d == character) {
+                ch_disp_y -= f
+            } else {
+                d.real_y -= f
+            }
         }
     }
     var a = 0;
@@ -2056,7 +2112,11 @@ function v_shake_i(c) {
 function v_shake_i2(c) {
     function b(d, f) {
         return function() {
-            d.real_y -= f
+            if (d == character) {
+                ch_disp_y -= f
+            } else {
+                d.real_y -= f
+            }
         }
     }
     var a = 0;
@@ -2079,7 +2139,7 @@ function v_dive() {
     function b(c) {
         return function() {
             stage.y += c;
-            character.real_y -= c
+            ch_disp_y -= c
         }
     }
     var a = 0;
@@ -2090,7 +2150,11 @@ function v_dive() {
 function v_dive_i(c) {
     function b(d, f) {
         return function() {
-            d.real_y -= f
+            if (d == character) {
+                ch_disp_y -= f
+            } else {
+                d.real_y -= f
+            }
         }
     }
     var a = 0;
@@ -2193,7 +2257,7 @@ function h_shake() {
     function b(c) {
         return function() {
             stage.x += c;
-            character.real_x -= c
+            ch_disp_x -= c
         }
     }
     var a = 0;
@@ -2240,11 +2304,11 @@ function set_direction(a, c) {
     if (c == "attack" && !a.me && is_monster(a)) {
         if (a.direction == 0) {
             a.real_y += 2,
-                a.y_disp = 2
+                a.y_disp += 2
         } else {
             if (a.direction == 3) {
                 a.real_y -= 2,
-                    a.y_disp = -2
+                    a.y_disp += -2
             } else {
                 if (a.direction == 1) {
                     a.real_x -= 2
@@ -2294,6 +2358,10 @@ function free_children(b) {
         return
     }
     for (var a = 0; a < b.children.length; a++) {
+        b.children[a].visible = false;
+        if (!b.children[a].dead) {
+            b.children[a].dead = "map"
+        }
         b.children[a].parent = null
     }
 }
@@ -2305,6 +2373,10 @@ function remove_sprite(a) {
         a.parent.removeChild(a)
     } catch (b) {
         console.log("Sprite is orphan, can't remove. Type: " + a.type)
+    }
+    a.visible = false;
+    if (!a.dead) {
+        a.dead = "vision"
     }
 }
 function destroy_sprite(a, c) {
@@ -2318,6 +2390,10 @@ function destroy_sprite(a, c) {
             })
         } else {
             a.destroy()
+        }
+        a.visible = false;
+        if (!a.dead) {
+            a.dead = "vision"
         }
     } catch (b) {
         console.log("Couldn't destroy sprite: " + a.type)
@@ -2394,30 +2470,34 @@ function buy(a, b) {
         return
     }
     var c = "buy";
-    if (G.items[a].cash && !G.items[a].p2w && G.items[a].cash <= character.cash) {
+    if (G.items[a] && G.items[a].cash && !G.items[a].p2w && G.items[a].cash <= character.cash) {
         c = "buy_with_cash"
     }
     socket.emit(c, {
         name: a,
         quantity: b
     });
-    $(".buynum").html($(".buynum").data("q"))
-}
-function buy_with_shells(a, b) {
-    if (mssince(last_npc_right_click) < 100) {
-        return
+    $(".buynum").html($(".buynum").data("q"));
+    if (c == "buy") {
+        return push_deferred("buy")
     }
-    socket.emit("buy_with_cash", {
-        name: a,
-        quantity: b
-    });
-    $(".buynum").html($(".buynum").data("q"))
 }
 function buy_with_gold(a, b) {
     if (mssince(last_npc_right_click) < 100) {
         return
     }
     socket.emit("buy", {
+        name: a,
+        quantity: b
+    });
+    $(".buynum").html($(".buynum").data("q"));
+    return push_deferred("buy")
+}
+function buy_with_shells(a, b) {
+    if (mssince(last_npc_right_click) < 100) {
+        return
+    }
+    socket.emit("buy_with_cash", {
         name: a,
         quantity: b
     });
@@ -2441,7 +2521,7 @@ function call_code_function(c, b, a, f) {
     try {
         return get_code_function(c)(b, a, f)
     } catch (d) {
-        add_log(c + " " + d, "#E13758");
+        add_log(c + " " + d, colors.code_error);
         log_trace("call_code_function " + c, d)
     }
 }
@@ -2790,16 +2870,17 @@ function dice(c, b, a) {
         gold: a
     })
 }
-function upgrade() {
-    if (u_item == null || (u_scroll == null && u_offering == null)) {
+function upgrade(a) {
+    if (!code && (u_item == null || (u_scroll == null && u_offering == null))) {
         d_text("INVALID", character)
     } else {
         socket.emit("upgrade", {
             item_num: u_item,
             scroll_num: u_scroll,
             offering_num: u_offering,
-            clevel: (character.items[u_item].level || 0)
-        })
+            clevel: (character.items[u_item] && character.items[u_item].level || 0)
+        });
+        return push_deferred("upgrade")
     }
 }
 function lock_item(a) {
@@ -3101,6 +3182,7 @@ function esc_pressed() {
     $(":focus").blur()
 }
 function toggle_stats() {
+    tut("stats");
     if (topright_npc != "character") {
         render_character_sheet()
     } else {
@@ -3109,6 +3191,7 @@ function toggle_stats() {
     }
 }
 function toggle_character() {
+    tut("character");
     if (ctarget == character && !topleft_npc) {
         ctarget = null
     } else {
@@ -3153,7 +3236,7 @@ function open_chest(b) {
 }
 function generate_textures(b, m) {
     console.log("generate_textures " + b + " " + m);
-    if (in_arr(m, ["full", "wings", "body"])) {
+    if (in_arr(m, ["full", "wings", "body", "armor", "skin"])) {
         var l = XYWH[b]
             , c = l[2]
             , p = l[3]
@@ -3233,7 +3316,7 @@ function generate_textures(b, m) {
             textures[b][k] = new PIXI.Texture(C[FC[b]],n)
         }
     }
-    if (in_arr(m, ["v_animation", "head", "hair", "hat", "s_wings"])) {
+    if (in_arr(m, ["v_animation", "head", "hair", "hat", "s_wings", "face"])) {
         var l = XYWH[b];
         textures[b] = [null, null, null, null];
         for (var k = 0; k < 4; k++) {
@@ -3243,7 +3326,6 @@ function generate_textures(b, m) {
     }
 }
 function restore_dimensions(a) {
-    return
     a.height = a.texture.height * (a.cscale || 1) / (a.mscale || 1);
     a.width = a.texture.width * (a.cscale || 1) / (a.mscale || 1)
 }
@@ -3254,13 +3336,13 @@ function set_texture(d, b, a) {
     if (d.cskin == f) {
         return
     }
-    if (in_arr(d.stype, ["full", "wings", "body"])) {
+    if (in_arr(d.stype, ["full", "wings", "body", "armor", "skin"])) {
         d.texture = textures[d.skin][b][a]
     }
     if (d.stype == "animation") {
         d.texture = textures[d.skin][b % d.frames]
     }
-    if (in_arr(d.stype, ["v_animation", "head", "hair", "hat", "s_wings"])) {
+    if (in_arr(d.stype, ["v_animation", "head", "hair", "hat", "s_wings", "face"])) {
         d.texture = textures[d.skin][b % d.frames]
     }
     if (d.stype == "animatable") {
@@ -3272,7 +3354,7 @@ function set_texture(d, b, a) {
     d.cskin = f
 }
 function new_sprite(h, b, j) {
-    if (in_arr(b, ["full", "wings", "body"])) {
+    if (in_arr(b, ["full", "wings", "body", "armor", "skin"])) {
         if (j == "renew") {
             var f = h;
             h = f.skin;
@@ -3290,7 +3372,7 @@ function new_sprite(h, b, j) {
         f.i = 1;
         f.j = 0
     }
-    if (in_arr(b, ["head", "hair", "hat", "s_wings"])) {
+    if (in_arr(b, ["head", "hair", "hat", "s_wings", "face"])) {
         if (!textures[h]) {
             generate_textures(h, b)
         }
@@ -3400,6 +3482,60 @@ function new_map_tile(b) {
         return a
     }
     return new PIXI.Sprite(b[5])
+}
+function random_rotating_rectangle(g, j) {
+    if (!g.cxc.bg) {
+        return
+    }
+    if (!j) {
+        j = {}
+    }
+    var h = new PIXI.Graphics();
+    var b = [62270, 15999275, 16316471, 5340664, 14765049, 2008313, 7216377, 16216621];
+    if (j.color == "success") {
+        b = [8767339, 11403147, 15662319]
+    } else {
+        if (j.color == "purple") {
+            b = [10044616, 8140963, 16046847]
+        }
+    }
+    var f = random_one(b);
+    var m = random_one([3, 5, 7])
+        , k = random_one([1, -1, 2, -2])
+        , a = random_one([-0.5, 0, 1, 2, 3])
+        , l = random_one([-0.2, 0.2, -0.4, 0.4]);
+    h.lineStyle(3, f);
+    h.beginFill(f);
+    h.drawRect(-m / 2, -m / 2, m / 2, m / 2);
+    h.rotation = Math.random();
+    var d = new PIXI.filters.PixelateFilter(7,7);
+    h.filters = [d];
+    h.x = 0;
+    h.y = -15;
+    g.cxc.bg.addChild(h);
+    function c(p, q, o, n) {
+        return function() {
+            if (p >= 10.6) {
+                destroy_sprite(h)
+            } else {
+                h.x -= q * DTM * 2;
+                h.y -= o * DTM * 2;
+                h.rotation -= n * DTM;
+                h.opacity -= 0.07 * DTM;
+                draw_timeout(c(p + DTM, q, o, n), 15)
+            }
+        }
+    }
+    draw_timeout(c(0, k, a, l), 15)
+}
+function small_success(a, c) {
+    for (var b = 0; b < 4; b++) {
+        for (var d = 0; d < 30; d++) {
+            draw_timeout(function() {
+                random_rotating_rectangle(a, c)
+            }, d * 16)
+        }
+    }
 }
 function assassin_smoke(m, k, j) {
     if (!j) {
@@ -3673,6 +3809,13 @@ function draw_timeouts_logic(f) {
             continue
         }
         if (g >= c[1]) {
+            DTM = 1;
+            DMS = g - c[3];
+            if (c[4]) {
+                try {
+                    DTM = (g - c[3]) / c[4]
+                } catch (d) {}
+            }
             a.push(b);
             try {
                 c[0]()
@@ -3687,7 +3830,7 @@ function draw_timeouts_logic(f) {
     }
 }
 function draw_timeout(c, b, a) {
-    draw_timeouts.push([c, future_ms(b), a])
+    draw_timeouts.push([c, future_ms(b), a, new Date(), b])
 }
 function draw_trigger(a) {
     if (in_draw) {
@@ -3698,7 +3841,7 @@ function draw_trigger(a) {
             console.log("code: " + a)
         }
     } else {
-        draw_timeouts.push([a, new Date(), 2])
+        draw_timeouts.push([a, new Date(), 2, new Date(), 0])
     }
 }
 function tint_logic() {
@@ -3914,47 +4057,57 @@ var tint_c = {
     p: 0,
     t: 0
 };
+var next_attack = new Date()
+    , next_potion = new Date();
 function attack_timeout(a) {
-    next_attack = future_ms(a);
+    if (a <= 0) {
+        return
+    }
+    next_attack = next_skill.attack = future_ms(a);
     draw_trigger(function() {
         $(".atint").css("background", "none");
         tint_c.a++;
         add_tint(".atint", {
-            ms: -mssince(next_attack),
+            ms: -mssince(next_skill.attack) - DMS,
             color: "#4C4C4C",
             reset_to: "#6A6A6A",
             type: "brute",
             key: "a",
             cur: tint_c.a
         });
-        skill_timeout("attack", -mssince(next_attack));
-        skill_timeout("heal", -mssince(next_attack))
+        skill_timeout("attack", -mssince(next_skill.attack) - DMS);
+        skill_timeout("heal", -mssince(next_skill.attack) - DMS)
     })
 }
 function pot_timeout(a) {
+    if (a <= 0) {
+        return
+    }
     if (!a) {
         a = 2000
     }
     next_potion = future_ms(a);
+    skill_timeout("use_hp", a);
+    skill_timeout("use_mp", a);
     draw_trigger(function() {
         if (!get_tint(".ptint")) {
             $(".ptint").css("background", "none")
         }
         tint_c.p++;
         add_tint(".ptint", {
-            ms: -mssince(next_potion),
+            ms: -mssince(next_skill.use_hp) - DMS,
             color: "#4C4C4C",
             reset_to: "#6A6A6A",
             type: "brute",
             key: "p",
             cur: tint_c.p
         })
-    });
-    skill_timeout("use_hp", a);
-    skill_timeout("use_mp", a)
+    })
 }
 function pvp_timeout(a, b) {
-    next_transport = future_ms(a);
+    if (a <= 0) {
+        return
+    }
     skill_timeout("use_town", a);
     if (b) {
         return
@@ -3976,7 +4129,7 @@ function pvp_timeout(a, b) {
             $(".pvptint").css("background", "#907B81");
             tint_c.t++;
             add_tint(".pvptint", {
-                ms: -mssince(next_transport),
+                ms: -mssince(next_skill.use_town) - DMS,
                 color: "black",
                 reset_to: "none",
                 type: "brute",
@@ -3988,6 +4141,9 @@ function pvp_timeout(a, b) {
     })
 }
 function pvp_timeout(c, h) {
+    if (c <= 0) {
+        return
+    }
     var f = 200
         , d = 50
         , a = 20;
@@ -3996,7 +4152,6 @@ function pvp_timeout(c, h) {
             d = 111,
             a = 45
     }
-    next_transport = future_ms(c);
     skill_timeout("use_town", c);
     if (h == 1) {
         return
@@ -4005,7 +4160,7 @@ function pvp_timeout(c, h) {
         $(".pvptint").parent().css("background", "rgb(" + f + "," + d + "," + a + ")");
         tint_c.t++;
         add_tint(".pvptint", {
-            ms: -mssince(next_transport),
+            ms: -mssince(next_skill.use_town) - DMS,
             r: f,
             g: d,
             b: a,
@@ -4016,8 +4171,16 @@ function pvp_timeout(c, h) {
         })
     })
 }
-var next_skill = {};
+var next_skill = {
+    attack: new Date(),
+    use_hp: new Date(),
+    use_mp: new Date(),
+    use_town: new Date()
+};
 function skill_timeout(c, b) {
+    if (b <= 0) {
+        return
+    }
     var a = [];
     if (!b) {
         b = G.skills[c].cooldown
@@ -4033,11 +4196,11 @@ function skill_timeout(c, b) {
     }
     draw_trigger(function() {
         if (G.skills[c] && G.skills[c].share == "attack") {
-            attack_timeout(-mssince(next_skill[c]))
+            attack_timeout(-mssince(next_skill[c] - DMS))
         }
         a.forEach(function(d) {
             add_tint(".skidloader" + d, {
-                ms: -mssince(next_skill[c]),
+                ms: -mssince(next_skill[c]) - DMS,
                 type: "skill",
                 skid: d
             })
@@ -4211,16 +4374,7 @@ function regather_filters(a) {
 function rip_logic() {
     if (character.rip && !rip) {
         if (code_run) {
-            if (document.getElementById("maincode") && document.getElementById("maincode").contentWindow && document.getElementById("maincode").contentWindow.handle_death) {
-                var c = false;
-                try {
-                    if (document.getElementById("maincode").contentWindow.handle_death() != -1) {
-                        c = true
-                    }
-                } catch (b) {
-                    add_log(b + " on handle_death", "#E13758")
-                }
-            }
+            call_code_function("trigger_character_event", "death", {})
         }
         rip = true;
         character.i = 1;
@@ -4888,21 +5042,26 @@ function d_text(p, l, k, j) {
                                                                 c = "#41338B",
                                                                     k -= 12
                                                             } else {
-                                                                if (c == "burst") {
-                                                                    c = "#2A8A9A",
-                                                                        q = "large"
+                                                                if (c == "mentalburst") {
+                                                                    c = "#4C9AE0",
+                                                                        k -= 12
                                                                 } else {
-                                                                    if (c == "poison") {
-                                                                        c = colors.poison,
-                                                                            q = "large",
-                                                                            k -= 12
+                                                                    if (c == "burst") {
+                                                                        c = "#2A8A9A",
+                                                                            q = "large"
                                                                     } else {
-                                                                        if (c == "1mxp") {
-                                                                            c = "#FFFFFF",
-                                                                                b = "glow"
+                                                                        if (c == "poison") {
+                                                                            c = colors.poison,
+                                                                                q = "large",
+                                                                                k -= 12
                                                                         } else {
-                                                                            if (colors[c]) {
-                                                                                c = colors[c]
+                                                                            if (c == "1mxp") {
+                                                                                c = "#FFFFFF",
+                                                                                    b = "glow"
+                                                                            } else {
+                                                                                if (colors[c]) {
+                                                                                    c = colors[c]
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -5013,7 +5172,7 @@ function api_call(h, c, g) {
     if (!g) {
         g = {}
     }
-    var d = "/api/" + h
+    var  = "/api/" + h
         , b = g.disable;
     if (c.ui_loader) {
         g.r_id = randomStr(10);
@@ -5096,16 +5255,6 @@ function api_call_l(c, a, b) {
     }
     a.ui_loader = true;
     return api_call(c, a, b)
-}
-function game_events_logic(a) {
-    if (!code_run) {
-        return
-    }
-    a.forEach(function(c) {
-        var b = c.e;
-        delete c.e;
-        call_code_function("trigger_event", b, c)
-    })
 }
 var warned = {}
     , map_info = {};
@@ -5253,27 +5402,34 @@ function handle_information(g) {
         info = g[f];
         if (info.type == "code_list") {
             if (info.purpose == "load") {
-                var d = ""
+                var d = "<div style='width: 520px'>"
                     , c = false;
                 info.list[0] = "Default Code";
                 for (var b in info.list) {
-                    d += "<div class='gamebutton block' style='margin-bottom: -4px' onclick='load_code(\"" + b + "\",1)'>[" + b + "] " + info.list[b] + "</div>";
+                    if (b == "0") {
+                        color = "gray"
+                    } else {
+                        color = colors.code_blue
+                    }
+                    d += "<div class='gamebutton block' style='margin-bottom: -4px' onclick='load_code(\"" + b + "\",1)'><span style='color: " + color + "'>[" + b + "]</span> " + info.list[b] + "</div>";
                     c = true
                 }
-                d += "<div style='margin: 10px 5px 5px 5px; font-size: 24px; line-height: 28px'>";
-                d += "<div>You can also load code's into your code. For example, you can save your 'Functions' in one code slot, let's say 2, and inside your first code slot, you can: <span class='label' style='height: 24px; margin: -2px 0px 0px 0px;'>load_code(2)</span> or <span class='label' style='height: 24px; margin: -2px 0px 0px 0px;'>load_code('Functions')</span></div>";
+                d += "<div style='margin-top: 10px; font-size: 24px; line-height: 28px; border: 4px solid gray; background: black; padding: 16px;'>";
+                d += "<div>You can also load codes into your code. For example, you can save your 'Functions' in one code slot, let's say 2, and inside your first code slot, you can: <span class='label' style='height: 24px; margin: -2px 0px 0px 0px;'>load_code(2)</span> or <span class='label' style='height: 24px; margin: -2px 0px 0px 0px;'>load_code('Functions')</span></div>";
+                d += "</div>";
                 d += "</div>";
                 show_modal(d, {
-                    keep_code: true
+                    keep_code: true,
+                    wrap: false
                 })
             } else {
                 if (info.purpose == "save") {
-                    var d = ""
+                    var d = "<div style='width: 520px'>"
                         , c = false;
-                    d += "<div style='box-sizing: border-box; width: 100%; text-align: center; margin-bottom: 8px'>";
-                    d += "<input type='text' style='box-sizing: border-box; width: 20%;' placeholder='#' class='csharp cinput'/>";
-                    d += "<input type='text' style='box-sizing: border-box; width: 58%;' placeholder='NAME' class='codename cinput' />";
-                    d += "<div class='gamebutton' style='box-sizing: border-box; width: 20%; padding: 8px' onclick='save_code_s()'>SAVE</div>";
+                    d += "<div style='box-sizing: border-box; width: 100%; text-align: center; margin-bottom: 8px;'>";
+                    d += "<input type='text' style='box-sizing: border-box; width: 15%;; float: left' placeholder='#' autocomplete='nope' id='alcodenumx' name='alcodenumx' class='csharp cinput'/>";
+                    d += "<input type='text' style='box-sizing: border-box; width: 63%;' placeholder='NAME' autocomplete='nope' id='alcodeinputx' name='alcodeinputx' class='codename cinput' />";
+                    d += "<div class='gamebutton' style='box-sizing: border-box; width: 20%; padding: 8px; float: right' onclick='save_code_s()'>SAVE</div>";
                     d += "</div>";
                     if (!Object.keys(info.list).length) {
                         info.list = {
@@ -5284,13 +5440,20 @@ function handle_information(g) {
                     code_list = info.list;
                     info.list["#"] = "DELETE";
                     for (var b in info.list) {
-                        d += "<div class='gamebutton block' style='margin-bottom: -4px' onclick='load_code_s(\"" + b + "\")'>[" + b + "] " + info.list[b] + "</div>";
+                        if (b == "#") {
+                            color = "gray"
+                        } else {
+                            color = colors.code_pink
+                        }
+                        d += "<div class='gamebutton block' style='margin-bottom: -4px' onclick='load_code_s(\"" + b + "\")'><span style='color: " + color + "'>[" + b + "]</span> " + info.list[b] + "</div>";
                         c = true
                     }
                     d += "<div style='margin: 10px 5px 5px 5px; font-size: 24px; line-height: 28px'>";
                     d += "</div>";
+                    d += "</div>";
                     show_modal(d, {
-                        keep_code: true
+                        keep_code: true,
+                        wrap: false
                     })
                 } else {
                     show_json(info.list)
@@ -5300,87 +5463,116 @@ function handle_information(g) {
             if (info.type == "servers_and_characters") {
                 X.servers = info.servers;
                 X.characters = info.characters;
+                X.tutorial = info.tutorial;
                 update_servers_and_characters(info)
-            }
-        }
-        if (info.type == "reload") {
-            var a = future_s(10);
-            storage_set("reload" + server_region + server_identifier, JSON.stringify({
-                time: a,
-                ip: info.ip,
-                port: "" + info.port
-            }))
-        }
-        if (info.type == "friends") {
-            load_friends(info)
-        }
-        if (in_arr(info.type, ["ui_log", "message"])) {
-            if (info.color) {
-                add_log(info.message, info.color)
             } else {
-                ui_log(info.message)
-            }
-        }
-        if (info.type == "code") {
-            codemirror_render.setValue(info.code);
-            if (info.reset) {
-                codemirror_render.clearHistory()
-            }
-            if (info.run) {
-                if (code_run) {
-                    toggle_runner(),
-                        toggle_runner()
+                if (info.type == "reload") {
+                    var a = future_s(10);
+                    storage_set("reload" + server_region + server_identifier, JSON.stringify({
+                        time: a,
+                        ip: info.ip,
+                        port: "" + info.port
+                    }))
                 } else {
-                    toggle_runner()
-                }
-            }
-        }
-        if (info.type == "gcode") {
-            var d = "";
-            d += "<textarea id='gcode'>" + info.code + "</textarea>";
-            show_modal(d)
-        }
-        if (info.type == "tutorial") {
-            var d = "<div style='background: #E5E5E5; color: #010805; border: 5px solid gray; max-width: 960px; padding: 24px; font-size: 32px; text-align: justify'><div style='margin-top:-15px'></div>";
-            d += info.html;
-            d += "<div style='margin-bottom:-15px'></div></div>";
-            show_modal(d, {
-                wrap: false
-            });
-            $(".code").codemirror({
-                trim: true
-            });
-            position_modals()
-        }
-        if (info.type == "chat_message") {
-            add_chat("", info.message, info.color)
-        }
-        if (in_arr(info.type, ["ui_error", "error"])) {
-            if (inside == "message") {
-                $("#message").html(info.message)
-            } else {
-                ui_error(info.message)
-            }
-        }
-        if (in_arr(info.type, ["success"])) {
-            if (inside == "message") {
-                $("#message").html(info.message)
-            } else {
-                ui_success(info.message)
-            }
-        } else {
-            if (info.type == "content") {
-                $("#content").html(info.html);
-                resize()
-            } else {
-                if (info.type == "eval") {
-                    smart_eval(info.code)
-                } else {
-                    if (info.type == "func") {
-                        smart_eval(window[info.func], info.args)
+                    if (info.type == "friends") {
+                        load_friends(info)
                     } else {
-                        if (info.type == "pcs") {
-                            pcs(info.sound)
+                        if (in_arr(info.type, ["ui_log", "message"])) {
+                            if (info.color) {
+                                add_log(info.message, info.color)
+                            } else {
+                                ui_log(info.message)
+                            }
+                        } else {
+                            if (info.type == "code") {
+                                codemirror_render.setValue(info.code);
+                                if (info.reset) {
+                                    codemirror_render.clearHistory()
+                                }
+                                if (info.run) {
+                                    if (code_run) {
+                                        toggle_runner(),
+                                            toggle_runner()
+                                    } else {
+                                        toggle_runner()
+                                    }
+                                }
+                            } else {
+                                if (info.type == "gcode") {
+                                    var d = "";
+                                    d += "<textarea id='gcode'>" + info.code + "</textarea>";
+                                    show_modal(d)
+                                } else {
+                                    if (info.type == "article") {
+                                        if (info.tutorial) {
+                                            render_tutorial(info.html, parseInt(info.tutorial))
+                                        } else {
+                                            if (info.func) {
+                                                render_function_html = info.html;
+                                                render_function_reference(info.func, undefined, undefined)
+                                            } else {
+                                                render_learn_article(info.html)
+                                            }
+                                        }
+                                    } else {
+                                        if (info.type == "tutorial_data") {
+                                            delete info.type;
+                                            X.tutorial = info;
+                                            if (info.next) {
+                                                small_success(character, {
+                                                    color: "purple"
+                                                });
+                                                delete info.next;
+                                                setTimeout(open_tutorial, 1000)
+                                            } else {
+                                                if (info.success) {
+                                                    small_success(character, {
+                                                        color: "success"
+                                                    });
+                                                    delete info.success
+                                                }
+                                            }
+                                        } else {
+                                            if (info.type == "chat_message") {
+                                                add_chat("", info.message, info.color)
+                                            } else {
+                                                if (in_arr(info.type, ["ui_error", "error"])) {
+                                                    if (inside == "message") {
+                                                        $("#message").html(info.message)
+                                                    } else {
+                                                        ui_error(info.message)
+                                                    }
+                                                } else {
+                                                    if (in_arr(info.type, ["success"])) {
+                                                        if (inside == "message") {
+                                                            $("#message").html(info.message)
+                                                        } else {
+                                                            ui_success(info.message)
+                                                        }
+                                                    } else {
+                                                        if (info.type == "content") {
+                                                            $("#content").html(info.html);
+                                                            resize()
+                                                        } else {
+                                                            if (info.type == "eval") {
+                                                                smart_eval(info.code)
+                                                            } else {
+                                                                if (info.type == "func") {
+                                                                    smart_eval(window[info.func], info.args)
+                                                                } else {
+                                                                    if (info.type == "pcs") {
+                                                                        pcs(info.sound)
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -5394,47 +5586,123 @@ function add_alert(a) {
         alert(a)
     }
 }
-function sfx(b, a, f) {
+function sfx(b, a, h) {
     try {
         if (!window.sound_sfx || no_html) {
             return
         }
-        var d = null;
+        var f = null;
         if (b == "hit" || b == "monster_hit") {
-            d = sounds.hit_8bit
+            f = sounds.hit_8bit
         }
         if (b == "explosion") {
-            d = sounds.fx_explosion
+            f = sounds.fx_explosion
         }
         if (b == "coins") {
-            d = sounds.coin_collect
+            f = sounds.coin_collect
         }
         if (b == "hp" || b == "mp") {
-            d = sounds.use_8bit
+            f = sounds.use_8bit
         }
         if (b == "chat") {
-            d = sounds.chat
+            f = sounds.chat
         }
         if (b == "walk") {
-            d = sounds.walk
+            f = sounds.walk
         }
         if (b == "npc") {
-            d = sounds.drop
+            f = sounds.drop
         }
-        if (!d && sounds[b]) {
-            d = sounds[b]
+        if (!f && sounds[b]) {
+            f = sounds[b]
         }
-        if (d) {
+        if (f) {
             if (a === undefined) {
-                d.play()
+                f.play()
             } else {
-                d.orientation(0, 0, 0);
-                d.pos((-a + map.real_x) / 120, (f - map.real_y) / 120, 0);
-                d.play()
+                if (mode.directional_sfx) {
+                    f.orientation(0, 0, 0);
+                    f.pos((-a + map.real_x) / 120, (h - map.real_y) / 120, 0);
+                    f.play()
+                } else {
+                    var g = point_distance(a, h, map.real_x, map.real_y)
+                        , c = 1;
+                    if (!f.original_volume) {
+                        f.original_volume = f.volume()
+                    }
+                    if (g > 700) {
+                        c = 0.05
+                    } else {
+                        if (g > 500) {
+                            c = 0.075
+                        } else {
+                            if (g > 400) {
+                                c = 0.1
+                            } else {
+                                if (g > 300) {
+                                    c = 0.15
+                                } else {
+                                    if (g > 250) {
+                                        c = 0.175
+                                    } else {
+                                        if (g > 275) {
+                                            c = 0.2
+                                        } else {
+                                            if (g > 250) {
+                                                c = 0.25
+                                            } else {
+                                                if (g > 225) {
+                                                    c = 0.3
+                                                } else {
+                                                    if (g > 200) {
+                                                        c = 0.4
+                                                    } else {
+                                                        if (g > 175) {
+                                                            c = 0.45
+                                                        } else {
+                                                            if (g > 150) {
+                                                                c = 0.5
+                                                            } else {
+                                                                if (g > 125) {
+                                                                    c = 0.6
+                                                                } else {
+                                                                    if (g > 100) {
+                                                                        c = 0.7
+                                                                    } else {
+                                                                        if (g > 75) {
+                                                                            c = 0.8
+                                                                        } else {
+                                                                            if (g > 50) {
+                                                                                c = 0.9
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    f.volume(f.original_volume * c);
+                    f.play()
+                }
             }
         }
-    } catch (c) {
-        add_alert(c)
+    } catch (d) {
+        add_alert(d)
+    }
+}
+function tut(a) {
+    if (X.tutorial.task == a) {
+        api_call("tutorial", {
+            task: a
+        })
     }
 }
 function pcs(a) {
@@ -5462,7 +5730,7 @@ function init_sounds() {
     }
     sounds.click = new Howl({
         src: [url_factory("/sounds/effects/click_natural.wav")],
-        volume: 0.5,
+        volume: 0.32,
     });
     if (sound_sfx) {
         init_fx()
@@ -5487,20 +5755,20 @@ function init_fx() {
         volume: 0.3,
     });
     sounds.coin_collect = new Howl({
-        src: [url_factory("/sounds/fx/COINS_Rattle_04_mono.wav")],
+        src: [url_factory("/sounds/fx/pop_plink.wav")],
         volume: 0.2,
     });
     sounds.hit_8bit = new Howl({
-        src: [url_factory("/sounds/fx/8BIT_RETRO_Hit_Bump_Noise_mono.wav")],
-        volume: 0.1,
+        src: [url_factory("/sounds/fx/zap_drum.wav")],
+        volume: 0.2,
     });
     sounds.magic_8bit = new Howl({
         src: [url_factory("/sounds/fx/8BIT_RETRO_Fire_Blaster_Short_mono.wav")],
         volume: 0.4,
     });
     sounds.use_8bit = new Howl({
-        src: [url_factory("/sounds/fx/VideoGameSFX_blip_07.wav")],
-        volume: 0.1,
+        src: [url_factory("/sounds/fx/pop_plink.wav")],
+        volume: 0.16,
     });
     sounds.chat = new Howl({
         src: [url_factory("/sounds/fx/UI_Beep_Double_Quick_Smooth_stereo.wav")],
@@ -5526,13 +5794,17 @@ function init_fx() {
         src: [url_factory("/sounds/fx/MAGIC_SPELL_Spawn_mono.wav")],
         volume: 0.15,
     });
-    sounds.crackle0 = new Howl({
+    sounds.crackle01 = new Howl({
         src: [url_factory("/sounds/fx/Explosive01.wav")],
         volume: 0.15,
     });
     sounds.crackle0 = new Howl({
         src: [url_factory("/sounds/fx/Explosive02.wav")],
         volume: 0.15,
+    });
+    sounds.level_up = new Howl({
+        src: [url_factory("/sounds/fx/MUSIC_EFFECT_Bell_Voice_Positive_09_stereo.wav")],
+        volume: 0.2,
     })
 }
 function performance_trick() {
@@ -5560,7 +5832,7 @@ function init_music() {
     window.music_init = 1;
     sounds.christmas = new Howl({
         src: [url_factory("/sounds/loops/christmas.ogg")],
-        volume: 0.4 * music_level,
+        volume: 0.2 * music_level,
         autoplay: false,
         loop: true,
     });
@@ -5569,43 +5841,43 @@ function init_music() {
     }
     sounds.horror01 = new Howl({
         src: [url_factory("/sounds/loops/horror_01_loop.ogg")],
-        volume: 0.2 * music_level,
+        volume: 0.15 * music_level,
         autoplay: false,
         loop: true,
     });
     sounds.casual05 = new Howl({
         src: [url_factory("/sounds/loops/casual_05_loop.ogg")],
-        volume: 0.4 * music_level,
+        volume: 0.2 * music_level,
         autoplay: false,
         loop: true,
     });
     sounds.rpg07 = new Howl({
         src: [url_factory("/sounds/loops/rpg_07_loop.ogg")],
-        volume: 0.4 * music_level,
+        volume: 0.2 * music_level,
         autoplay: false,
         loop: true,
     });
     sounds.rpg08 = new Howl({
         src: [url_factory("/sounds/loops/rpg_08_loop.ogg")],
-        volume: 0.4 * music_level,
+        volume: 0.2 * music_level,
         autoplay: false,
         loop: true,
     });
     sounds.rpg10 = new Howl({
         src: [url_factory("/sounds/loops/rpg_10_loop.ogg")],
-        volume: 0.4 * music_level,
+        volume: 0.2 * music_level,
         autoplay: false,
         loop: true,
     });
     sounds.rpg14 = new Howl({
         src: [url_factory("/sounds/loops/rpg_14_loop.ogg")],
-        volume: 0.4 * music_level,
+        volume: 0.2 * music_level,
         autoplay: false,
         loop: true,
     });
     sounds.rpg16 = new Howl({
         src: [url_factory("/sounds/loops/rpg_16_loop.ogg")],
-        volume: 0.4 * music_level,
+        volume: 0.2 * music_level,
         autoplay: false,
         loop: true,
     })
@@ -5767,6 +6039,9 @@ function alert_json(a) {
 function game_stringify(f, c) {
     var b = [];
     try {
+        if (f === undefined) {
+            return "undefined"
+        }
         var a = JSON.stringify(f, function(g, h) {
             if (in_arr(g, ["transform", "parent", "displayGroup", "parentGroup", "vertexData", "animations", "tiles", "placements", "default", "children", "tempDisplayObjectParent", "cachedTint", "vertexTrimmedData", "hp_bar"]) || g.indexOf("filter_") != -1 || g[0] == "_") {
                 return
@@ -5782,19 +6057,24 @@ function game_stringify(f, c) {
             }
             return h
         }, c);
-        if ("x"in f) {
-            a = JSON.parse(a);
-            a.x = f.x;
-            a.y = f.y;
-            a = JSON.stringify(a, undefined, c)
-        }
+        try {
+            if ("x"in f) {
+                a = JSON.parse(a);
+                a.x = f.x;
+                a.y = f.y;
+                a = JSON.stringify(a, undefined, c)
+            }
+        } catch (d) {}
         return a
     } catch (d) {
-        return "safe_stringify_exception"
+        return "game_stringify_exception"
     }
 }
 function game_stringify_simple(d, b) {
     try {
+        if (d === undefined) {
+            return "undefined"
+        }
         var a = JSON.stringify(d, function(f, g) {
             if (in_arr(f, ["transform", "parent", "displayGroup", "parentGroup", "vertexData", "animations", "tiles", "placements", "default", "children", "tempDisplayObjectParent", "cachedTint", "vertexTrimmedData", "hp_bar"]) || f.indexOf("filter_") != -1 || f[0] == "_") {
                 return
@@ -5804,15 +6084,17 @@ function game_stringify_simple(d, b) {
             }
             return g
         }, b);
-        if ("x"in d) {
-            a = JSON.parse(a);
-            a.x = d.x;
-            a.y = d.y;
-            a = JSON.stringify(a, undefined, b)
-        }
+        try {
+            if ("x"in d) {
+                a = JSON.parse(a);
+                a.x = d.x;
+                a.y = d.y;
+                a = JSON.stringify(a, undefined, b)
+            }
+        } catch (c) {}
         return a
     } catch (c) {
-        return "safe_stringify_exception"
+        return "game_stringify_simple_exception"
     }
 }
 function syntax_highlight(a) {
@@ -6096,7 +6378,7 @@ function electron_mas_receipt() {
 }
 function electron_steam_ticket() {
     try {
-        storage_get("ticket") || ""
+        return storage_get("ticket") || ""
     } catch (a) {
         console.log(a)
     }
@@ -6144,5 +6426,4 @@ function electron_add_webview(a) {
         a = "http://thegame.com/character/GG/in/EU/I/"
     }
     $("body").append("<webview src='" + a + "' style='position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px' disablewebsecurity nodeintegration></webview>")
-}
-;
+};

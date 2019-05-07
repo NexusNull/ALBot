@@ -1,12 +1,11 @@
 var fs = require("fs")
-eval(fs.readFileSync('modedGameFiles/common_functions.js') + '');
-eval(fs.readFileSync('modedGameFiles/functions.js') + '');
+eval(fs.readFileSync('moddedGameFiles/common_functions.js') + '');
+eval(fs.readFileSync('moddedGameFiles/functions.js') + '');
 var Socket = require("socket.io-client");
 var is_sdk = false
 var is_game = 0
     , is_server = 0
     , is_code = 1
-    , is_pvp = 0
     , is_demo = 0
     , gameplay = "normal";
 var inception = new Date();
@@ -28,7 +27,7 @@ var mode = {
 };
 var paused = false;
 var log_flags = {
-    timers: 1,
+    timers: 0,
 };
 var ptimers = true;
 var mdraw_mode = "redraw"
@@ -177,8 +176,8 @@ var border_mode = false;
 var frame_ms;
 var sound_sfx = false;
 var screen = {
-     width : 1920,
-    height : 1020
+    width: 1920,
+    height: 1020
 }
 var recording_mode = false
 var width = 1920;
@@ -346,6 +345,7 @@ function log_in(a, e, c, f) {
     }*/
     socket.emit("auth", d)
 }
+
 function disconnect() {
     var a = "DISCONNECTED"
         , b = "Disconnected";
@@ -439,6 +439,7 @@ function position_map() {
         }
     }
 }
+
 function ui_logic() {
     if (character && character.ctype == "mage") {
         if (b_pressed && map.cursor != "crosshair") {
@@ -450,9 +451,11 @@ function ui_logic() {
         }
     }
 }
+
 var rendered_target = {}
     , last_target_cid = null
     , dialogs_target = null;
+
 function reset_topleft() {
     if (no_html) {
         return
@@ -795,6 +798,7 @@ function reset_topleft() {
     rendered_target = ctarget;
     last_target_cid = ctarget && ctarget.cid
 }
+
 function sync_entity(c, a) {
     adopt_soft_properties(c, a);
     if (c.resync) {
@@ -881,7 +885,7 @@ function process_entities() {
             continue
         }
         sync_entity(monster, future_monster);
-        (future_monster.events || []).forEach(function(g) {
+        (future_monster.events || []).forEach(function (g) {
             if (g.type == "mhit") {
                 var h = get_entity(g.p)
                     , e = get_entity(g.m);
@@ -983,7 +987,9 @@ function on_disappear(event) {
             entities[event.id].tpd = true
         }
         call_code_function("on_disappear", entities[event.id], event);
-        delete entities[event.id]
+        setTimeout(function () {
+            delete entities[event.id];
+        }, 500);
     } else {
         if (character && character.id == event.id) {
             if (event.invis) {
@@ -1016,10 +1022,10 @@ function adopt_soft_properties(entity, data) {
     if (entity.type == "monster" && G.monsters[entity.mtype]) {
         var c = G.monsters[entity.mtype];
         var a = [["hp", "hp"], ["max_hp", "hp"], ["mp", "mp"], ["max_mp", "mp"]];
-        ["speed", "xp", "attack", "frequency", "rage", "aggro", "armor", "resistance", "damage_type", "respawn", "range", "name", "abilities", "evasion", "reflection", "dreturn", "immune", "cooperative", "spawns", "special", "1hp", "lifesteal"].forEach(function(f) {
+        ["speed", "xp", "attack", "frequency", "rage", "aggro", "armor", "resistance", "damage_type", "respawn", "range", "name", "abilities", "evasion", "reflection", "dreturn", "immune", "cooperative", "spawns", "special", "1hp", "lifesteal"].forEach(function (f) {
             a.push([f, f])
         });
-        a.forEach(function(f) {
+        a.forEach(function (f) {
             if (c[f[1]] !== undefined && (data[f[0]] === undefined || entity[f[0]] === undefined)) {
                 entity[f[0]] = c[f[1]]
             }
@@ -1074,6 +1080,7 @@ function reposition_ui() {
         $("#bottommid").css("right", round(($("html").width() - $("#bottommid").outerWidth()) / 2))
     }*/
 }
+
 function update_overlays() {
     /* no $ on ALBot
     if (mode.dom_tests || no_html) {
@@ -1135,9 +1142,11 @@ function update_overlays() {
     }
     */
 }
+
 var last_loader = {
     progress: 0
 };
+
 function on_load_progress(a, b) {
     /* no $ on ALBot
     if (!a) {
@@ -1151,6 +1160,7 @@ function on_load_progress(a, b) {
     }
     */
 }
+
 function loader_click() {
     /* no $ on ALBot
     if (!server_addr) {
@@ -1163,6 +1173,7 @@ function loader_click() {
         }
     }*/
 }
+
 function the_game(e) {
     /* set on top of the file
     width = $(window).width();
@@ -1356,6 +1367,7 @@ function the_game(e) {
         init_demo()
     }*/
 }
+
 function demo_entity_logic(b) {
     if (!b.demo) {
         return
@@ -1381,7 +1393,8 @@ function demo_entity_logic(b) {
     shuffle(a);
     b.going_x = b.x + a[0][0] * c;
     b.going_y = b.y + a[0][1] * c;
-    if (b.boundary && (b.going_x < b.boundary[0] || b.going_x > b.boundary[2] || b.going_y < b.boundary[1] || b.going_y > b.boundary[3])) {} else {
+    if (b.boundary && (b.going_x < b.boundary[0] || b.going_x > b.boundary[2] || b.going_y < b.boundary[1] || b.going_y > b.boundary[3])) {
+    } else {
         if (can_move(b)) {
             b.u = true;
             b.moving = true;
@@ -1394,6 +1407,7 @@ function demo_entity_logic(b) {
         }
     }
 }
+
 function init_demo() {
     is_demo = 1;
     current_map = current_in = "shellsisland";
@@ -1419,7 +1433,7 @@ function init_demo() {
 }
 
 function init_socket() {
-    if (!server_addr|| !port) {
+    if (!server_addr || !port) {
         add_log("server_addr isn't set, can't establish connection to nothing bro.")
         /*added own no connection messages
         add_log("Welcome");
@@ -1442,8 +1456,8 @@ function init_socket() {
         })
     }
     */
-    console.log(server_addr,port)
-    if (protocol == "https") {
+    console.log(server_addr, port)
+    if (protocol === "https") {
         socket = new Socket("wss://" + server_addr + ":" + port, {
             autoConnect: false,
             extraHeaders: {
@@ -1473,7 +1487,7 @@ function init_socket() {
     var original_onevent = socket.onevent;
     var original_emit = socket.emit;
 
-    var logging = false
+    var logging = false;
     socket.emit = function (packet) {
         var is_transport = in_arr(arguments && arguments["0"], ["transport", "enter", "leave"]);
         if (logging) {
@@ -1495,6 +1509,7 @@ function init_socket() {
     socket.on("welcome", function (data) {
         socket_welcomed = true;
         is_pvp = data.pvp;
+
         gameplay = data.gameplay;
         server_region = data.region;
         server_identifier = data.name;
@@ -1567,7 +1582,7 @@ function init_socket() {
         new_map_logic("map", data);
         call_code_function("trigger_event", "new_map", data)
     });
-    socket.on("start", function(data) {
+    socket.on("start", function (data) {
         /* no $ in ALBot
         if (!no_html) {
             $("#progressui").remove();
@@ -1727,13 +1742,13 @@ function init_socket() {
     });
     socket.on("correction", function (data) {
         if (can_move({
-                map: character.map,
-                x: character.real_x,
-                y: character.real_y,
-                going_x: data.x,
-                going_y: data.y,
-                base: character.base
-            })) {
+            map: character.map,
+            x: character.real_x,
+            y: character.real_y,
+            going_x: data.x,
+            going_y: data.y,
+            base: character.base
+        })) {
             //add_log("Location corrected", "gray");
             console.log("Character correction");
             character.real_x = parseFloat(data.x);
@@ -1752,10 +1767,10 @@ function init_socket() {
             load_pvp_list(data.list)
         }
     });
-    socket.on("ping_ack", function() {
+    socket.on("ping_ack", function () {
         add_log("Ping: " + mssince(ping_sent) + "ms", "gray")
     });
-    socket.on("requesting_ack", function() {
+    socket.on("requesting_ack", function () {
         socket.emit("requested_ack", {})
     });
     socket.on("game_error", function (data) {
@@ -1878,11 +1893,9 @@ function init_socket() {
                 } else {
                     if (response == "storage_full") {
                         ui_log("Storage is full", "gray");
-                        reopen()
                     } else {
                         if (response == "inventory_full") {
                             ui_log("Inventory is full", "gray");
-                            reopen()
                         } else {
                             if (response == "invalid") {
                                 ui_log("Invalid", "gray")
@@ -1941,12 +1954,12 @@ function init_socket() {
                                                                                             if (response == "exchange_full") {
                                                                                                 d_text("NO SPACE", character);
                                                                                                 ui_log("Inventory is full", "gray");
-                                                                                                reopen()
+
                                                                                             } else {
                                                                                                 if (response == "exchange_notenough") {
                                                                                                     d_text("NOT ENOUGH", character);
                                                                                                     ui_log("Need more", "gray");
-                                                                                                    reopen()
+
                                                                                                 } else {
                                                                                                     if (in_arr(response, ["mistletoe_success", "leather_success", "candycane_success", "ornament_success", "seashell_success", "gemfragment_success"])) {
                                                                                                         render_interaction(response)
@@ -2266,7 +2279,7 @@ function init_socket() {
                                                                                                                                                                                                                                                                                                                                                                                             ui_log("Spent 250,000 gold", "gray");
                                                                                                                                                                                                                                                                                                                                                                                             ui_log("Sealed the item", "gray")
                                                                                                                                                                                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                                                                                                                                                                                            console.log("Missed game_response: " + response)
+                                                                                                                                                                                                                                                                                                                                                                                            //console.log("Missed game_response: " + response)
                                                                                                                                                                                                                                                                                                                                                                                         }
                                                                                                                                                                                                                                                                                                                                                                                     }
                                                                                                                                                                                                                                                                                                                                                                                 }
@@ -3027,9 +3040,6 @@ function init_socket() {
             chest = add_chest(data)
         })
     });
-    socket.on("reopen", function (data) {
-        reopen()
-    });
     socket.on("simple_eval", function (data) {
         eval(data.code || data || "")
     });
@@ -3044,11 +3054,6 @@ function init_socket() {
             adopt_soft_properties(character, data),
                 rip_logic()
         }
-        if (data.reopen) {
-            draw_trigger(function () {
-                reopen()
-            })
-        }
     });
     socket.on("end", function (data) {
     });
@@ -3058,7 +3063,8 @@ function init_socket() {
         disconnect()
     });
     socket.on("disconnect_reason", function (reason) {
-        disconnect_reason = reason
+        disconnect_reason = reason;
+        disconnect()
     });
     socket.on("hit", function (data) {
         if (1) {
@@ -3375,29 +3381,10 @@ function init_socket() {
                 }
             }
         });
-        /*
-        if (party_list.length == 0 && (data.list || []).length && !in_arr("party", cwindows)) {
-                open_chat_window("party")
-            }
-            party_list = data.list || [];
-            party = data.party || {};
-            render_party()
-        })*/
-        //we can't replace the objects here, as there is a reference
-        //to it within the Executor.
-        //instead we need to replace the entries inside
-        //the existing objects
-        let new_party_list = data.list || [];
-        while (party_list.length > 0)
-            party_list.pop();
-        for (let member of new_party_list)
-            party_list.push(member);
 
-        let new_party = data.party || {};
-        for (let member in party)
-            delete party[member];
-        for (let member in new_party)
-            party[member] = new_party[member];
+        party_list = data.list || [];
+        party = data.party || {};
+
     });
     socket.on("blocker", function (data) {
         if (data.type == "pvp") {
@@ -3841,15 +3828,15 @@ function map_click_release() {
 }
 
 function draw_entities() {
-    for (entity in entities) {
+    for (let entity in entities) {
         var a = entities[entity];
         if (character && !within_xy_range(character, a) || !character && !within_xy_range({
-                map: current_map,
-                "in": current_map,
-                vision: [700, 500],
-                x: first_x,
-                y: first_y
-            }, a)) {
+            map: current_map,
+            "in": current_map,
+            vision: [700, 500],
+            x: first_x,
+            y: first_y
+        }, a)) {
             call_code_function("on_disappear", a, {
                 outside: true
             });
@@ -3869,7 +3856,10 @@ function draw_entities() {
                     destroy_sprite(entities[entity], "just")
                 }
             }
-            delete entities[entity];
+            setTimeout(function () {
+                delete entities[entity];
+            }, 500)
+
             continue
         } else {
             if (!a.drawn) {
@@ -6032,6 +6022,7 @@ function load_game(a) {
         onLoad();
     }
 }
+
 function launch_game() {
     create_map();
     if (!draws) {
