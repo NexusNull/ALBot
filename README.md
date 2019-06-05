@@ -59,7 +59,7 @@ An old property used for testing in different envirmoments, as of late it is no 
 Bot-web-interface or BWI is another module that I developed which displays data in a neat format.
 Granted it doesn't look as fancy as I would like it to but it does it's job. BWI offers a simple to setup web interface that can display all kinds of data, ALBot uses it to display basic information about the running chracters.
 
-![ALBot bot web interface](https://pwellershaus.com/uploads/original/2624373efc03b0dc3de8ea1594601dac.png)
+![Screenshot](https://pwellershaus.com/uploads/original/2624373efc03b0dc3de8ea1594601dac.png)
 
 As you can see it contains the name and level but also TLU which stands for 'time to level up', besides that the rest should be self explenatory.  
 
