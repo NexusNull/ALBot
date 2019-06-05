@@ -64,7 +64,7 @@ Granted it doesn't look as fancy as I would like it to but it does it's job. BWI
 As you can see it contains the name and level but also TLU which stands for 'time to level up', besides that the rest should be self explenatory.  
 
 BWI can be enabled/disabled by setting the start property, by default this is set to false. One thing to note is that BWI uses 2 consecutive ports meaning with you want to expose BWI to the internet by port forwarding you will have to port forward the port listed here and one higher. If need be I can change that behaviour but as long as nobody complains it's staying that way.
-If you do decide to open BWI to the internet that is still the option to protect it with a password so only you or certain others have access to it. Such a setup can be usefull if you have it running on a server but want to check up on it from work.
+If you do decide to open BWI to the internet that is still the option to protect it with a password so only you can access it. Such a setup can be usefull if you have it running on a server but want to check up on it from work.
 
 First a word of caution, the mini map is a nice little feature that has been added recently and is still not as polished as I want it to be. The way the mini map is implemented is very hacky, it works by sending data url converted PNG images to the client, high frame rates can cause many issues such as high cpu usage on the server side and GPU crashes on the client side. I recommend a frame rate of 1.
 
@@ -107,7 +107,7 @@ Size controls the resolution of the generated image.
 If you have questions and/or suggestions please refer to [repo](https://github.com/NexusNull/bot-web-interface).
 If fetch is set to true it will fetch your character data on the next run. This means previous entries in bots will be overwritten.
 
-By default the bot will connect to the server, fetch the data for all available characters, and then close again.
+By default the bot will connect to the server, fetch the data for all available characters and then close again.
 After the fetch is complete, you can edit the CODE script that is run for each character and the server it should connect to.
 
 The character name is irrelevant when running ALBot. The bot will use the character id to identify the character and only refer to its name if the id is missing.
