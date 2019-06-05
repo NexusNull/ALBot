@@ -68,7 +68,7 @@ If you do decide to open BWI to the internet that is still the option to protect
 
 First a word of caution, the mini map is a nice little feature that has been added recently and is still not as polished as I want it to be. The way the mini map is implemented is very hacky, it works by sending data url converted PNG images to the client, high frame rates can cause many issues such as high cpu usage on the server side and GPU crashes on the client side. I recommend a frame rate of 1.
 
-If you want to enable the mini map set enable to true. The speed property determines the frame rate, by default every 1000 ms a frame is generated and send to the clients you can make it faster by decreasing the speed property.
+If you want to enable the mini map set enable to true. The speed property determines the interval in which images are generated and send to the client, you can make it faster by decreasing the speed value.
 Size controls the resolution of the generated image.
 
 
@@ -117,3 +117,7 @@ The character name is irrelevant when running ALBot. The bot will use the charac
 
 ## Running your own code
 The default code located at `./CODE/default.js`, the runScript entry in `userData.json` corresponds with the name of the script that should be run for the character. The environment is fundamentally the same as a browser with some exceptions, for example references to window, document, and PIXI are not supported.  Every character can run a different file, the default.js script will send characters to farm tiny crabs on the main beach.
+
+## Contributing
+Feel free to make contributions, they are always welcome!
+
