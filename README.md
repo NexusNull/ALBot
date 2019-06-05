@@ -42,6 +42,9 @@ Currently there is no client side check for character limitations, if you forget
 
 10. Congratulations you now have a working copy of ALBot, if you experience unexpected behavior please raise an issue.
 
+## Installation Windows
+#TODO
+
 ## Understanding userdata.json
 Rename `userData.json-example` to `userData.json`, and change the data to your own.
 
