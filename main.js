@@ -4,12 +4,12 @@ process.on('uncaughtException', function (exception) {
 });
 
 var child_process = require("child_process");
-var HttpWrapper = require("./httpWrapper");
+var HttpWrapper = require("./app/httpWrapper");
 var httpWrapper = new HttpWrapper();
 var BotWebInterface = require("bot-web-interface");
 var fs = require("fs");
 var userData = require("./userData.json");
-var uiGenerator = require("./uiGenerator");
+var uiGenerator = require("./app/uiGenerator");
 var login = userData.login;
 var bots = userData.bots;
 
@@ -118,7 +118,7 @@ async function main() {
 var activeChildren = {};
 
 function startGame(args) {
-    let childProcess = child_process.fork("./game", args, {
+    let childProcess = child_process.fork("./app/game", args, {
         stdio: [0, 1, 2, 'ipc'],
         execArgv: [
             //'--inspect-brk',

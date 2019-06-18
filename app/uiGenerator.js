@@ -1,5 +1,5 @@
 const pngUtil = require("./pngUtil");
-const config = require("./userData").config;
+const config = require("../userData").config;
 const PNG = require('pngjs').PNG;
 
 function clamp(x, low, high) {

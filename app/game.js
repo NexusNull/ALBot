@@ -11,7 +11,7 @@ var HttpWrapper = require("./httpWrapper");
 const uiGenerator = require("./uiGenerator");
 const pngUtil = require("./pngUtil");
 const PNG = require('pngjs').PNG;
-localStorage = new LocalStorage('./localStorage');
+localStorage = new LocalStorage('./app/localStorage');
 
 function close(error) {
     console.error(error);
@@ -138,7 +138,7 @@ Game.prototype.init = function () {
         log_in(user_id, character_to_load, user_auth);
     }
 
-    eval(fs.readFileSync('moddedGameFiles/game.js') + '');
+    eval(fs.readFileSync('./app/moddedGameFiles/game.js') + '');
     gprocess_game_data();
     init_socket();
     this.socket = socket;

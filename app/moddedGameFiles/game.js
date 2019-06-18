@@ -1,6 +1,6 @@
 var fs = require("fs")
-eval(fs.readFileSync('moddedGameFiles/common_functions.js') + '');
-eval(fs.readFileSync('moddedGameFiles/functions.js') + '');
+eval(fs.readFileSync('app/moddedGameFiles/common_functions.js') + '');
+eval(fs.readFileSync('app/moddedGameFiles/functions.js') + '');
 var Socket = require("socket.io-client");
 var is_sdk = false
 var is_game = 0
