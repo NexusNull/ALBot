@@ -1410,7 +1410,24 @@ function stop_timer(b, a) {
 
 function the_door() {
 }
-
+function v_shake() {
+}
+function v_shake_i(c) {
+}
+function v_shake_i2(c) {
+}
+function v_dive() {
+}
+function v_dive_i(c) {
+}
+function no_no_no(d) {
+}
+function sway(c) {
+}
+function mojo(c) {
+}
+function flurry(d) {
+}
 function h_shake() {
     function b(c) {
         return function () {
