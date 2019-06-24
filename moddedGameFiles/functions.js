@@ -2447,8 +2447,6 @@ function generate_textures(b, m) {
 }
 
 function restore_dimensions(a) {
-    a.height = a.texture.height * (a.cscale || 1) / (a.mscale || 1);
-    a.width = a.texture.width * (a.cscale || 1) / (a.mscale || 1)
 }
 
 function set_texture(d, b, a) {
