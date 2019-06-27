@@ -2188,20 +2188,10 @@ function compound(item0, item1, item2, scroll_num, offering_num) {
 }
 
 function craft(i0, i1, i2, i3, i4, i5, i6, i7, i8) {
-    var a = [i0, i1, i2, i3, i4, i5, i6, i7, i8], b = false;
-    for (var c = 0; c < 9; c++) {
-        if (cr_items[c] || cr_items[c] === 0) {
-            b = true,
-                a.push([c, cr_items[c]])
-        }
-    }
-    if (!b) {
-        d_text("INVALID", character)
-    } else {
-        socket.emit("craft", {
-            items: a
-        })
-    }
+    var a = [i0, i1, i2, i3, i4, i5, i6, i7, i8];
+    socket.emit("craft", {
+        items: a
+    })
 }
 
 function dismantle() {
