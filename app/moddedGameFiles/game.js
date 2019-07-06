@@ -1962,7 +1962,7 @@ function init_socket() {
 
                                                                                                 } else {
                                                                                                     if (in_arr(response, ["mistletoe_success", "leather_success", "candycane_success", "ornament_success", "seashell_success", "gemfragment_success"])) {
-                                                                                                        render_interaction(response)
+                                                                                                        //render_interaction(response)
                                                                                                     } else {
                                                                                                         if (in_arr(response, ["donate_thx", "donate_gum", "donate_low"])) {
                                                                                                             var message;
@@ -1979,11 +1979,13 @@ function init_socket() {
                                                                                                                 }
                                                                                                             }
                                                                                                             ui_log("Donated " + to_pretty_num(data.gold) + " gold", "gray");
+                                                                                                            /*
                                                                                                             render_interaction({
                                                                                                                 auto: true,
                                                                                                                 skin: "goblin",
                                                                                                                 message: message
                                                                                                             })
+                                                                                                            */
                                                                                                         } else {
                                                                                                             if (response == "lostandfound_info") {
                                                                                                                 var message = "Hey there! I'm in charge of taking care of our gold reserve and making sure unlooted chests are 'recycled'! "
@@ -1999,6 +2001,7 @@ function init_socket() {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 message += "Donations are always welcome, merchants get " + xp + " XP for every gold they donate!";
+                                                                                                                /*
                                                                                                                 render_interaction({
                                                                                                                     auto: true,
                                                                                                                     skin: "goblin",
@@ -2012,14 +2015,17 @@ function init_socket() {
                                                                                                                         render_donate()
                                                                                                                     }
                                                                                                                 })
+                                                                                                                */
                                                                                                             } else {
                                                                                                                 if (response == "lostandfound_donate") {
                                                                                                                     var message = "Not feeling like showing my loots to cheapskates! Sorry not sorry..";
+                                                                                                                    /*
                                                                                                                     render_interaction({
                                                                                                                         auto: true,
                                                                                                                         skin: "goblin",
                                                                                                                         message: message
                                                                                                                     })
+                                                                                                                    */
                                                                                                                 } else {
                                                                                                                     if (response == "cant_escape") {
                                                                                                                         d_text("CAN'T ESCAPE", character);
@@ -3624,7 +3630,7 @@ function npc_right_click(c) {
 
 function player_click(a) {
     if (is_npc(this) && this.role == "daily_events") {
-        render_interaction("subscribe", this.party)
+        //render_interaction("subscribe", this.party)
     }
     if (is_npc(this) && this.npc == "pvp") {
         player_right_click.apply(this, a)
