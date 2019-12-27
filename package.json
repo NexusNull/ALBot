@@ -13,6 +13,7 @@
     "bot-web-interface": "1.1.2",
     "cheerio": "1.0.0-rc.3",
     "extend": "3.0.2",
+    "lodash": "^4.17.15",
     "node-localstorage": "2.1.5",
     "pngjs": "3.4.0",
     "promise": "8.0.3",
