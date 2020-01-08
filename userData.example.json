@@ -1,7 +1,9 @@
 {
+    "important":"do not show this file to anyone else! Session information can be used to login without the need of a password.",
     "config": {
         "fetch": true,
         "botKey": 1,
+        "browserUserAgent":"{ALBot: (v1.7.0)}",
         "botWebInterface": {
             "start": false,
             "port": 2080,
@@ -16,9 +18,12 @@
             }
         }
     },
+    "sessionData":{
+        "sessionCookie":""
+    },
     "login": {
-        "email": "random@example.com",
-        "password": "password123456"
+        "email": "",
+        "password": ""
     },
     "bots": []
 }

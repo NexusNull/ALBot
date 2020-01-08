@@ -5,7 +5,6 @@ process.on('uncaughtException', function (exception) {
 
 var child_process = require("child_process");
 var HttpWrapper = require("./app/httpWrapper");
-var httpWrapper = new HttpWrapper();
 var BotWebInterface = require("bot-web-interface");
 var fs = require("fs");
 var userData = require("./userData.json");
@@ -14,12 +13,21 @@ var login = userData.login;
 var bots = userData.bots;
 
 async function main() {
-    var result = await httpWrapper.login(login.email, login.password);
+    var httpWrapper;
+    if(userData.sessionData){
+        if(userData.sessionData !== "")
+        httpWrapper = new HttpWrapper(userData.sessionData.sessionCookie);
+        if(await httpWrapper.checkLogin()){
+        } else if(await httpWrapper.login(login.email, login.password)) {
+            userData.sessionData.sessionCookie = httpWrapper.sessionCookie;
+            fs.writeFileSync("./userData.json", JSON.stringify(userData, null, 4));
+        } else{
+            throw new Error("Login failed");
+        }
+    }
+
     var characters = await httpWrapper.getCharacters();
     var userAuth = await httpWrapper.getUserAuth();
-
-    if (!result)
-        throw new Error("Login failed");
 
     if (userData.config.fetch) {
         console.log("Populating config file with data.");

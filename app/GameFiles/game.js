@@ -301,9 +301,9 @@ function log_in(a, e, c, f) {
         width: screen.width,
         height: screen.height,
         scale: scale,
-        passphrase: f,
-        no_html: b,
-        no_graphics: no_graphics
+        passphrase: "",
+        no_html: "",
+        no_graphics: ""
     };
     if (is_electron) {
         d.epl = electron_data.platform;

@@ -1,6 +1,7 @@
 /**
  * Created by nexus on 15/05/17.
  */
+const config = require("../userData").config;
 const request = require("request-promise-native");
 const vm = require('vm');
 /**
@@ -39,77 +40,7 @@ HttpWrapper.prototype.login = async function (email, password) {
                     headers: {
                         "x-requested-with": "XMLHttpRequest",
                         "Accept": "application/json, text/javascript, */*; q=0.01",
-                        "user-agent": "AdventureLandBot: (v1.0.0)",
-                    }
-                }, function (err, response, html) {
-                    if (err) {
-                        console.error("Error login in:");
-                        console.error(err);
-                        process.exit(1)
-                    } else {
-                        var data = JSON.parse(html);
-                        var loginSuccessful = false;
-                        for (let i = 0; i < data.length; i++) {
-                            if (typeof data[i].type === "string") {
-                                if (data[i].type === "message") {
-                                    if (typeof data[i].message === "string") {
-                                        if (data[i].message === "Logged In!") {
-                                            console.log("Login successful.");
-                                            loginSuccessful = true;
-                                        }
-                                    }
-                                } else if (data[i].type === "ui_error") {
-                                    if (typeof data[i].message === "string") {
-                                        if (data[i].message === "Wrong Password") {
-                                            console.log("Login failed.");
-                                            loginSuccessful = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (loginSuccessful) {
-                            let cookies = response.headers["set-cookie"];
-                            for (let i = 0; i < cookies.length; i++) {
-                                var match = /auth=([0-9]+-[a-zA-Z0-9]+)/g.exec(cookies[i]);
-                                if (match) {
-                                    self.sessionCookie = match[1];
-                                    self.userId = match[1].split("-")[0];
-                                }
-                            }
-                        } else {
-                            process.exit(0)
-                        }
-                        resolve(loginSuccessful);
-                    }
-                });
-        } catch (e) {
-            reject(e);
-        }
-    });
-};
-
-HttpWrapper.prototype.login = async function (email, password) {
-    console.log("Logging in.");
-    var self = this;
-    return new Promise(async function (resolve, reject) {
-        try {
-            await request({url: "https://adventure.land"});
-        } catch (err) {
-            reject("could not fetch index.html on login." + err);
-        }
-        try {
-            await request.post(
-                {
-                    url: "https://adventure.land/api/signup_or_login",
-                    formData: {
-                        arguments: '{"email":"' + email + '","password":"' + password + '","only_login":true}',
-                        method: "signup_or_login"
-                    },
-                    headers: {
-                        "x-requested-with": "XMLHttpRequest",
-                        "Accept": "application/json, text/javascript, */*; q=0.01",
-                        "user-agent": "AdventureLandBot: (v1.0.0)",
+                        "user-agent": config.browserUserAgent,
                     }
                 }, function (err, response, html) {
                     if (err) {
@@ -163,7 +94,7 @@ HttpWrapper.prototype.getCharacters = async function () {
         var characters = [];
         var html = await request.post({
             url: "https://adventure.land/api/servers_and_characters",
-            headers: {cookie: "auth=" + self.sessionCookie},
+            headers: {cookie: "auth=" + self.sessionCookie, "user-agent": config.browserUserAgent,},
             formData: {method: "servers_and_characters", arguments: "{}"}
         });
         let data = JSON.parse(html)[0];
@@ -178,7 +109,7 @@ HttpWrapper.prototype.getServerList = async function () {
             url: "https://adventure.land/api/get_servers",
             method: "POST",
             headers: {
-                "user-agent": "AdventureLandBot: (v1.0.0)",
+                "user-agent": config.browserUserAgent,
                 "x-requested-with": "XMLHttpRequest",
                 cookie: "auth=" + self.sessionCookie
             },
@@ -199,21 +130,25 @@ HttpWrapper.prototype.getServerList = async function () {
 HttpWrapper.prototype.checkLogin = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
+        console.log("check Login:");
         var characters = [];
         var html = await request.post({
             url: "https://adventure.land/api/servers_and_characters",
-            headers: {cookie: "auth=" + self.sessionCookie},
+            headers: {cookie: "auth=" + self.sessionCookie,"user-agent": config.browserUserAgent,},
             formData: {method: "servers_and_characters", arguments: "{}"}
         });
         let data = JSON.parse(html)[0];
         if (data.args && data.args[0] === "Not logged in.") {
+            console.log("not logged in")
             resolve(false);
         } else if (data.type && data.type === "servers_and_characters") {
+            console.log("logged in")
             resolve(true);
         }
         resolve(false);
     })
 };
+
 HttpWrapper.prototype.getGameData = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
@@ -223,7 +158,7 @@ HttpWrapper.prototype.getGameData = async function () {
                 headers: {
                     "x-requested-with": "XMLHttpRequest",
                     "Accept": "application/json, text/javascript, */*; q=0.01",
-                    "user-agent": "AdventureLandBot: (v1.0.0)",
+                    "user-agent": config.browserUserAgent,
                     "cookie": "auth=" + self.sessionCookie,
                 }
             });
@@ -245,7 +180,7 @@ HttpWrapper.prototype.getUserAuth = async function () {
             headers: {
                 "x-requested-with": "XMLHttpRequest",
                 "Accept": "application/json, text/javascript, */*; q=0.01",
-                "user-agent": "AdventureLandBot: (v1.0.0)",
+                "user-agent": config.browserUserAgent,
                 "cookie": "auth=" + self.sessionCookie,
             }
         });
