@@ -90,8 +90,7 @@ HttpWrapper.prototype.login = async function (email, password) {
 
 HttpWrapper.prototype.getCharacters = async function () {
     var self = this;
-    return new Promise(async function (resolve, reject) {
-        var characters = [];
+    return new Promise(async function (resolve) {
         var html = await request.post({
             url: "https://adventure.land/api/servers_and_characters",
             headers: {cookie: "auth=" + self.sessionCookie, "user-agent": config.browserUserAgent,},
@@ -129,9 +128,8 @@ HttpWrapper.prototype.getServerList = async function () {
 
 HttpWrapper.prototype.checkLogin = async function () {
     var self = this;
-    return new Promise(async function (resolve, reject) {
+    return new Promise(async function (resolve) {
         console.log("check Login:");
-        var characters = [];
         var html = await request.post({
             url: "https://adventure.land/api/servers_and_characters",
             headers: {cookie: "auth=" + self.sessionCookie,"user-agent": config.browserUserAgent,},
@@ -139,10 +137,10 @@ HttpWrapper.prototype.checkLogin = async function () {
         });
         let data = JSON.parse(html)[0];
         if (data.args && data.args[0] === "Not logged in.") {
-            console.log("not logged in")
+            console.log("not logged in");
             resolve(false);
         } else if (data.type && data.type === "servers_and_characters") {
-            console.log("logged in")
+            console.log("logged in");
             resolve(true);
         }
         resolve(false);
@@ -174,7 +172,7 @@ HttpWrapper.prototype.getGameData = async function () {
 
 HttpWrapper.prototype.getUserAuth = async function () {
     var self = this;
-    return new Promise(async function (resolve, reject) {
+    return new Promise(async function (resolve) {
         var html = await request({
             url: "https://adventure.land/",
             headers: {

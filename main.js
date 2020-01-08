@@ -27,7 +27,6 @@ async function main() {
     }
 
     var characters = await httpWrapper.getCharacters();
-    var userAuth = await httpWrapper.getUserAuth();
 
     if (userData.config.fetch) {
         console.log("Populating config file with data.");
@@ -135,17 +134,11 @@ function startGame(args) {
     });
     var data = {};
     var botInterface = BotWebInterface.SocketServer.getPublisher().createInterface();
-    var subBotStructure = [
-        {name: "name", type: "text", label: "name"},
-        {name: "level", type: "text", label: "level"},
-        {name: "health", type: "progressBar", label: "Health", options: {color: "red"}},
-    ];
 
     /**
      *
      * @type {Array<BotUI>}
      */
-    let subUIs = [];
     botInterface.setDataSource(() => {
         return data;
     });
@@ -154,7 +147,7 @@ function startGame(args) {
         if (m.type === "status" && m.status === "disconnected") {
             childProcess.kill();
             for (var i in activeChildren) {
-                if (activeChildren[i] == childProcess) {
+                if (activeChildren.hasOwnProperty(i) && activeChildren[i] === childProcess) {
                     activeChildren[i] = null;
                 }
             }
@@ -181,12 +174,6 @@ function startGame(args) {
                 });
             }
         }
-    });
-}
-
-async function sleep(ms) {
-    return new Promise(function (resolve) {
-        setTimeout(resolve, ms);
     });
 }
 
