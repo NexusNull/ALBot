@@ -36,7 +36,6 @@ async function main() {
         console.log("Populating config file with data.");
         userData.bots = [];
         for (let i = 0; i < characters.length; i++) {
-            console.log(characters[i]);
             userData.bots[i] = {
                 characterName: characters[i].name,
                 characterId: characters[i].id,

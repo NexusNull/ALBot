@@ -277,8 +277,9 @@ function resolve_deferred(a, b) {
         a = "attack"
     }
     if (!deferreds[a] || !deferreds[a].length) {
-        return console.error("Weird resolve_deferred issue: " + a),
-            console.log("If you emit socket events manually, ignore this message")
+        return;
+        //return console.error("Weird resolve_deferred issue: " + a),
+            //console.log("If you emit socket events manually, ignore this message")
     }
     current_deferred = deferreds[a].shift();
     if (current_deferred.start) {
@@ -299,8 +300,9 @@ function resolve_deferred(a, b) {
 }
 function reject_deferred(a, b) {
     if (!deferreds[a] || !deferreds[a].length) {
-        return add_log("Weird reject_deferred issue: " + a, "gray"),
-            add_log("If you emit socket events manually, ignore this message", "gray")
+        return;
+        //return add_log("Weird reject_deferred issue: " + a, "gray"),
+           // add_log("If you emit socket events manually, ignore this message", "gray")
     }
     current_deferred = deferreds[a].shift();
     try {

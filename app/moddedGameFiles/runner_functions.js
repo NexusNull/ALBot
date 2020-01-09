@@ -347,7 +347,7 @@ function can_attack(target) // also works for priests/heal
 {
     // is_disabled function checks .rip and .stunned
     if (!target) return false;
-    if (!parent.is_disabled(character) && in_attack_range(target) && new Date() >= parent.next_skill.attack) return true;
+    if (!parent.is_disabled(character) && is_in_range(target) && new Date() >= parent.next_skill.attack) return true;
     return false;
 }
 

@@ -1043,7 +1043,7 @@ function adopt_soft_properties(entity, data) {
     if (entity && entity.me) {
         entity.stats = {};
         ["str", "dex", "int", "vit", "for"].forEach(function (f) {
-            entity.stats[f] = d[f]
+            entity.stats[f] = data[f]
         });
         if (entity.moving && entity.speed && data.speed && entity.speed != data.speed) {
             entity.speed = data.speed;
@@ -4898,7 +4898,7 @@ function update_sprite(q) {
     }
     if (q.last_ms && q.s) {
         var b = mssince(q.last_ms);
-        ["s", "c", "q"].forEach(function(s) {
+        ["s", "c", "q"].forEach(function (s) {
             if (!q[s]) {
                 return
             }
@@ -4922,7 +4922,7 @@ function update_sprite(q) {
 
 function add_monster(d) {
     var c = G.monsters[d.type]
-    var monster = {};
+    var monster = {visible: true};
     monster.type = "monster";
     monster.mtype = d.type;
     adopt_soft_properties(monster, d);
@@ -5382,7 +5382,9 @@ function effects_logic(b) {
         b.real_alpha = min(1, b.real_alpha + 0.05)
     }
 }
-function cosmetics_logic(l){}
+
+function cosmetics_logic(l) {
+}
 
 
 function add_character(e, d) {
