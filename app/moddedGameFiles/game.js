@@ -1545,7 +1545,7 @@ function init_socket() {
     var original_onevent = socket.onevent;
     var original_emit = socket.emit;
 
-    var logging = true;
+    var logging = false;
     socket.emit = function (packet) {
         var is_transport = in_arr(arguments && arguments["0"], ["transport", "enter", "leave"]);
         if (logging) {
