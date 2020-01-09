@@ -14,16 +14,19 @@ var bots = userData.bots;
 
 async function main() {
     var httpWrapper;
-    if(userData.sessionData){
-        if(userData.sessionData !== "")
-        httpWrapper = new HttpWrapper(userData.sessionData.sessionCookie);
-        if(await httpWrapper.checkLogin()){
-        } else if(await httpWrapper.login(login.email, login.password)) {
+    if (userData.sessionData) {
+        if (userData.sessionData !== "")
+            httpWrapper = new HttpWrapper(userData.sessionData.sessionCookie);
+        if (await httpWrapper.checkLogin()) {
+        } else if (await httpWrapper.login(login.email, login.password)) {
             userData.sessionData.sessionCookie = httpWrapper.sessionCookie;
             fs.writeFileSync("./userData.json", JSON.stringify(userData, null, 4));
-        } else{
+        } else {
             throw new Error("Login failed");
         }
+    } else {
+        httpWrapper = new HttpWrapper();
+        await httpWrapper.login(userData.login.email, userData.login.email);
     }
 
     var characters = await httpWrapper.getCharacters();
