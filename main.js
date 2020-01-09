@@ -26,7 +26,7 @@ async function main() {
         }
     } else {
         httpWrapper = new HttpWrapper();
-        await httpWrapper.login(userData.login.email, userData.login.email);
+        await httpWrapper.login(userData.login.email, userData.login.password);
     }
 
     var characters = await httpWrapper.getCharacters();
