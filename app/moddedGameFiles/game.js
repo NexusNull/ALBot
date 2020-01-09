@@ -2,10 +2,30 @@ var fs = require("fs")
 eval(fs.readFileSync('app/moddedGameFiles/common_functions.js') + '');
 eval(fs.readFileSync('app/moddedGameFiles/functions.js') + '');
 var Socket = require("socket.io-client");
+var auth_sent;
+var border_mode = false;
+var frame_ms;
+var sound_sfx = false;
+var screen = {
+    width: 1920,
+    height: 1020
+}
+var recording_mode = false
+var width = 1920;
+var height = 1020;
+var no_html = true;
+var no_graphics = true;
+//Window properties
+var last_draw;
+var disconnect_reason = "";
+var dtile;
+var last_entities_received;
+// ^custom properties v game properties
 var is_sdk = false
-var is_game = 0
+var is_game = 1
     , is_server = 0
-    , is_code = 1
+    , is_code = 0
+    , is_pvp = 0
     , is_demo = 0
     , gameplay = "normal";
 var inception = new Date();
@@ -24,10 +44,16 @@ var mode = {
     bitmapfonts: 0,
     debug_moves: 0,
     destroy_tiles: 1,
+    log_incoming: 0,
+    cosmetics: 0,
+    empty_borders_darker: 1,
 };
 var paused = false;
 var log_flags = {
-    timers: 0,
+    timers: 1,
+    map: 0,
+    entities: 0,
+    xy_corrections: 0,
 };
 var ptimers = true;
 var mdraw_mode = "redraw"
@@ -41,9 +67,6 @@ var text_quality = 2;
 var bw_mode = false;
 var character_names = false;
 var hp_bars = true;
-var next_attack = new Date()
-    , next_potion = new Date()
-    , next_transport = new Date();
 var last_interaction = new Date()
     , afk_edge = 60
     , mm_afk = false;
@@ -51,8 +74,9 @@ var last_drag_start = new Date();
 var last_npc_right_click = new Date();
 var block_right_clicks = true;
 var mouse_only = true;
-var the_code = "";
-var rxd = null;
+var the_code = ""
+    , code_slot = 0
+    , new_code_slot = undefined;
 var server_region = "EU"
     , server_identifier = "I"
     , server_name = ""
@@ -83,10 +107,14 @@ var text_layer, monster_layer, player_layer, chest_layer, map_layer, separate_la
 var rip = false;
 var heartbeat = new Date()
     , slow_heartbeats = 0;
-var ctarget = null;
+var ctarget = null
+    , ctoggled = null;
+var xtarget = null;
 var textures = {}
     , C = {}
-    , FC = {};
+    , FC = {}
+    , SS = {};
+var T = {};
 var M = {}
     , GEO = {};
 var total_map_tiles = 0;
@@ -101,6 +129,7 @@ var map_tiles = []
     , dtile_size = 32
     , dtile_width = 0
     , dtile_height = 0;
+var map_animations = {};
 var water_tiles = []
     , last_water_frame = -1;
 var drawings = []
@@ -108,6 +137,7 @@ var drawings = []
 var chests = {}
     , party_list = []
     , party = {};
+var tracker = {};
 var tile_sprites = {}
     , sprite_last = {};
 var first_coords = false
@@ -126,6 +156,7 @@ var current_status = ""
 var topleft_npc = false
     , merchant_id = null
     , inventory = false
+    , inventory_openef_for = null
     , code = false
     , pvp = false
     , skillsui = false
@@ -134,8 +165,11 @@ var topright_npc = false;
 var transports = false;
 var purpose = "buying";
 var next_minteraction = null;
-var abtesting = null
-    , abtesting_ui = false;
+var next_side_interaction = null;
+var events = {
+    abtesting: false,
+    duel: false,
+};
 var code_run = false
     , code_active = false
     , actual_code = false
@@ -145,6 +179,10 @@ var reload_state = false
     , first_entities = false;
 var blink_pressed = false
     , last_blink_pressed = new Date();
+var arrow_up = false
+    , arrow_right = false
+    , arrow_down = false
+    , arrow_left = false;
 var force_draw_on = false;
 var use_layers = false;
 var draws = 0
@@ -155,6 +193,14 @@ var secondhands = []
     , s_page = 0
     , lostandfound = []
     , l_page = 0;
+var page = {
+    title: "Adventure Land",
+    url: "/"
+};
+var I = {};
+var S = {};
+var CLI_OUT = [];
+var CLI_IN = [];
 var options = {
     move_with_arrows: true,
     code_fx: false,
@@ -164,31 +210,15 @@ var options = {
     retain_upgrades: false,
     friendly_fire: false,
     bank_max: false,
+    directional_sfx: false,
 };
-var S = {
+var SZ = {
     font: "Pixel",
     normal: 18,
     large: 24,
     huge: 36,
     chat: 18,
 };
-var border_mode = false;
-var frame_ms;
-var sound_sfx = false;
-var screen = {
-    width: 1920,
-    height: 1020
-}
-var recording_mode = false
-var width = 1920;
-var height = 1020;
-var no_html = true;
-var no_graphics = true;
-//Window properties
-var last_draw;
-var disconnect_reason = "";
-var dtile;
-var last_entities_received;
 
 setInterval(function () {
     /* Reloading the game instance is handled by the main node process
@@ -331,7 +361,7 @@ function log_in(a, e, c, f) {
         scale: scale,
         passphrase: f,
         no_html: b,
-        no_graphics: no_graphics
+        no_graphics: ""
     };
     /* ALBot is not electron
     if (is_electron) {
@@ -343,6 +373,7 @@ function log_in(a, e, c, f) {
             d.ticket = electron_steam_ticket()
         }
     }*/
+    auth_sent = new Date();
     socket.emit("auth", d)
 }
 
@@ -383,6 +414,7 @@ function disconnect() {
         set_status("Disconnected");
         $("#name").css("color", "red")
     } else {
+        hide_modals();
         $("body").children().each(function() {
             if (this.tagName != "CANVAS" && this.id != "bottomrightcorner" && this.id != "bottomleftcorner2") {
                 $(this).remove()
@@ -454,16 +486,16 @@ function ui_logic() {
 
 var rendered_target = {}
     , last_target_cid = null
+    , last_xtarget_cid = null
     , dialogs_target = null;
 
 function reset_topleft() {
     if (no_html) {
         return
     }
-    var a = "NO TARGET";
-    if (exchange_animations && topleft_npc != "exchange") {
-        exchange_animations = false
-    }
+    var b = "NO TARGET";
+    var l = ctarget;
+    ctarget = xtarget || ctarget;
     if (ctarget && ctarget.dead && (!ctarget.died || ssince(ctarget.died) > 3)) {
         ctarget = null
     }
@@ -796,7 +828,8 @@ function reset_topleft() {
         }
     }*/
     rendered_target = ctarget;
-    last_target_cid = ctarget && ctarget.cid
+    last_target_cid = ctarget && ctarget.cid;
+    ctarget = l;
 }
 
 function sync_entity(c, a) {
@@ -827,7 +860,7 @@ function sync_entity(c, a) {
         if (d > 120) {
             c.real_x = a.x;
             c.real_y = a.y;
-            if (log_game_events) {
+            if (log_flags.xy_corrections) {
                 console.log("manual x,y correction for: " + (c.name || c.id))
             }
         }
@@ -841,7 +874,7 @@ function sync_entity(c, a) {
             x: a.going_x,
             y: a.going_y
         }) + EPS);
-        if (b > 1.25 && log_flags.timers) {
+        if (b > 1.25 && log_flags.timers && log_flags.xy) {
             console.log(c.id + " speedm: " + b)
         }
         c.moving = true;
@@ -873,6 +906,7 @@ function process_entities() {
                 monster.resync = true
             } catch (c) {
                 console.log("EMAIL HELLO@ADVENTURE.LAND WITH THIS: " + JSON.stringify(future_monster))
+                console.log(c)
                 if (is_sdk) {
                     alert(c + " " + JSON.stringify(b))
                 }
@@ -1007,6 +1041,10 @@ var asp_skip = {};
 
 function adopt_soft_properties(entity, data) {
     if (entity && entity.me) {
+        entity.stats = {};
+        ["str", "dex", "int", "vit", "for"].forEach(function (f) {
+            entity.stats[f] = d[f]
+        });
         if (entity.moving && entity.speed && data.speed && entity.speed != data.speed) {
             entity.speed = data.speed;
             calculate_vxy(entity)
@@ -1019,6 +1057,11 @@ function adopt_soft_properties(entity, data) {
         entity["in"] = current_in;
         entity.map = current_map
     }
+    ["team"].forEach(function (f) {
+        if (!data.p) {
+            delete entity[f]
+        }
+    });
     if (entity.type == "monster" && G.monsters[entity.mtype]) {
         var c = G.monsters[entity.mtype];
         var a = [["hp", "hp"], ["max_hp", "hp"], ["mp", "mp"], ["max_mp", "mp"]];
@@ -1039,7 +1082,7 @@ function adopt_soft_properties(entity, data) {
         new_sprite(entity, "full", "renew");
         restore_dimensions(entity)
     }
-    for (prop in data) {
+    for (let prop in data) {
         if (asp_skip[prop]) {
             continue
         }
@@ -1081,6 +1124,9 @@ function reposition_ui() {
     }*/
 }
 
+function update_tutorial_ui() {
+}
+
 function update_overlays() {
     /* no $ on ALBot
     if (mode.dom_tests || no_html) {
@@ -1106,6 +1152,9 @@ function update_overlays() {
             $("#xpui").html("LV" + character.level + " " + b + "%");
             $("#xpslider").css("width", (character.xp * 100 / character.max_xp) + "%")
         }
+        if (!cached("tutorialtop", X.tutorial.step + "|" + X.tutorial.task)) {
+            update_tutorial_ui()
+        }
         if (inventory && !cached("igold", character.gold)) {
             $(".goldnum").html(to_pretty_num(character.gold + ((new Date()).getDate() == 1 && (new Date()).getMonth() == 3 ? 1014201800 : 0)))
         }
@@ -1115,17 +1164,18 @@ function update_overlays() {
         if (!cached("coord", round(map.real_x) + "|" + round(map.real_y))) {
             $(".coords").html(round(map.real_x) + "," + round(map.real_y))
         }
+        send_target_logic();
         if (!topleft_npc) {
-            reset_topleft()
+            reset_topleft(ctarget)
         }
         if (topright_npc == "character" && !cached("chcid", character.cid)) {
             render_character_sheet()
         }
     }
-    if (abtesting_ui) {
-        $(".scoreA").html(abtesting.A);
-        $(".scoreB").html(abtesting.B);
-        var c = -ssince(abtesting.end)
+    if (events.abtesting) {
+        $(".scoreA").html(events.abtesting.A);
+        $(".scoreB").html(events.abtesting.B);
+        var c = -ssince(events.abtesting.end)
             , a = parseInt(c / 60)
             , c = parseInt(c) % 60;
         if (c == 0) {
@@ -1355,6 +1405,13 @@ function the_game(e) {
         b.file = url_factory(b.file);
         loader.add(b.file)
     }
+    for (name in G.imagesets) {
+        if (!G.imagesets[name].load) {
+            continue
+        }
+        G.imagesets[name].file = url_factory(G.imagesets[name].file);
+        loader.add(G.imagesets[name].file)
+    }
     gprocess_game_data();
     if (mode.bitmapfonts) {
         loader.add("/css/fonts/m5x7.xml")
@@ -1456,6 +1513,7 @@ function init_socket() {
         })
     }
     */
+    //TODO set config.userAgent
     console.log(server_addr, port)
     if (protocol === "https") {
         socket = new Socket("wss://" + server_addr + ":" + port, {
@@ -1487,7 +1545,7 @@ function init_socket() {
     var original_onevent = socket.onevent;
     var original_emit = socket.emit;
 
-    var logging = false;
+    var logging = true;
     socket.emit = function (packet) {
         var is_transport = in_arr(arguments && arguments["0"], ["transport", "enter", "leave"]);
         if (logging) {
@@ -1599,11 +1657,21 @@ function init_socket() {
             })
         }*/
         inside = "game";
+        S = data.s_info;
+        var m_info = data.info;
+        delete data.info;
+        delete data.s_info;
+        G.base_gold = data.base_gold;
+        delete data.base_gold;
         character = add_character(data, 1);
+        character.ping = mssince(auth_sent);
+        pings = [character.ping];
         if (!data.vision) {
             character.vision = [700, 500]
         }
         friends = data.friends;
+        character.acx = data.acx;
+        character.xcx = data.xcx;
         if (character.level == 1) {
             show_game_guide()
         }
@@ -1612,6 +1680,7 @@ function init_socket() {
         }
         clear_game_logs();
         add_log("Connected!");
+        //add_holiday_log();
         if (gameplay == "hardcore") {
             add_log("Pro Tips: You can transport to anywhere from the Beach Cave, Water Spirits drop stat belts, 3 monsters drop 3 new unique items, 3 monsters drop 50 times the gold they usually do!", "#B2D5DF");
             //$(".saferespawn").show()
@@ -1696,11 +1765,13 @@ function init_socket() {
                                 data = JSON.parse(data);
                                 the_code = data["code_" + real_id] || "";
                                 to_run = data["run_" + real_id];
+                                code_slot = data["slot_" + real_id];
                                 if (the_code.length) {
                                     handle_information([{
                                         type: "code",
                                         code: the_code,
                                         run: to_run,
+                                        slot: code_slot,
                                         reset: true
                                     }])
                                 }
@@ -1730,12 +1801,6 @@ function init_socket() {
         }
         map_keys_and_skills();
         render_skillbar();
-        if (character.ctype == "mage") {
-            skill_timeout("burst", 10000)
-        }
-        if (character.ctype == "ranger") {
-            skill_timeout("supershot", 10000)
-        }
         if (!character.rip) {
             //$("#name").css("color", "#1AC506")
         }*/
@@ -1758,14 +1823,14 @@ function init_socket() {
         }
     });
     socket.on("players", function (data) {
-        load_server_list(data)
+        //load_server_list(data)
     });
     socket.on("pvp_list", function (data) {
         if (data.code) {
             call_code_function("trigger_event", "pvp_list", data.list)
-        } else {
+        }/* else {
             load_pvp_list(data.list)
-        }
+        }*/
     });
     socket.on("ping_ack", function () {
         add_log("Ping: " + mssince(ping_sent) + "ms", "gray")
@@ -1791,6 +1856,9 @@ function init_socket() {
                     sfx(data.sound)
                 }
                 ui_log(data.message, data.color)
+            }
+            if (data.confetti && get_player(data.confetti)) {
+                confetti_shower(get_player(data.confetti), 1)
             }
         })
     });
@@ -1824,7 +1892,7 @@ function init_socket() {
                 if (is_pvp) {
                     pvp_timeout(3600)
                 }
-                skill_timeout("invis", 12000)
+                skill_timeout("invis")
             }
             if (data.affected) {
                 start_animation(player, "light")
@@ -1868,13 +1936,14 @@ function init_socket() {
             add_chat("", "The Golden Bat has spawned in " + G.maps[data.map].name + "!", "gold")
         }
         if (data.name == "ab_score") {
-            if (!abtesting) {
+            if (!events.abtesting) {
                 return
             }
-            abtesting.A = data.A;
-            abtesting.B = data.B
+            events.abtesting.A = data.A;
+            events.abtesting.B = data.B
         }
-        call_code_function("on_game_event", data)
+        call_code_function("on_game_event", data);
+        call_code_function("trigger_event", "event", data)
     });
     socket.on("game_response", function (data) {
         var response = data.response || data;
@@ -1888,404 +1957,837 @@ function init_socket() {
                     color: "elixir"
                 })
             } else {
-                if (response == "upgrade_fail") {
-                    ui_error("Item upgrade failed")
+                if (response == "storage_full") {
+                    ui_log("Storage is full", "gray");
+                    reopen()
                 } else {
-                    if (response == "storage_full") {
-                        ui_log("Storage is full", "gray");
+                    if (response == "inventory_full") {
+                        ui_log("Inventory is full", "gray");
+                        reopen()
                     } else {
-                        if (response == "inventory_full") {
-                            ui_log("Inventory is full", "gray");
+                        if (response == "invalid") {
+                            ui_log("Invalid", "gray")
                         } else {
-                            if (response == "invalid") {
-                                ui_log("Invalid", "gray")
+                            if (response == "compound_success") {
+                                ui_log("Item combination succeeded", data.up && "#1ABEFF" || "white");
+                                resolve_deferred("compound", {
+                                    success: true,
+                                    level: data.level,
+                                    num: data.num
+                                })
                             } else {
-                                if (response == "upgrade_success") {
-                                    ui_log("Item upgrade succeeded", "white")
+                                if (response == "compound_fail") {
+                                    ui_error("Item combination failed");
+                                    resolve_deferred("compound", {
+                                        failed: true,
+                                        success: false,
+                                        level: data.level,
+                                        num: data.num
+                                    })
                                 } else {
-                                    if (response == "nothing") {
-                                        ui_log("Nothing happens", "gray")
+                                    if (response == "compound_in_progress") {
+                                        ui_log("Another combination in progress", "gray");
+                                        reject_deferred("compound", {
+                                            reason: "in_progress"
+                                        })
                                     } else {
-                                        if (response == "not_ready") {
-                                            d_text("NOT READY", character)
+                                        if (response == "compound_invalid_offering") {
+                                            ui_log("Offering not accepted", "gray");
+                                            reject_deferred("compound", {
+                                                reason: "offering"
+                                            })
                                         } else {
-                                            if (response == "no_mp") {
-                                                d_text("NO MP", character)
+                                            if (response == "compound_mismatch") {
+                                                ui_log("Items are different", "gray");
+                                                reject_deferred("compound", {
+                                                    reason: "mismatch"
+                                                })
                                             } else {
-                                                if (response == "skill_too_far") {
-                                                    d_text("TOO FAR", character)
+                                                if (response == "compound_no_item") {
+                                                    reject_deferred("compound", {
+                                                        reason: "no_item"
+                                                    })
                                                 } else {
-                                                    if (response == "target_alive") {
-                                                        d_text("LOOKS LIVE?", character)
+                                                    if (response == "compound_cant") {
+                                                        ui_log("Can't be combined", "gray");
+                                                        reject_deferred("compound", {
+                                                            reason: "not_combinable"
+                                                        })
                                                     } else {
-                                                        if (response == "slot_occuppied") {
-                                                            ui_log("Slot occuppied", "gray")
+                                                        if (response == "compound_incompatible_scroll") {
+                                                            set_uchance("?");
+                                                            ui_log("Incompatible scroll", "gray");
+                                                            reject_deferred("compound", {
+                                                                reason: "scroll"
+                                                            })
                                                         } else {
-                                                            if (response == "no_target") {
-                                                                if (!ctarget) {
-                                                                    d_text("NO TARGET", character)
-                                                                } else {
-                                                                    d_text("INVALID TARGET", character)
+                                                            if (response == "misc_fail") {
+                                                                ui_log(":)", "#FF5D54");
+                                                                if (data.place) {
+                                                                    reject_deferred(data.place, {
+                                                                        reason: "misc"
+                                                                    })
                                                                 }
                                                             } else {
-                                                                if (response == "non_friendly_target") {
-                                                                    d_text("NON FRIENDLY", character)
+                                                                if (response == "upgrade_success") {
+                                                                    ui_log("Item upgrade succeeded", "white");
+                                                                    resolve_deferred("upgrade", {
+                                                                        success: true,
+                                                                        level: data.level,
+                                                                        num: data.num
+                                                                    })
                                                                 } else {
-                                                                    if (response == "no_level") {
-                                                                        d_text("LOW LEVEL", character)
+                                                                    if (response == "upgrade_fail") {
+                                                                        ui_error("Item upgrade failed");
+                                                                        resolve_deferred("upgrade", {
+                                                                            failed: true,
+                                                                            success: false,
+                                                                            level: data.level,
+                                                                            num: data.num
+                                                                        })
                                                                     } else {
-                                                                        if (response == "not_in_pvp") {
-                                                                            d_text("NO", character)
+                                                                        if (response == "upgrade_success_stat") {
+                                                                            resolve_deferred("upgrade", {
+                                                                                stat: true,
+                                                                                stat_type: data.stat_type,
+                                                                                num: data.num
+                                                                            })
                                                                         } else {
-                                                                            if (response == "skill_cant_use") {
-                                                                                d_text("CAN'T USE", character)
+                                                                            if (response == "upgrade_offerring_success") {
+                                                                                resolve_deferred("upgrade", {
+                                                                                    offering: true
+                                                                                })
                                                                             } else {
-                                                                                if (response == "skill_cant_wtype") {
-                                                                                    ui_log("Wrong weapon", "gray");
-                                                                                    d_text("NOPE", character)
+                                                                                if (response == "upgrade_no_item") {
+                                                                                    reject_deferred("upgrade", {
+                                                                                        reason: "no_item"
+                                                                                    })
                                                                                 } else {
-                                                                                    if (response == "skill_cant_slot") {
-                                                                                        ui_log("Item not equipped", "gray");
-                                                                                        d_text("NOPE", character)
+                                                                                    if (response == "upgrade_in_progress") {
+                                                                                        ui_log("Another upgrade in progress", "gray");
+                                                                                        reject_deferred("upgrade", {
+                                                                                            reason: "in_progress"
+                                                                                        })
                                                                                     } else {
-                                                                                        if (response == "cruise") {
-                                                                                            ui_log("Cruise speed set at " + data.speed, "gray")
+                                                                                        if (response == "mail_sending") {
+                                                                                            ui_log("Sending mail ...", "gray");
+                                                                                            hide_modal(true)
                                                                                         } else {
-                                                                                            if (response == "exchange_full") {
-                                                                                                d_text("NO SPACE", character);
-                                                                                                ui_log("Inventory is full", "gray");
-
+                                                                                            if (response == "mail_failed") {
+                                                                                                show_alert("Mail failed, reason: " + data.reason)
                                                                                             } else {
-                                                                                                if (response == "exchange_notenough") {
-                                                                                                    d_text("NOT ENOUGH", character);
-                                                                                                    ui_log("Need more", "gray");
-
+                                                                                                if (response == "mail_sent") {
+                                                                                                    ui_log("Mail sent to " + data.to + "!", "#C06978")
                                                                                                 } else {
-                                                                                                    if (in_arr(response, ["mistletoe_success", "leather_success", "candycane_success", "ornament_success", "seashell_success", "gemfragment_success"])) {
-                                                                                                        //render_interaction(response)
+                                                                                                    if (response == "upgrade_no_scroll") {
+                                                                                                        reject_deferred("upgrade", {
+                                                                                                            reason: "no_scroll"
+                                                                                                        })
                                                                                                     } else {
-                                                                                                        if (in_arr(response, ["donate_thx", "donate_gum", "donate_low"])) {
-                                                                                                            var message;
-                                                                                                            data.gold = to_pretty_num(data.gold);
-                                                                                                            if (response == "donate_thx") {
-                                                                                                                message = "Thanks kind sir. Thanks for helping the reserve."
-                                                                                                            } else {
-                                                                                                                if (response == "donate_gum") {
-                                                                                                                    message = data.gold + "? " + data.gold + "? " + data.gold + "?! Here, take this!"
-                                                                                                                } else {
-                                                                                                                    if (response == "donate_low") {
-                                                                                                                        message = "They say there's no small contribution.. BUT THEY ARE OBVIOUSLY WRONG. " + data.gold + "??!!! GET LOST"
-                                                                                                                    }
-                                                                                                                }
-                                                                                                            }
-                                                                                                            ui_log("Donated " + to_pretty_num(data.gold) + " gold", "gray");
-                                                                                                            /*
-                                                                                                            render_interaction({
-                                                                                                                auto: true,
-                                                                                                                skin: "goblin",
-                                                                                                                message: message
+                                                                                                        if (response == "upgrade_mismatch") {
+                                                                                                            reject_deferred("upgrade", {
+                                                                                                                reason: "mismatch"
                                                                                                             })
-                                                                                                            */
                                                                                                         } else {
-                                                                                                            if (response == "lostandfound_info") {
-                                                                                                                var message = "Hey there! I'm in charge of taking care of our gold reserve and making sure unlooted chests are 'recycled'! "
-                                                                                                                    ,
-                                                                                                                    xp = 3.2;
-                                                                                                                if (data.gold < 500000000) {
-                                                                                                                    message += "Currently the gold reserves are low, so I'm taking a small something something out of every chest :] ",
-                                                                                                                        xp = 4.8
-                                                                                                                } else {
-                                                                                                                    if (data.gold < 1000000000) {
-                                                                                                                        message += "Currently the gold reserves are low, so I'm taking a small something out of every chest :] ",
-                                                                                                                            xp = 4
-                                                                                                                    }
-                                                                                                                }
-                                                                                                                message += "Donations are always welcome, merchants get " + xp + " XP for every gold they donate!";
-                                                                                                                /*
-                                                                                                                render_interaction({
-                                                                                                                    auto: true,
-                                                                                                                    skin: "goblin",
-                                                                                                                    message: message,
-                                                                                                                    button: "WHAT HAVE YOU FOUND?",
-                                                                                                                    onclick: function () {
-                                                                                                                        socket.emit("lostandfound")
-                                                                                                                    },
-                                                                                                                    button2: "DONATE",
-                                                                                                                    onclick2: function () {
-                                                                                                                        render_donate()
-                                                                                                                    }
+                                                                                                            if (response == "upgrade_invalid_offering") {
+                                                                                                                ui_log("Offering not accepted", "gray");
+                                                                                                                reject_deferred("upgrade", {
+                                                                                                                    reason: "offering"
                                                                                                                 })
-                                                                                                                */
                                                                                                             } else {
-                                                                                                                if (response == "lostandfound_donate") {
-                                                                                                                    var message = "Not feeling like showing my loots to cheapskates! Sorry not sorry..";
-                                                                                                                    /*
-                                                                                                                    render_interaction({
-                                                                                                                        auto: true,
-                                                                                                                        skin: "goblin",
-                                                                                                                        message: message
+                                                                                                                if (response == "upgrade_cant") {
+                                                                                                                    ui_log("Can't be upgraded", "gray");
+                                                                                                                    reject_deferred("upgrade", {
+                                                                                                                        reason: "not_upgradeable"
                                                                                                                     })
-                                                                                                                    */
                                                                                                                 } else {
-                                                                                                                    if (response == "cant_escape") {
-                                                                                                                        d_text("CAN'T ESCAPE", character);
-                                                                                                                        transporting = false
+                                                                                                                    if (response == "upgrade_incompatible_scroll") {
+                                                                                                                        set_uchance("?");
+                                                                                                                        ui_log("Incompatible scroll", "gray");
+                                                                                                                        reject_deferred("upgrade", {
+                                                                                                                            reason: "scroll"
+                                                                                                                        })
                                                                                                                     } else {
-                                                                                                                        if (response == "cant_enter") {
-                                                                                                                            ui_log("Can't enter", "gray");
-                                                                                                                            transporting = false
+                                                                                                                        if (response == "upgrade_scroll_q") {
+                                                                                                                            ui_log("Need " + data.q + " scrolls", "gray");
+                                                                                                                            reject_deferred("upgrade", {
+                                                                                                                                reason: "scroll_quantity",
+                                                                                                                                need: data.q,
+                                                                                                                                have: data.h
+                                                                                                                            })
                                                                                                                         } else {
-                                                                                                                            if (response == "bank_opi") {
-                                                                                                                                ui_log("Bank connection in progress", "gray");
-                                                                                                                                transporting = false
+                                                                                                                            if (response == "upgrade_chance" || response == "compound_chance") {
+                                                                                                                                set_uchance(data.chance);
+                                                                                                                                if (response == "upgrade_chance") {
+                                                                                                                                    resolve_deferred("upgrade", {
+                                                                                                                                        calculate: true,
+                                                                                                                                        chance: data.chance
+                                                                                                                                    })
+                                                                                                                                }
+                                                                                                                                if (response == "compound_chance") {
+                                                                                                                                    resolve_deferred("compound", {
+                                                                                                                                        calculate: true,
+                                                                                                                                        chance: data.chance
+                                                                                                                                    })
+                                                                                                                                }
                                                                                                                             } else {
-                                                                                                                                if (response == "bank_opx") {
-                                                                                                                                    if (data.name) {
-                                                                                                                                        ui_log(data.name + " is in the bank", "gray")
-                                                                                                                                    } else {
-                                                                                                                                        ui_log("Bank is busy right now", "gray")
+                                                                                                                                if (response == "max_level") {
+                                                                                                                                    set_uchance("?");
+                                                                                                                                    if (data.place) {
+                                                                                                                                        reject_deferred(data.place, {
+                                                                                                                                            reason: "max_level"
+                                                                                                                                        })
                                                                                                                                     }
-                                                                                                                                    transporting = false
+                                                                                                                                    ui_log("Already +" + data.level, "white")
                                                                                                                                 } else {
-                                                                                                                                    if (response == "transport_failed") {
-                                                                                                                                        transporting = false
+                                                                                                                                    if (response == "exception") {
+                                                                                                                                        if (data.place) {
+                                                                                                                                            reject_deferred(data.place, {
+                                                                                                                                                reason: "exception"
+                                                                                                                                            })
+                                                                                                                                        }
+                                                                                                                                        ui_error("ERROR!")
                                                                                                                                     } else {
-                                                                                                                                        if (response == "loot_failed") {
-                                                                                                                                            close_chests();
-                                                                                                                                            ui_log("Can't loot", "gray")
+                                                                                                                                        if (response == "nothing") {
+                                                                                                                                            ui_log("Nothing happens", "gray")
                                                                                                                                         } else {
-                                                                                                                                            if (response == "loot_no_space") {
-                                                                                                                                                close_chests();
-                                                                                                                                                d_text("NO SPACE", character)
+                                                                                                                                            if (response == "not_ready") {
+                                                                                                                                                d_text("NOT READY", character)
                                                                                                                                             } else {
-                                                                                                                                                if (response == "transport_cant_reach") {
-                                                                                                                                                    ui_log("Can't reach", "gray");
-                                                                                                                                                    transporting = false
+                                                                                                                                                if (response == "no_mp") {
+                                                                                                                                                    if (data.place == "attack" || data.place == "heal") {
+                                                                                                                                                        reject_deferred(data.place, {
+                                                                                                                                                            reason: "no_mp"
+                                                                                                                                                        })
+                                                                                                                                                    }
+                                                                                                                                                    d_text("NO MP", character)
                                                                                                                                                 } else {
-                                                                                                                                                    if (response == "destroyed") {
-                                                                                                                                                        ui_log("Destroyed " + G.items[data.name].name, "gray")
+                                                                                                                                                    if (response == "friendly") {
+                                                                                                                                                        var safe = false
+                                                                                                                                                            ,
+                                                                                                                                                            phrase = "FRIENDLY";
+                                                                                                                                                        if (G.maps[character.map].safe) {
+                                                                                                                                                            safe = true,
+                                                                                                                                                                phrase = "SAFE ZONE"
+                                                                                                                                                        }
+                                                                                                                                                        if (data.place == "attack" || data.place == "heal") {
+                                                                                                                                                            reject_deferred(data.place, {
+                                                                                                                                                                reason: "friendly"
+                                                                                                                                                            })
+                                                                                                                                                        }
+                                                                                                                                                        if (get_entity(data.id)) {
+                                                                                                                                                            d_text(phrase, get_entity(data.id))
+                                                                                                                                                        } else {
+                                                                                                                                                            d_text(phrase, character)
+                                                                                                                                                        }
+                                                                                                                                                        if (safe) {
+                                                                                                                                                            ui_log("You can't attack in a safe zone", "gray")
+                                                                                                                                                        }
                                                                                                                                                     } else {
-                                                                                                                                                        if (response == "buy_get_closer" || response == "sell_get_closer" || response == "trade_get_closer" || response == "ecu_get_closer") {
-                                                                                                                                                            if (response == "buy_get_closer") {
-                                                                                                                                                                call_code_function("trigger_event", "buy_fail", {
-                                                                                                                                                                    rxd: rxd,
-                                                                                                                                                                    reason: "distance"
+                                                                                                                                                        if (response == "cooldown") {
+                                                                                                                                                            if (data.place == "attack" || data.place == "heal") {
+                                                                                                                                                                reject_deferred(data.place, {
+                                                                                                                                                                    reason: "cooldown",
+                                                                                                                                                                    remaining: data.ms
                                                                                                                                                                 })
                                                                                                                                                             }
-                                                                                                                                                            ui_log("Get closer", "gray")
-                                                                                                                                                        } else {
-                                                                                                                                                            if (response == "trade_bspace") {
-                                                                                                                                                                ui_log("No space on buyer", "gray")
+                                                                                                                                                            if (data.id && get_entity(data.id)) {
+                                                                                                                                                                d_text("WAIT", get_entity(data.id))
                                                                                                                                                             } else {
-                                                                                                                                                                if (response == "tavern_too_late") {
-                                                                                                                                                                    ui_log("Too late to bet!", "gray")
+                                                                                                                                                                d_text("WAIT", character)
+                                                                                                                                                            }
+                                                                                                                                                        } else {
+                                                                                                                                                            if (response == "too_far") {
+                                                                                                                                                                if (data.place == "attack" || data.place == "heal") {
+                                                                                                                                                                    reject_deferred(data.place, {
+                                                                                                                                                                        reason: "too_far",
+                                                                                                                                                                        distance: data.dist,
+                                                                                                                                                                        origin: "server"
+                                                                                                                                                                    })
+                                                                                                                                                                }
+                                                                                                                                                                if (data.id && get_entity(data.id)) {
+                                                                                                                                                                    d_text("TOO FAR", get_entity(data.id))
                                                                                                                                                                 } else {
-                                                                                                                                                                    if (response == "tavern_not_yet") {
-                                                                                                                                                                        ui_log("Not taking bets yet!", "gray")
+                                                                                                                                                                    d_text("TOO FAR", character)
+                                                                                                                                                                }
+                                                                                                                                                            } else {
+                                                                                                                                                                if (response == "miss") {
+                                                                                                                                                                    if (data.place == "attack" || data.place == "heal") {
+                                                                                                                                                                        reject_deferred(data.place, {
+                                                                                                                                                                            reason: "miss"
+                                                                                                                                                                        })
+                                                                                                                                                                    }
+                                                                                                                                                                    if (get_entity(data.id)) {
+                                                                                                                                                                        d_text("MISS", get_entity(data.id))
                                                                                                                                                                     } else {
-                                                                                                                                                                        if (response == "tavern_too_many_bets") {
-                                                                                                                                                                            ui_log("You have too many active bets", "gray")
-                                                                                                                                                                        } else {
-                                                                                                                                                                            if (response == "tavern_dice_exist") {
-                                                                                                                                                                                ui_log("You already have a bet", "gray")
+                                                                                                                                                                        d_text("MISS", character)
+                                                                                                                                                                    }
+                                                                                                                                                                } else {
+                                                                                                                                                                    if (response == "disabled") {
+                                                                                                                                                                        if (data.place) {
+                                                                                                                                                                            reject_deferred(data.place, {
+                                                                                                                                                                                reason: "disabled"
+                                                                                                                                                                            })
+                                                                                                                                                                        }
+                                                                                                                                                                        d_text("DISABLED", character)
+                                                                                                                                                                    } else {
+                                                                                                                                                                        if (response == "attack_failed") {
+                                                                                                                                                                            if (data.place == "attack" || data.place == "heal") {
+                                                                                                                                                                                reject_deferred(data.place, {
+                                                                                                                                                                                    reason: "failed"
+                                                                                                                                                                                })
+                                                                                                                                                                            }
+                                                                                                                                                                            if (get_entity(data.id)) {
+                                                                                                                                                                                d_text("FAILED", get_entity(data.id))
                                                                                                                                                                             } else {
-                                                                                                                                                                                if (response == "tavern_gold_not_enough") {
-                                                                                                                                                                                    ui_log("Gold reserve insufficient to cover this bet", "gray")
+                                                                                                                                                                                d_text("FAILED", character)
+                                                                                                                                                                            }
+                                                                                                                                                                        } else {
+                                                                                                                                                                            if (response == "skill_too_far") {
+                                                                                                                                                                                d_text("TOO FAR", character)
+                                                                                                                                                                            } else {
+                                                                                                                                                                                if (response == "skill_success") {
+                                                                                                                                                                                    var name = data.name;
+                                                                                                                                                                                    skill_timeout(name);
+                                                                                                                                                                                    resolve_deferred("skill", {
+                                                                                                                                                                                        success: true
+                                                                                                                                                                                    })
                                                                                                                                                                                 } else {
-                                                                                                                                                                                    if (response == "condition") {
-                                                                                                                                                                                        var def = G.conditions[data.name]
-                                                                                                                                                                                            ,
-                                                                                                                                                                                            from = data.from;
-                                                                                                                                                                                        if (def.bad) {
-                                                                                                                                                                                            ui_log("Afflicted by " + def.name, "gray")
-                                                                                                                                                                                        } else {
-                                                                                                                                                                                            if (from) {
-                                                                                                                                                                                                ui_log(from + " buffed you with " + def.name, "gray")
-                                                                                                                                                                                            } else {
-                                                                                                                                                                                                ui_log("Buffed with " + def.name, "gray")
-                                                                                                                                                                                            }
-                                                                                                                                                                                        }
+                                                                                                                                                                                    if (response == "target_alive") {
+                                                                                                                                                                                        d_text("LOOKS LIVE?", character)
                                                                                                                                                                                     } else {
-                                                                                                                                                                                        if (response == "ex_condition") {
-                                                                                                                                                                                            var def = G.conditions[data.name]
+                                                                                                                                                                                        if (response == "slot_occuppied") {
+                                                                                                                                                                                            ui_log("Slot occuppied", "gray")
                                                                                                                                                                                         } else {
-                                                                                                                                                                                            if (response == "buy_cant_npc") {
-                                                                                                                                                                                                ui_log("Can't buy this from an NPC", "gray"),
-                                                                                                                                                                                                    call_code_function("trigger_event", "buy_fail", {
-                                                                                                                                                                                                        rxd: rxd,
-                                                                                                                                                                                                        reason: "not_buyable"
-                                                                                                                                                                                                    })
-                                                                                                                                                                                            } else {
-                                                                                                                                                                                                if (response == "buy_cost") {
-                                                                                                                                                                                                    d_text("INSUFFICIENT", character),
-                                                                                                                                                                                                        ui_log("Not enough gold", "gray"),
-                                                                                                                                                                                                        call_code_function("trigger_event", "buy_fail", {
-                                                                                                                                                                                                            rxd: rxd,
-                                                                                                                                                                                                            reason: "gold"
-                                                                                                                                                                                                        })
+                                                                                                                                                                                            if (response == "no_target") {
+                                                                                                                                                                                                if (!ctarget) {
+                                                                                                                                                                                                    d_text("NO TARGET", character)
                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                    if (response == "cant_reach") {
-                                                                                                                                                                                                        ui_log("Can't reach", "gray")
+                                                                                                                                                                                                    d_text("INVALID TARGET", character)
+                                                                                                                                                                                                }
+                                                                                                                                                                                            } else {
+                                                                                                                                                                                                if (response == "non_friendly_target") {
+                                                                                                                                                                                                    d_text("NON FRIENDLY", character)
+                                                                                                                                                                                                } else {
+                                                                                                                                                                                                    if (response == "challenge_sent") {
+                                                                                                                                                                                                        add_chat("", "Challenged " + data.name + " to duel", "white")
                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                        if (response == "no_item") {
-                                                                                                                                                                                                            ui_log("No item provided", "gray")
+                                                                                                                                                                                                        if (response == "challenge_accepted") {
+                                                                                                                                                                                                            add_chat("", data.name + " accepted the challenge!", "#DF231B")
                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                            if (response == "op_unavailable") {
-                                                                                                                                                                                                                add_chat("", "Operation unavailable", "gray")
+                                                                                                                                                                                                            if (response == "challenge_received") {
+                                                                                                                                                                                                                add_challenge(data.name);
+                                                                                                                                                                                                                call_code_function("trigger_character_event", "challenge", data.name)
                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                if (response == "send_no_space") {
-                                                                                                                                                                                                                    add_chat("", "No space on receiver", "gray")
+                                                                                                                                                                                                                if (response == "duel_started") {
+                                                                                                                                                                                                                    add_duel(data.challenger, data.vs, data.id);
+                                                                                                                                                                                                                    call_code_function("trigger_character_event", "duel", {
+                                                                                                                                                                                                                        challenger: data.challenger,
+                                                                                                                                                                                                                        vs: data.vs,
+                                                                                                                                                                                                                        id: data.id
+                                                                                                                                                                                                                    })
                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                    if (response == "send_no_item") {
-                                                                                                                                                                                                                        add_chat("", "Nothing to send", "gray")
+                                                                                                                                                                                                                    if (response == "no_level") {
+                                                                                                                                                                                                                        d_text("LOW LEVEL", character)
                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                        if (response == "signed_up") {
-                                                                                                                                                                                                                            ui_log("Signed Up!", "#39BB54")
+                                                                                                                                                                                                                        if (response == "not_in_pvp") {
+                                                                                                                                                                                                                            d_text("NO", character)
                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                            if (response == "item_locked") {
-                                                                                                                                                                                                                                ui_log("Item is locked", "gray")
+                                                                                                                                                                                                                            if (response == "skill_cant_incapacitated") {
+                                                                                                                                                                                                                                d_text("CAN'T USE", character)
                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                if (response == "item_received" || response == "item_sent") {
-                                                                                                                                                                                                                                    var additional = "";
-                                                                                                                                                                                                                                    if (data.q > 1) {
-                                                                                                                                                                                                                                        additional = "(x" + data.q + ")"
-                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                    if (response == "item_received") {
-                                                                                                                                                                                                                                        add_chat("", "Received " + G.items[data.item].name + additional + " from " + data.name, "#6AB3FF")
-                                                                                                                                                                                                                                    } else {
-                                                                                                                                                                                                                                        add_chat("", "Sent " + G.items[data.item].name + additional + " to " + data.name, "#6AB3FF")
-                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                if (response == "skill_cant_use") {
+                                                                                                                                                                                                                                    d_text("CAN'T USE", character)
                                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                                    if (response == "log_gold_not_enough") {
-                                                                                                                                                                                                                                        ui_log("Not enough gold", "gray")
+                                                                                                                                                                                                                                    if (response == "skill_cant_pve") {
+                                                                                                                                                                                                                                        d_text("CAN'T USE", character)
                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                        if (response == "gold_not_enough") {
-                                                                                                                                                                                                                                            add_chat("", "Not enough gold", colors.gold)
+                                                                                                                                                                                                                                        if (response == "skill_cant_wtype") {
+                                                                                                                                                                                                                                            ui_log("Wrong weapon", "gray");
+                                                                                                                                                                                                                                            d_text("NOPE", character)
                                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                                            if (response == "gold_sent") {
-                                                                                                                                                                                                                                                add_chat("", "Sent " + to_pretty_num(data.gold) + " gold to " + data.name, colors.gold)
+                                                                                                                                                                                                                                            if (response == "skill_cant_slot") {
+                                                                                                                                                                                                                                                ui_log("Item not equipped", "gray");
+                                                                                                                                                                                                                                                d_text("NOPE", character)
                                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                                if (response == "gold_received") {
-                                                                                                                                                                                                                                                    add_chat("", "Received " + to_pretty_num(data.gold) + " gold from " + data.name, colors.gold)
+                                                                                                                                                                                                                                                if (response == "skill_cant_requirements") {
+                                                                                                                                                                                                                                                    ui_log("Skill requirements not met", "gray");
+                                                                                                                                                                                                                                                    d_text("NOPE", character)
                                                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                                                    if (response == "friend_already") {
-                                                                                                                                                                                                                                                        add_chat("", "You are already friends", "gray")
+                                                                                                                                                                                                                                                    if (response == "cruise") {
+                                                                                                                                                                                                                                                        ui_log("Cruise speed set at " + data.speed, "gray")
                                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                                        if (response == "friend_rleft") {
-                                                                                                                                                                                                                                                            add_chat("", "Player left the server", "gray")
+                                                                                                                                                                                                                                                        if (response == "exchange_full") {
+                                                                                                                                                                                                                                                            d_text("NO SPACE", character);
+                                                                                                                                                                                                                                                            ui_log("Inventory is full", "gray");
+                                                                                                                                                                                                                                                            reopen()
                                                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                                                            if (response == "friend_rsent") {
-                                                                                                                                                                                                                                                                add_chat("", "Friend request sent", "#409BDD")
+                                                                                                                                                                                                                                                            if (response == "exchange_existing") {
+                                                                                                                                                                                                                                                                d_text("WAIT", character);
+                                                                                                                                                                                                                                                                ui_log("Existing exchange in progress", "gray");
+                                                                                                                                                                                                                                                                reopen()
                                                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                                                if (response == "friend_expired") {
-                                                                                                                                                                                                                                                                    add_chat("", "Request expired", "#409BDD")
+                                                                                                                                                                                                                                                                if (response == "exchange_notenough") {
+                                                                                                                                                                                                                                                                    d_text("NOT ENOUGH", character);
+                                                                                                                                                                                                                                                                    ui_log("Need more", "gray");
+                                                                                                                                                                                                                                                                    reopen()
                                                                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                                                                    if (response == "friend_failed") {
-                                                                                                                                                                                                                                                                        add_chat("", "Friendship failed, reason: " + data.reason, "#409BDD")
+                                                                                                                                                                                                                                                                    if (in_arr(response, ["mistletoe_success", "leather_success", "candycane_success", "ornament_success", "seashell_success", "gemfragment_success"])) {
+                                                                                                                                                                                                                                                                        render_interaction(response)
                                                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                                                        if (response == "unfriend_failed") {
-                                                                                                                                                                                                                                                                            add_chat("", "Unfriend failed, reason: " + data.reason, "#409BDD")
-                                                                                                                                                                                                                                                                        } else {
-                                                                                                                                                                                                                                                                            if (response == "gold_use") {
-                                                                                                                                                                                                                                                                                ui_log("Used " + to_pretty_num(data.gold) + " gold", "gray")
+                                                                                                                                                                                                                                                                        if (in_arr(response, ["donate_thx", "donate_gum", "donate_low"])) {
+                                                                                                                                                                                                                                                                            var message;
+                                                                                                                                                                                                                                                                            data.gold = to_pretty_num(data.gold);
+                                                                                                                                                                                                                                                                            if (response == "donate_thx") {
+                                                                                                                                                                                                                                                                                message = "Thanks kind sir. Thanks for helping the reserve."
                                                                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                                                                if (response == "slots_success") {
-                                                                                                                                                                                                                                                                                    ui_log("Machine went crazy", "#9733FF")
+                                                                                                                                                                                                                                                                                if (response == "donate_gum") {
+                                                                                                                                                                                                                                                                                    message = data.gold + "? " + data.gold + "? " + data.gold + "?! Here, take this!"
                                                                                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                                                                                    if (response == "slots_fail") {
-                                                                                                                                                                                                                                                                                        ui_log("Machine got stuck", "gray")
+                                                                                                                                                                                                                                                                                    if (response == "donate_low") {
+                                                                                                                                                                                                                                                                                        message = "They say there's no small contribution.. BUT THEY ARE OBVIOUSLY WRONG. " + data.gold + "??!!! GET LOST"
+                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                            ui_log("Donated " + to_pretty_num(data.gold) + " gold", "gray");
+                                                                                                                                                                                                                                                                            render_interaction({
+                                                                                                                                                                                                                                                                                auto: true,
+                                                                                                                                                                                                                                                                                skin: "goblin",
+                                                                                                                                                                                                                                                                                message: message
+                                                                                                                                                                                                                                                                            })
+                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                            if (response == "lostandfound_info") {
+                                                                                                                                                                                                                                                                                var message = "Hey there! I'm in charge of taking care of our gold reserve and making sure unlooted chests are 'recycled'! "
+                                                                                                                                                                                                                                                                                    ,
+                                                                                                                                                                                                                                                                                    xp = 3.2;
+                                                                                                                                                                                                                                                                                if (data.gold < 500000000) {
+                                                                                                                                                                                                                                                                                    message += "Currently the gold reserves are low, so I'm taking a small something something out of every chest :] ",
+                                                                                                                                                                                                                                                                                        xp = 4.8
+                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                    if (data.gold < 1000000000) {
+                                                                                                                                                                                                                                                                                        message += "Currently the gold reserves are low, so I'm taking a small something out of every chest :] ",
+                                                                                                                                                                                                                                                                                            xp = 4
+                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                message += "Donations are always welcome, merchants get " + xp + " XP for every gold they donate!";
+                                                                                                                                                                                                                                                                                render_interaction({
+                                                                                                                                                                                                                                                                                    auto: true,
+                                                                                                                                                                                                                                                                                    skin: "goblin",
+                                                                                                                                                                                                                                                                                    message: message,
+                                                                                                                                                                                                                                                                                    button: "WHAT HAVE YOU FOUND?",
+                                                                                                                                                                                                                                                                                    onclick: function () {
+                                                                                                                                                                                                                                                                                        socket.emit("lostandfound")
+                                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                                    button2: "DONATE",
+                                                                                                                                                                                                                                                                                    onclick2: function () {
+                                                                                                                                                                                                                                                                                        render_donate()
+                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                })
+                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                if (response === "lostandfound_donate") {
+                                                                                                                                                                                                                                                                                    var message = "Not feeling like showing my loots to cheapskates! Sorry not sorry..";
+                                                                                                                                                                                                                                                                                    render_interaction({
+                                                                                                                                                                                                                                                                                        auto: true,
+                                                                                                                                                                                                                                                                                        skin: "goblin",
+                                                                                                                                                                                                                                                                                        message: message
+                                                                                                                                                                                                                                                                                    })
+                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                    if (response === "cant_escape") {
+                                                                                                                                                                                                                                                                                        d_text("CAN'T ESCAPE", character);
+                                                                                                                                                                                                                                                                                        transporting = false
                                                                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                                                                        if (response == "craft") {
-                                                                                                                                                                                                                                                                                            var def = G.craft[data.name];
-                                                                                                                                                                                                                                                                                            ui_log("Spent " + to_pretty_num(def.cost) + " gold", "gray");
-                                                                                                                                                                                                                                                                                            ui_log("Received " + G.items[data.name].name, "white")
+                                                                                                                                                                                                                                                                                        if (response === "cant_enter") {
+                                                                                                                                                                                                                                                                                            ui_log("Can't enter", "gray");
+                                                                                                                                                                                                                                                                                            transporting = false
                                                                                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                                                                                            if (response == "dismantle") {
-                                                                                                                                                                                                                                                                                                var def = G.dismantle[data.name];
-                                                                                                                                                                                                                                                                                                ui_log("Spent " + to_pretty_num(def.cost) + " gold", "gray");
-                                                                                                                                                                                                                                                                                                ui_log("Dismantled " + G.items[data.name].name, "#CF5C65")
+                                                                                                                                                                                                                                                                                            if (response === "bank_opi") {
+                                                                                                                                                                                                                                                                                                ui_log("Bank connection in progress", "gray");
+                                                                                                                                                                                                                                                                                                transporting = false
                                                                                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                                                                                if (response == "defeated_by_a_monster") {
-                                                                                                                                                                                                                                                                                                    ui_log("Defeated by " + G.monsters[data.monster].name, "#571F1B");
-                                                                                                                                                                                                                                                                                                    ui_log("Lost " + to_pretty_num(data.xp) + " experience", "gray")
-                                                                                                                                                                                                                                                                                                } else {
-                                                                                                                                                                                                                                                                                                    if (response == "dismantle_cant") {
-                                                                                                                                                                                                                                                                                                        ui_log("Can't dismantle", "gray")
+                                                                                                                                                                                                                                                                                                if (response === "bank_opx") {
+                                                                                                                                                                                                                                                                                                    if (data.name) {
+                                                                                                                                                                                                                                                                                                        ui_log(data.name + " is in the bank", "gray")
                                                                                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                                                                                        if (response == "inv_size") {
-                                                                                                                                                                                                                                                                                                            ui_log("Need more empty space", "gray")
+                                                                                                                                                                                                                                                                                                        ui_log("Bank is busy right now", "gray")
+                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                    transporting = false
+                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                    if (response === "transport_failed") {
+                                                                                                                                                                                                                                                                                                        transporting = false
+                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                        if (response === "loot_failed") {
+                                                                                                                                                                                                                                                                                                            close_chests();
+                                                                                                                                                                                                                                                                                                            ui_log("Can't loot", "gray")
                                                                                                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                                                                                                            if (response == "craft_cant") {
-                                                                                                                                                                                                                                                                                                                ui_log("Can't craft", "gray")
+                                                                                                                                                                                                                                                                                                            if (response === "loot_no_space") {
+                                                                                                                                                                                                                                                                                                                close_chests();
+                                                                                                                                                                                                                                                                                                                d_text("NO SPACE", character)
                                                                                                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                                                                                                if (response == "craft_cant_quantity") {
-                                                                                                                                                                                                                                                                                                                    ui_log("Not enough materials", "gray")
+                                                                                                                                                                                                                                                                                                                if (response === "transport_cant_reach") {
+                                                                                                                                                                                                                                                                                                                    ui_log("Can't reach", "gray");
+                                                                                                                                                                                                                                                                                                                    transporting = false
                                                                                                                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                                                                                                                    if (response == "craft_atleast2") {
-                                                                                                                                                                                                                                                                                                                        ui_log("You need to provide at least 2 items", "gray")
+                                                                                                                                                                                                                                                                                                                    if (response === "destroyed") {
+                                                                                                                                                                                                                                                                                                                        ui_log("Destroyed " + G.items[data.name].name, "gray")
                                                                                                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                                                                                                        if (response == "target_lock") {
-                                                                                                                                                                                                                                                                                                                            ui_log("Target Acquired: " + G.monsters[data.monster].name, "#F00B22")
+                                                                                                                                                                                                                                                                                                                        if (response === "get_closer" || response === "buy_get_closer" || response === "sell_get_closer" || response === "trade_get_closer" || response === "ecu_get_closer") {
+                                                                                                                                                                                                                                                                                                                            if (data.place) {
+                                                                                                                                                                                                                                                                                                                                reject_deferred(data.place, {
+                                                                                                                                                                                                                                                                                                                                    reason: "distance"
+                                                                                                                                                                                                                                                                                                                                })
+                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                            ui_log("Get closer", "gray")
                                                                                                                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                                                                                                                            if (response == "charm_failed") {
-                                                                                                                                                                                                                                                                                                                                ui_log("Couldn't charm ...", "gray")
+                                                                                                                                                                                                                                                                                                                            if (response == "trade_bspace") {
+                                                                                                                                                                                                                                                                                                                                ui_log("No space on buyer", "gray")
                                                                                                                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                                                                                                                if (response == "cooldown") {
-                                                                                                                                                                                                                                                                                                                                    d_text("NOT READY", character)
+                                                                                                                                                                                                                                                                                                                                if (response == "bank_restrictions") {
+                                                                                                                                                                                                                                                                                                                                    if (data.place) {
+                                                                                                                                                                                                                                                                                                                                        reject_deferred(data.place, {
+                                                                                                                                                                                                                                                                                                                                            reason: "bank"
+                                                                                                                                                                                                                                                                                                                                        })
+                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                    ui_log("You can't buy, trade or upgrade in the bank.", "gray")
                                                                                                                                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                                                                                                                                    if (response == "blink_failed") {
-                                                                                                                                                                                                                                                                                                                                        no_no_no();
-                                                                                                                                                                                                                                                                                                                                        d_text("NO", character);
-                                                                                                                                                                                                                                                                                                                                        last_blink_pressed = inception
+                                                                                                                                                                                                                                                                                                                                    if (response == "tavern_too_late") {
+                                                                                                                                                                                                                                                                                                                                        ui_log("Too late to bet!", "gray")
                                                                                                                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                                                                                                                        if (response == "magiport_sent") {
-                                                                                                                                                                                                                                                                                                                                            ui_log("Magiportation request sent to " + data.id, "white")
+                                                                                                                                                                                                                                                                                                                                        if (response == "tavern_not_yet") {
+                                                                                                                                                                                                                                                                                                                                            ui_log("Not taking bets yet!", "gray")
                                                                                                                                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                                                                                                                                            if (response == "magiport_gone") {
-                                                                                                                                                                                                                                                                                                                                                ui_log("Magiporter gone", "gray");
-                                                                                                                                                                                                                                                                                                                                                no_no_no(2)
+                                                                                                                                                                                                                                                                                                                                            if (response == "tavern_too_many_bets") {
+                                                                                                                                                                                                                                                                                                                                                ui_log("You have too many active bets", "gray")
                                                                                                                                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                                                                                                                                if (response == "magiport_failed") {
-                                                                                                                                                                                                                                                                                                                                                    ui_log("Magiport failed", "gray"),
-                                                                                                                                                                                                                                                                                                                                                        no_no_no(2)
+                                                                                                                                                                                                                                                                                                                                                if (response == "tavern_dice_exist") {
+                                                                                                                                                                                                                                                                                                                                                    ui_log("You already have a bet", "gray")
                                                                                                                                                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                                                                                                                                                    if (response == "revive_failed") {
-                                                                                                                                                                                                                                                                                                                                                        ui_log("Revival failed", "gray"),
-                                                                                                                                                                                                                                                                                                                                                            no_no_no(1)
+                                                                                                                                                                                                                                                                                                                                                    if (response == "tavern_gold_not_enough") {
+                                                                                                                                                                                                                                                                                                                                                        ui_log("Gold reserve insufficient to cover this bet", "gray")
                                                                                                                                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                                                                                                                                        if (response == "locksmith_cant") {
-                                                                                                                                                                                                                                                                                                                                                            ui_log("Can't lock/unlock this item", "gray")
-                                                                                                                                                                                                                                                                                                                                                        } else {
-                                                                                                                                                                                                                                                                                                                                                            if (response == "locksmith_aunlocked") {
-                                                                                                                                                                                                                                                                                                                                                                ui_log("Already unlocked", "gray")
+                                                                                                                                                                                                                                                                                                                                                        if (response == "condition") {
+                                                                                                                                                                                                                                                                                                                                                            var def = G.conditions[data.name]
+                                                                                                                                                                                                                                                                                                                                                                ,
+                                                                                                                                                                                                                                                                                                                                                                from = data.from;
+                                                                                                                                                                                                                                                                                                                                                            if (def.bad) {
+                                                                                                                                                                                                                                                                                                                                                                ui_log("Afflicted by " + def.name, "gray")
                                                                                                                                                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                                                                                                                                                if (response == "locksmith_alocked") {
-                                                                                                                                                                                                                                                                                                                                                                    ui_log("Already locked", "gray")
+                                                                                                                                                                                                                                                                                                                                                                if (from) {
+                                                                                                                                                                                                                                                                                                                                                                    ui_log(from + " buffed you with " + def.name, "gray")
                                                                                                                                                                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                                                                                                                                                                    if (response == "locksmith_unsealed") {
-                                                                                                                                                                                                                                                                                                                                                                        ui_log("Spent 250,000 gold", "gray");
-                                                                                                                                                                                                                                                                                                                                                                        ui_log("Unsealed the item", "gray");
-                                                                                                                                                                                                                                                                                                                                                                        ui_log("It can be unlocked in 7 days", "gray")
+                                                                                                                                                                                                                                                                                                                                                                    ui_log("Buffed with " + def.name, "gray")
+                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                            if (response == "cx_new") {
+                                                                                                                                                                                                                                                                                                                                                                ui_log("Cosmetics: " + data.name, "#DB7AA9");
+                                                                                                                                                                                                                                                                                                                                                                character.acx = data.acx
+                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                if (response == "cx_not_found") {
+                                                                                                                                                                                                                                                                                                                                                                    ui_log("Cosmetics not found", "gray")
+                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                    if (response == "ex_condition") {
+                                                                                                                                                                                                                                                                                                                                                                        var def = G.conditions[data.name]
                                                                                                                                                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                                                                                                                                                        if (response == "locksmith_unsealing") {
-                                                                                                                                                                                                                                                                                                                                                                            ui_log("It can be unlocked in " + parseInt(data.hours) + " hours", "gray")
+                                                                                                                                                                                                                                                                                                                                                                        if (response == "buy_success") {
+                                                                                                                                                                                                                                                                                                                                                                            var event = {
+                                                                                                                                                                                                                                                                                                                                                                                cost: data.cost,
+                                                                                                                                                                                                                                                                                                                                                                                num: data.num,
+                                                                                                                                                                                                                                                                                                                                                                                name: data.name,
+                                                                                                                                                                                                                                                                                                                                                                                q: data.q || 1
+                                                                                                                                                                                                                                                                                                                                                                            };
+                                                                                                                                                                                                                                                                                                                                                                            ui_log("Spent " + to_pretty_num(data.cost) + " gold", "gray");
+                                                                                                                                                                                                                                                                                                                                                                            call_code_function("trigger_character_event", "buy", event);
+                                                                                                                                                                                                                                                                                                                                                                            resolve_deferred("buy", event)
                                                                                                                                                                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                                                                                                                                                                            if (response == "locksmith_unlocked") {
-                                                                                                                                                                                                                                                                                                                                                                                ui_log("Spent 250,000 gold", "gray");
-                                                                                                                                                                                                                                                                                                                                                                                ui_log("Unlocked the item", "gray")
+                                                                                                                                                                                                                                                                                                                                                                            if (response == "buy_cant_npc") {
+                                                                                                                                                                                                                                                                                                                                                                                ui_log("Can't buy this from an NPC", "gray");
+                                                                                                                                                                                                                                                                                                                                                                                reject_deferred("buy", {
+                                                                                                                                                                                                                                                                                                                                                                                    reason: "not_buyable"
+                                                                                                                                                                                                                                                                                                                                                                                })
                                                                                                                                                                                                                                                                                                                                                                             } else {
-                                                                                                                                                                                                                                                                                                                                                                                if (response == "locksmith_unseal_complete") {
-                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Unlocked the item", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                if (response == "buy_cant_space") {
+                                                                                                                                                                                                                                                                                                                                                                                    d_text("SPACE", character);
+                                                                                                                                                                                                                                                                                                                                                                                    ui_log("No space", "gray");
+                                                                                                                                                                                                                                                                                                                                                                                    reject_deferred("buy", {
+                                                                                                                                                                                                                                                                                                                                                                                        reason: "space"
+                                                                                                                                                                                                                                                                                                                                                                                    })
                                                                                                                                                                                                                                                                                                                                                                                 } else {
-                                                                                                                                                                                                                                                                                                                                                                                    if (response == "locksmith_locked") {
-                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Spent 250,000 gold", "gray");
-                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Locked the item", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                    if (response == "buy_cost") {
+                                                                                                                                                                                                                                                                                                                                                                                        d_text("INSUFFICIENT", character);
+                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Not enough gold", "gray");
+                                                                                                                                                                                                                                                                                                                                                                                        reject_deferred("buy", {
+                                                                                                                                                                                                                                                                                                                                                                                            reason: "cost"
+                                                                                                                                                                                                                                                                                                                                                                                        })
                                                                                                                                                                                                                                                                                                                                                                                     } else {
-                                                                                                                                                                                                                                                                                                                                                                                        if (response == "locksmith_sealed") {
-                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Spent 250,000 gold", "gray");
-                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Sealed the item", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                        if (response == "cant_reach") {
+                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Can't reach", "gray")
                                                                                                                                                                                                                                                                                                                                                                                         } else {
-                                                                                                                                                                                                                                                                                                                                                                                            //console.log("Missed game_response: " + response)
+                                                                                                                                                                                                                                                                                                                                                                                            if (response == "no_item") {
+                                                                                                                                                                                                                                                                                                                                                                                                ui_log("No item provided", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                if (response == "op_unavailable") {
+                                                                                                                                                                                                                                                                                                                                                                                                    add_chat("", "Operation unavailable", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "send_no_space") {
+                                                                                                                                                                                                                                                                                                                                                                                                        add_chat("", "No space on receiver", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "send_no_item") {
+                                                                                                                                                                                                                                                                                                                                                                                                            add_chat("", "Nothing to send", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "signed_up") {
+                                                                                                                                                                                                                                                                                                                                                                                                                ui_log("Signed Up!", "#39BB54")
+                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "item_placeholder") {
+                                                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Slot is occupied", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "item_locked") {
+                                                                                                                                                                                                                                                                                                                                                                                                                        if (data.place) {
+                                                                                                                                                                                                                                                                                                                                                                                                                            reject_deferred(data.place, "locked")
+                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Item is locked", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "item_blocked") {
+                                                                                                                                                                                                                                                                                                                                                                                                                            if (data.place) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                reject_deferred(data.place, "blocked")
+                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Item is in use", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "item_received" || response == "item_sent") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                var additional = "";
+                                                                                                                                                                                                                                                                                                                                                                                                                                if (data.q > 1) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                    additional = "(x" + data.q + ")"
+                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "item_received") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                    add_chat("", "Received " + G.items[data.item].name + additional + " from " + data.name, "#6AB3FF")
+                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                    add_chat("", "Sent " + G.items[data.item].name + additional + " to " + data.name, "#6AB3FF")
+                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "add_item") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                    var additional = ""
+                                                                                                                                                                                                                                                                                                                                                                                                                                        ,
+                                                                                                                                                                                                                                                                                                                                                                                                                                        prefix = "a ";
+                                                                                                                                                                                                                                                                                                                                                                                                                                    if (data.item.q > 1) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                        additional = "(x" + data.item.q + ")",
+                                                                                                                                                                                                                                                                                                                                                                                                                                            prefix = ""
+                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                    add_log("Received " + prefix + G.items[data.item.name].name + additional, "#3B9358")
+                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "log_gold_not_enough") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Not enough gold", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "gold_not_enough") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                            add_chat("", "Not enough gold", colors.gold)
+                                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "gold_sent") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                add_chat("", "Sent " + to_pretty_num(data.gold) + " gold to " + data.name, colors.gold)
+                                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "gold_received" && !data.name) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                    add_log("Received " + to_pretty_num(data.gold) + " gold", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "gold_received") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        add_chat("", "Received " + to_pretty_num(data.gold) + " gold from " + data.name, colors.gold)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "friend_already") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            add_chat("", "You are already friends", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "friend_rleft") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                add_chat("", "Player left the server", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "friend_rsent") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    add_chat("", "Friend request sent", "#409BDD")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "friend_expired") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        add_chat("", "Request expired", "#409BDD")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "friend_failed") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            add_chat("", "Friendship failed, reason: " + data.reason, "#409BDD")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "unfriend_failed") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                add_chat("", "Unfriend failed, reason: " + data.reason, "#409BDD")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "gold_use") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Used " + to_pretty_num(data.gold) + " gold", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "slots_success") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Machine went crazy", "#9733FF")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "slots_fail") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Machine got stuck", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "craft") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                var def = G.craft[data.name];
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (def.cost) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Spent " + to_pretty_num(def.cost) + " gold", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ui_log("Received " + G.items[data.name].name, "white")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "dismantle") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    var def = G.dismantle[data.name];
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (data.level) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Spent " + to_pretty_num(10000) + " gold", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Spent " + to_pretty_num(def.cost) + " gold", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Dismantled " + G.items[data.name].name, "#CF5C65")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "defeated_by_a_monster") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Defeated by " + G.monsters[data.monster].name, "#571F1B");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Lost " + to_pretty_num(data.xp) + " experience", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "dismantle_cant") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Can't dismantle", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "inv_size") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ui_log("Need more empty space", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "craft_cant") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Can't craft", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "craft_cant_quantity") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Not enough materials", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "craft_atleast2") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ui_log("You need to provide at least 2 items", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "target_lock") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ui_log("Target Acquired: " + G.monsters[data.monster].name, "#F00B22")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "charm_failed") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Couldn't charm ...", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "cooldown") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        d_text("NOT READY", character)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "blink_failed") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no_no_no();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            d_text("NO", character);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            last_blink_pressed = inception
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "magiport_sent") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ui_log("Magiportation request sent to " + data.id, "white")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "magiport_gone") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Magiporter gone", "gray");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    no_no_no(2)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "magiport_failed") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Magiport failed", "gray"),
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no_no_no(2)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "revive_failed") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Revival failed", "gray"),
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no_no_no(1)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "locksmith_cant") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ui_log("Can't lock/unlock this item", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "locksmith_aunlocked") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Already unlocked", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "locksmith_alocked") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Already locked", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "locksmith_unsealed") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Spent 250,000 gold", "gray");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Unsealed the item", "gray");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ui_log("It can be unlocked in 7 days", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "locksmith_unsealing") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ui_log("It can be unlocked in " + parseInt(data.hours) + " hours", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "locksmith_unlocked") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Spent 250,000 gold", "gray");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ui_log("Unlocked the item", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "locksmith_unseal_complete") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ui_log("Unlocked the item", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (response == "locksmith_locked") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Spent 250,000 gold", "gray");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ui_log("Locked the item", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (response == "locksmith_sealed") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ui_log("Spent 250,000 gold", "gray");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ui_log("Sealed the item", "gray")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (response == "monsterhunt_started" || response == "monsterhunt_already") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (!character.s.monsterhunt) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        return
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (character.s.monsterhunt.c == 1) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        $("#merchant-item").html(render_interaction({
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            auto: true,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            skin: "daisy",
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            message: "Alrighty then! Now go defeat " + G.monsters[character.s.monsterhunt.id].name + " and come back here!"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }, "return_html"))
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        $("#merchant-item").html(render_interaction({
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            auto: true,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            skin: "daisy",
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            message: "Alrighty then! Now go defeat " + character.s.monsterhunt.c + " " + G.monsters[character.s.monsterhunt.id].name + "'s and come back here!"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }, "return_html"))
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (response == "monsterhunt_merchant") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        $("#merchant-item").html(render_interaction({
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            auto: true,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            skin: "daisy",
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            message: "Huh? A merchant? On the hunt? Hahahahahahahaha ... Go sell cake or something ..."
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }, "return_html"))
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        console.log("Missed game_response: " + response)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                            }
                                                                                                                                                                                                                                                                                                                                                                                         }
                                                                                                                                                                                                                                                                                                                                                                                     }
                                                                                                                                                                                                                                                                                                                                                                                 }
@@ -2439,14 +2941,14 @@ function init_socket() {
                     real_y: -100,
                     height: 24
                 }, {
-                    size: S.chat,
+                    size: SZ.chat,
                     color: "#C7EFFF"
                 });
                 sfx("chat", 0, -100)
             } else {
                 if (entity) {
                     d_text(data.message, entity, {
-                        size: S.chat
+                        size: SZ.chat
                     });
                     sfx("chat", entity.real_x, entity.real_y)
                 } else {
@@ -2601,214 +3103,289 @@ function init_socket() {
                                         if (data.type == "mlevel") {
                                             var m = get_entity(data.id);
                                             if (m) {
-                                                d_text("+1", m, {
+                                                d_text(data.mult == -1 && "-1" || "+1", m, {
                                                     color: "#9C76D3",
                                                     size: "huge"
                                                 })
                                             }
                                         } else {
-                                            if (data.type == "throw") {
-                                                var sender = get_player(data.from)
-                                                    , receiver = get_entity(data.to);
-                                                if (sender && receiver) {
-                                                    d_line(sender, receiver, {
-                                                        color: "#323232"
+                                            if (data.type == "mheal") {
+                                                var m = get_entity(data.id);
+                                                if (m) {
+                                                    d_text(data.heal, m, {
+                                                        color: colors.heal,
+                                                        size: "large"
                                                     })
                                                 }
                                             } else {
-                                                if (data.type == "energize") {
+                                                if (data.type == "throw") {
                                                     var sender = get_player(data.from)
-                                                        , receiver = get_player(data.to);
+                                                        , receiver = get_entity(data.to);
                                                     if (sender && receiver) {
                                                         d_line(sender, receiver, {
-                                                            color: "mana"
+                                                            color: "#323232"
                                                         })
                                                     }
-                                                    if (receiver) {
-                                                        start_animation(receiver, "block")
-                                                    }
                                                 } else {
-                                                    if (data.type == "mluck") {
+                                                    if (data.type == "energize") {
                                                         var sender = get_player(data.from)
                                                             , receiver = get_player(data.to);
                                                         if (sender && receiver) {
                                                             d_line(sender, receiver, {
-                                                                color: "mluck"
+                                                                color: "mana"
                                                             })
                                                         }
                                                         if (receiver) {
-                                                            start_animation(receiver, "mluck")
+                                                            start_animation(receiver, "block")
                                                         }
                                                     } else {
-                                                        if (data.type == "rspeed") {
+                                                        if (data.type == "mluck") {
                                                             var sender = get_player(data.from)
                                                                 , receiver = get_player(data.to);
                                                             if (sender && receiver) {
                                                                 d_line(sender, receiver, {
-                                                                    color: "#D4C392"
+                                                                    color: "mluck"
                                                                 })
                                                             }
                                                             if (receiver) {
-                                                                start_animation(receiver, "rspeed")
+                                                                start_animation(receiver, "mluck")
                                                             }
                                                         } else {
-                                                            if (data.type == "4fingers") {
+                                                            if (data.type == "rspeed") {
                                                                 var sender = get_player(data.from)
                                                                     , receiver = get_player(data.to);
                                                                 if (sender && receiver) {
                                                                     d_line(sender, receiver, {
-                                                                        color: "#6F62AE"
+                                                                        color: "#D4C392"
                                                                     })
                                                                 }
-                                                                if (sender) {
-                                                                    mojo(sender)
+                                                                if (receiver) {
+                                                                    start_animation(receiver, "rspeed")
                                                                 }
                                                             } else {
-                                                                if (data.type == "mcourage") {
-                                                                    var sender = get_player(data.name);
-                                                                    if (sender) {
-                                                                        d_text("OMG!", sender, {
-                                                                            size: "huge",
-                                                                            color: "#B9A08C"
+                                                                if (data.type == "reflection") {
+                                                                    var sender = get_player(data.from)
+                                                                        , receiver = get_player(data.to);
+                                                                    if (sender && receiver) {
+                                                                        d_line(sender, receiver, {
+                                                                            color: "#9488BF"
                                                                         })
                                                                     }
                                                                 } else {
-                                                                    if (data.type == "agitate") {
-                                                                        var attacker = get_entity(data.name);
-                                                                        data.ids.forEach(function (id) {
-                                                                            var entity = entities[id];
-                                                                            if (!entity) {
-                                                                                return
-                                                                            }
-                                                                            start_emblem(entity, "rr1", {
-                                                                                frames: 20
-                                                                            })
-                                                                        });
-                                                                        if (attacker) {
-                                                                            start_emblem(attacker, "rr1", {
-                                                                                frames: 10
-                                                                            })
-                                                                        }
-                                                                    } else {
-                                                                        if (data.type == "stomp") {
-                                                                            var attacker = get_entity(data.name);
-                                                                            data.ids.forEach(function (id) {
-                                                                                var entity = entities[id];
-                                                                                if (!entity) {
-                                                                                    return
-                                                                                }
-                                                                                start_emblem(entity, "br1", {
-                                                                                    frames: 30
-                                                                                });
-                                                                                if (1 || attacker != character) {
-                                                                                    v_shake_i(entity)
+                                                                    if (data.type == "alchemy") {
+                                                                        var sender = get_player(data.name);
+                                                                        if (sender) {
+                                                                            map_animation("gold", {
+                                                                                x: get_x(sender),
+                                                                                y: get_y(sender) - 36,
+                                                                                target: {
+                                                                                    x: get_x(sender),
+                                                                                    y: get_y(sender) - 90,
+                                                                                    height: 0,
+                                                                                    fade: true
                                                                                 }
                                                                             });
-                                                                            if (attacker) {
-                                                                                start_emblem(attacker, "br1", {
-                                                                                    frames: 5
+                                                                            start_animation(sender, "gold_anim");
+                                                                            v_shake_i(sender)
+                                                                        }
+                                                                    } else {
+                                                                        if (data.type == "4fingers") {
+                                                                            var sender = get_player(data.from)
+                                                                                , receiver = get_player(data.to);
+                                                                            if (sender && receiver) {
+                                                                                d_line(sender, receiver, {
+                                                                                    color: "#6F62AE"
                                                                                 })
                                                                             }
-                                                                            if (attacker == character) {
-                                                                                v_dive()
-                                                                            } else {
-                                                                                if (attacker) {
-                                                                                    v_dive_i(attacker)
-                                                                                }
+                                                                            if (sender) {
+                                                                                mojo(sender)
                                                                             }
                                                                         } else {
-                                                                            if (data.type == "scare") {
-                                                                                var attacker = get_entity(data.name);
-                                                                                data.ids.forEach(function (id) {
-                                                                                    var entity = entities[id];
-                                                                                    if (!entity) {
-                                                                                        return
-                                                                                    }
-                                                                                    start_emblem(entity, "j1", {
-                                                                                        frames: 5
-                                                                                    });
-                                                                                    v_shake_i2(entity)
-                                                                                });
-                                                                                if (attacker) {
-                                                                                    d_text("BE GONE!", attacker, {
+                                                                            if (data.type == "mcourage") {
+                                                                                var sender = get_player(data.name);
+                                                                                if (sender) {
+                                                                                    d_text("OMG!", sender, {
                                                                                         size: "huge",
-                                                                                        color: "#ff5817"
+                                                                                        color: "#B9A08C"
                                                                                     })
                                                                                 }
                                                                             } else {
-                                                                                if (data.type == "cleave") {
-                                                                                    var points = []
-                                                                                        ,
-                                                                                        attacker = get_entity(data.name);
-                                                                                    data.ids.forEach(function (id) {
-                                                                                        var entity = entities[id] || entities["DEAD" + id];
-                                                                                        if (!entity) {
-                                                                                            return
-                                                                                        }
-                                                                                        points.push({
-                                                                                            x: get_x(entity),
-                                                                                            y: get_y(entity)
-                                                                                        });
-                                                                                        if (attacker) {
-                                                                                            disappearing_clone(attacker, {
-                                                                                                x: (get_x(entity) + get_x(attacker) * 2) / 3,
-                                                                                                y: (get_y(entity) + get_y(attacker) * 2) / 3,
-                                                                                                random: true
-                                                                                            })
-                                                                                        }
-                                                                                    });
-                                                                                    if (attacker) {
-                                                                                        points.push({
-                                                                                            x: get_x(attacker),
-                                                                                            y: get_y(attacker)
-                                                                                        }),
-                                                                                            flurry(attacker)
+                                                                                if (data.type == "huntersmark") {
+                                                                                    var sender = get_player(data.name);
+                                                                                    var target = get_entity(data.id);
+                                                                                    if (sender && target) {
+                                                                                        d_line(sender, target, {
+                                                                                            color: "#730E0B"
+                                                                                        })
                                                                                     }
-                                                                                    cpoints = convexhull.makeHull(points);
-                                                                                    for (var i = 0; i < cpoints.length; i++) {
-                                                                                        var j = (i + 1) % cpoints.length;
-                                                                                        d_line(cpoints[i], cpoints[j], {
-                                                                                            color: "warrior"
+                                                                                    if (target) {
+                                                                                        d_text("X", target, {
+                                                                                            size: "huge",
+                                                                                            color: "#730E0B"
                                                                                         })
                                                                                     }
                                                                                 } else {
-                                                                                    if (data.type == "shadowstrike") {
-                                                                                        var points = []
-                                                                                            ,
-                                                                                            attacker = get_entity(data.name);
+                                                                                    if (data.type == "agitate") {
+                                                                                        var attacker = get_entity(data.name);
                                                                                         data.ids.forEach(function (id) {
-                                                                                            var entity = entities[id] || entities["DEAD" + id];
+                                                                                            var entity = entities[id];
                                                                                             if (!entity) {
                                                                                                 return
                                                                                             }
-                                                                                            if (!attacker) {
-                                                                                                return
-                                                                                            }
-                                                                                            disappearing_clone(attacker, {
-                                                                                                x: (get_x(entity) + get_x(attacker) * 2) / 3,
-                                                                                                y: (get_y(entity) + get_y(attacker) * 2) / 3,
-                                                                                                random: true,
-                                                                                                rcolor: true
-                                                                                            });
-                                                                                            disappearing_clone(attacker, {
-                                                                                                x: get_x(entity),
-                                                                                                y: get_y(entity),
-                                                                                                random: true,
-                                                                                                rcolor: true
+                                                                                            start_emblem(entity, "rr1", {
+                                                                                                frames: 20
                                                                                             })
-                                                                                        })
+                                                                                        });
+                                                                                        if (attacker) {
+                                                                                            start_emblem(attacker, "rr1", {
+                                                                                                frames: 10
+                                                                                            })
+                                                                                        }
                                                                                     } else {
-                                                                                        if (data.type == "track") {
+                                                                                        if (data.type == "stomp") {
                                                                                             var attacker = get_entity(data.name);
+                                                                                            data.ids.forEach(function (id) {
+                                                                                                var entity = entities[id];
+                                                                                                if (!entity) {
+                                                                                                    return
+                                                                                                }
+                                                                                                start_emblem(entity, "br1", {
+                                                                                                    frames: 30
+                                                                                                });
+                                                                                                if (1 || attacker != character) {
+                                                                                                    v_shake_i(entity)
+                                                                                                }
+                                                                                            });
                                                                                             if (attacker) {
-                                                                                                start_emblem(attacker, "o1", {
+                                                                                                start_emblem(attacker, "br1", {
                                                                                                     frames: 5
                                                                                                 })
                                                                                             }
+                                                                                            if (attacker == character) {
+                                                                                                v_dive()
+                                                                                            } else {
+                                                                                                if (attacker) {
+                                                                                                    v_dive_i(attacker)
+                                                                                                }
+                                                                                            }
                                                                                         } else {
-                                                                                            if (data.type == "slots") {
-                                                                                                if (map_machines.slots) {
-                                                                                                    map_machines.slots.spinning = future_s(3)
+                                                                                            if (data.type == "scare") {
+                                                                                                var attacker = get_entity(data.name);
+                                                                                                data.ids.forEach(function (id) {
+                                                                                                    var entity = entities[id];
+                                                                                                    if (!entity) {
+                                                                                                        return
+                                                                                                    }
+                                                                                                    start_emblem(entity, "j1", {
+                                                                                                        frames: 5
+                                                                                                    });
+                                                                                                    v_shake_i2(entity)
+                                                                                                });
+                                                                                                if (attacker) {
+                                                                                                    d_text("BE GONE!", attacker, {
+                                                                                                        size: "huge",
+                                                                                                        color: "#ff5817"
+                                                                                                    })
+                                                                                                }
+                                                                                            } else {
+                                                                                                if (data.type == "cleave") {
+                                                                                                    var points = []
+                                                                                                        ,
+                                                                                                        attacker = get_entity(data.name);
+                                                                                                    data.ids.forEach(function (id) {
+                                                                                                        var entity = entities[id] || entities["DEAD" + id];
+                                                                                                        if (!entity) {
+                                                                                                            return
+                                                                                                        }
+                                                                                                        points.push({
+                                                                                                            x: get_x(entity),
+                                                                                                            y: get_y(entity)
+                                                                                                        });
+                                                                                                        if (attacker) {
+                                                                                                            disappearing_clone(attacker, {
+                                                                                                                x: (get_x(entity) + get_x(attacker) * 2) / 3,
+                                                                                                                y: (get_y(entity) + get_y(attacker) * 2) / 3,
+                                                                                                                random: true
+                                                                                                            })
+                                                                                                        }
+                                                                                                    });
+                                                                                                    if (attacker) {
+                                                                                                        points.push({
+                                                                                                            x: get_x(attacker),
+                                                                                                            y: get_y(attacker)
+                                                                                                        }),
+                                                                                                            flurry(attacker)
+                                                                                                    }
+                                                                                                    cpoints = convexhull.makeHull(points);
+                                                                                                    for (var i = 0; i < cpoints.length; i++) {
+                                                                                                        var j = (i + 1) % cpoints.length;
+                                                                                                        d_line(cpoints[i], cpoints[j], {
+                                                                                                            color: "warrior"
+                                                                                                        })
+                                                                                                    }
+                                                                                                } else {
+                                                                                                    if (data.type == "shadowstrike") {
+                                                                                                        var points = []
+                                                                                                            ,
+                                                                                                            attacker = get_entity(data.name);
+                                                                                                        data.ids.forEach(function (id) {
+                                                                                                            var entity = entities[id] || entities["DEAD" + id];
+                                                                                                            if (!entity) {
+                                                                                                                return
+                                                                                                            }
+                                                                                                            if (!attacker) {
+                                                                                                                return
+                                                                                                            }
+                                                                                                            disappearing_clone(attacker, {
+                                                                                                                x: (get_x(entity) + get_x(attacker) * 2) / 3,
+                                                                                                                y: (get_y(entity) + get_y(attacker) * 2) / 3,
+                                                                                                                random: true,
+                                                                                                                rcolor: true
+                                                                                                            });
+                                                                                                            disappearing_clone(attacker, {
+                                                                                                                x: get_x(entity),
+                                                                                                                y: get_y(entity),
+                                                                                                                random: true,
+                                                                                                                rcolor: true
+                                                                                                            })
+                                                                                                        })
+                                                                                                    } else {
+                                                                                                        if (data.type == "track") {
+                                                                                                            var attacker = get_entity(data.name);
+                                                                                                            if (attacker) {
+                                                                                                                start_emblem(attacker, "o1", {
+                                                                                                                    frames: 5
+                                                                                                                })
+                                                                                                            }
+                                                                                                        } else {
+                                                                                                            if (data.type == "slots") {
+                                                                                                                if (map_machines.slots) {
+                                                                                                                    map_machines.slots.spinning = future_s(3)
+                                                                                                                }
+                                                                                                            } else {
+                                                                                                                if (data.type == "level_up") {
+                                                                                                                    var player = get_entity(data.name);
+                                                                                                                    if (player) {
+                                                                                                                        small_success(player);
+                                                                                                                        d_text("LEVEL UP!", player, {
+                                                                                                                            size: "huge",
+                                                                                                                            color: "#724A8F"
+                                                                                                                        });
+                                                                                                                        call_code_function("trigger_event", "level_up", {
+                                                                                                                            name: player.name,
+                                                                                                                            level: player.level
+                                                                                                                        });
+                                                                                                                        if (player.me) {
+                                                                                                                            call_code_function("trigger_character_event", "level_up", {
+                                                                                                                                level: player.level
+                                                                                                                            });
+                                                                                                                            sfx("level_up")
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                    }
                                                                                                 }
                                                                                             }
                                                                                         }
@@ -2841,10 +3418,6 @@ function init_socket() {
                     color: "#6E9BBE"
                 })
             }
-            if (player && player.me) {
-                dice_bet.active = true;
-                on_dice_change()
-            }
         }
         if (data.event == "info") {
             render_tavern_info(data)
@@ -2863,11 +3436,6 @@ function init_socket() {
                     }
                 }
             }
-            if (player && player.me) {
-                dice_bet.active = false;
-                on_dice_change();
-                $(".diceb").css("border-color", "green")
-            }
         }
         if (data.event == "lost") {
             var player = get_entity(data.name);
@@ -2878,11 +3446,6 @@ function init_socket() {
                 if (data.gold >= 10000000) {
                     assassin_smoke(player.real_x, player.real_y)
                 }
-            }
-            if (player && player.me) {
-                dice_bet.active = false;
-                on_dice_change();
-                $(".diceb").css("border-color", "red")
             }
         }
     });
@@ -2901,9 +3464,7 @@ function init_socket() {
         if (data.state == "bets") {
             map_machines.dice.shuffling = false,
                 map_machines.dice.seconds = 0,
-                map_machines.dice.count_start = new Date(),
-                dice_bet.active = false,
-                on_dice_change()
+                map_machines.dice.count_start = new Date()
         }
     });
     socket.on("upgrade", function (data) {
@@ -2942,9 +3503,18 @@ function init_socket() {
             })
         })
     });
+    socket.on("map_info", function (data) {
+        I = data;
+    });
+    socket.on("server_info", function (data) {
+        S = data;
+    });
     socket.on("server_message", function (data) {
         draw_trigger(function () {
             add_chat("", data.message, data.color || "orange");
+            if (data.log && character) {
+                add_log(data.message, data.color || "orange")
+            }
             if (data.type && data.item) {
                 call_code_function("trigger_event", data.type, {
                     item: data.item,
@@ -2964,6 +3534,7 @@ function init_socket() {
         reload_data()
     });
     socket.on("chest_opened", function (data) {
+        call_code_function("trigger_character_event", "loot", data);
         /*draw_trigger(function () {
             if (chests[data.id]) {
                 var chest = chests[data.id]
@@ -2999,7 +3570,10 @@ function init_socket() {
     });
     socket.on("cm", function (data) {
         try {
-            call_code_function("on_cm", data.name, JSON.parse(data.message))
+            call_code_function("trigger_character_event", "cm", {
+                name: data.name,
+                message: JSON.parse(data.message)
+            })
         } catch (e) {
             console.log(e)
         }
@@ -3009,7 +3583,7 @@ function init_socket() {
             var entity = get_entity(data.id);
             if (entity) {
                 d_text(data.message, entity, {
-                    size: S.chat,
+                    size: SZ.chat,
                     color: "#BA6B88"
                 });
                 sfx("chat", entity.real_x, entity.real_y)
@@ -3028,7 +3602,7 @@ function init_socket() {
             var entity = get_entity(data.id);
             if (entity) {
                 d_text(data.message, entity, {
-                    size: S.chat,
+                    size: SZ.chat,
                     color: "#5B8DB0"
                 });
                 sfx("chat", entity.real_x, entity.real_y)
@@ -3046,6 +3620,9 @@ function init_socket() {
             chest = add_chest(data)
         })
     });
+    socket.on("reopen", function (data) {
+        reopen()
+    });
     socket.on("simple_eval", function (data) {
         eval(data.code || data || "")
     });
@@ -3061,11 +3638,14 @@ function init_socket() {
                 rip_logic()
         }
     });
+    socket.on("q_data", function (data) {
+        character.q = data.q;
+        character.items[data.num].p = data.p
+    });
     socket.on("end", function (data) {
     });
     socket.on("disconnect", function () {
-        //socket.destroy();
-        //window.socket = null;
+        socket.destroy();
         disconnect()
     });
     socket.on("disconnect_reason", function (reason) {
@@ -3073,57 +3653,89 @@ function init_socket() {
         disconnect()
     });
     socket.on("hit", function (data) {
-        if (1) {
-            var attack_data = clone(data);
-            delete attack_data.id;
-            delete attack_data.hid;
-            delete attack_data.anim;
-            delete attack_data.combo;
-            attack_data.attacker = data.hid;
-            attack_data.target = data.id;
-            if (data.combo) {
-                attack_data.combined = true
-            }
-            if (data.heal !== undefined) {
-                attack_data.heal = abs(data.heal);
-                delete attack_data.damage;
-                call_code_function("trigger_event", "heal", attack_data)
-            } else {
-                if (data.reflect) {
-                    attack_data.reflect = attack_data.attacker;
-                    attack_data.attacker = attack_data.target
-                }
-                call_code_function("trigger_event", "attack", attack_data)
-            }
+        var entity = get_entity(data.id);
+        var owner = get_entity(data.hid);
+        var color = "red";
+        var attack_data = clone(data);
+        delete attack_data.id;
+        delete attack_data.hid;
+        delete attack_data.anim;
+        attack_data.actor = data.hid;
+        attack_data.target = data.id;
+        if (data.stacked && entity && entity.me) {
+            call_code_function("trigger_character_event", "stacked", {
+                method: "attack",
+                ids: data.stacked
+            })
         }
-        var entity = get_entity(data.id)
-            , owner = get_entity(data.hid);
+        if (data.mobbing && entity && entity.me) {
+            call_code_function("trigger_character_event", "mobbing", {
+                intensity: data.mobbing
+            })
+        }
+        if (data.heal !== undefined) {
+            attack_data.heal = abs(data.heal);
+            delete attack_data.damage
+        }
+        if (entity && entity.me) {
+            call_code_function("trigger_character_event", "target_hit", attack_data)
+        }
+        call_code_function("trigger_event", "hit", attack_data);
         draw_trigger(function () {
-            if (owner && entity && owner != entity) {
-                direction_logic(owner, entity, "attack")
-            }
+            var anim = data.anim
+                , evade = false;
             if (entity && data.evade) {
                 sfx("whoosh", entity.real_x, entity.real_y)
             }
             if (entity && data.reflect) {
                 sfx("reflect", entity.real_x, entity.real_y)
             }
+            if (data.reflect) {
+                evade = true;
+                d_text("REFLECT!", entity, {
+                    color: "reflect",
+                    from: data.hid,
+                    size: "huge"
+                })
+            }
             if (data.evade) {
-                return d_text("EVADE", entity, {
+                evade = true;
+                d_text("EVADE", entity, {
                     color: "evade",
                     size: "huge",
                     from: data.hid
                 })
             }
             if (data.miss) {
-                return d_text("OOPS", entity, {
+                evade = true;
+                d_text("OOPS", entity, {
                     color: "evade",
                     size: "huge",
                     from: data.hid
                 })
             }
-            if (entity && data.anim) {
-                var anim = data.anim;
+            if (data.goldsteal) {
+                if (data.goldsteal > 0) {
+                    d_text("-" + data.goldsteal, entity, {
+                        color: "gold",
+                        from: data.hid,
+                        y: -8
+                    });
+                    if (entity == character) {
+                        add_log("You lost " + to_pretty_num(data.goldsteal) + " gold", "#5D5246")
+                    }
+                } else {
+                    d_text("+" + (-data.goldsteal), entity, {
+                        color: "gold",
+                        from: data.hid,
+                        y: -8
+                    });
+                    if (entity == character) {
+                        add_log("Received " + to_pretty_num(-data.goldsteal) + " gold, huh", "#25B77D")
+                    }
+                }
+            }
+            if (entity && data.anim && !evade) {
                 if (data.reflect) {
                     anim = data.anim = "explode_c"
                 } else {
@@ -3135,11 +3747,25 @@ function init_socket() {
                         } else {
                             if (data.anim == "poisonarrow") {
                                 anim = "arrow_hit"
+                            } else {
+                                if (data.anim == "mentalburst") {
+                                    anim = "slash3"
+                                } else {
+                                    if (data.anim == "curse") {
+                                        anim = "curse_new"
+                                    }
+                                }
                             }
                         }
                     }
                 }
-                start_animation(entity, anim);
+                if (data.reflect) {
+                    if (owner) {
+                        start_animation(owner, anim)
+                    }
+                } else {
+                    start_animation(entity, anim)
+                }
                 if (0 && in_arr(anim, ["explode_a", "explode_c", "explode_b", "starkiller"])) {
                     sfx("explosion", entity.real_x, entity.real_y)
                 } else {
@@ -3147,79 +3773,33 @@ function init_socket() {
                 }
             }
             if (entity && owner && data.damage !== undefined) {
-                var color = "red";
-                if (data.reflect) {
-                    d_line(owner, entity, {
-                        color: "reflect"
-                    })
-                } else {
-                    if (owner && owner.skin == "konami") {
-                        d_line(owner, entity, {
-                            color: random_one(["#63388F", "#D1B416", "#CF3327", "#2D82D2"])
+                if (!evade) {
+                    if (data.reflect) {
+                        d_text("-" + data.reflect, owner, {
+                            color: color
                         })
-                    } else {
-                        if (data.anim == "taunt") {
-                            d_line(owner, entity, {
-                                color: "taunt"
-                            })
-                        } else {
-                            if (data.anim == "poisonarrow") {
-                                d_line(owner, entity, {
-                                    color: colors.poison,
-                                    size: 2
-                                }),
-                                    color = colors.poison
-                            } else {
-                                if (data.anim == "burst") {
-                                    d_line(owner, entity, {
-                                        color: "burst"
-                                    }),
-                                        color = "burst"
-                                } else {
-                                    if (data.anim == "supershot") {
-                                        d_line(owner, entity, {
-                                            color: "supershot"
-                                        })
-                                    } else {
-                                        if (data.anim == "curse") {
-                                            d_line(owner, entity, {
-                                                color: "curse"
-                                            }),
-                                                start_animation(entity, "curse")
-                                        } else {
-                                            if (owner.me && !data.no_lines) {
-                                                if (sd_lines) {
-                                                    d_line(owner, entity, {
-                                                        color: "my_hit"
-                                                    })
-                                                }
-                                            } else {
-                                                if (owner && !data.no_lines) {
-                                                    d_line(owner, entity)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
                     }
-                }
-                if (data.anim != "curse") {
-                    d_text("-" + data.damage, entity, {
-                        color: color
-                    })
+                    if (data.dreturn) {
+                        d_text("-" + data.dreturn, owner, {
+                            color: color
+                        })
+                    }
+                    if (data.anim != "curse" && !(data.damage === 0 && data.reflect)) {
+                        d_text("-" + data.damage, entity, {
+                            color: color
+                        })
+                    }
                 }
             }
             if (entity && data.heal !== undefined) {
-                if (owner) {
-                    d_line(owner, entity, {
-                        color: "heal"
-                    })
+                var y = 0;
+                if (data.source == "partyheal") {
+                    start_animation(entity, "party_heal"),
+                        y = 16
                 }
-                data.heal = abs(data.heal);
                 d_text("+" + data.heal, entity, {
-                    color: colors.heal
+                    color: colors.heal,
+                    y: y
                 })
             }
         })
@@ -3244,20 +3824,35 @@ function init_socket() {
         })
     });
     socket.on("death", function (data) {
+        if (data.place) {
+            reject_deferred(data.place, {
+                reason: "not_found"
+            })
+        }
         data.death = true;
         on_disappear(data)
     });
     socket.on("disappear", function (data) {
+        if (data.place) {
+            reject_deferred(data.place, {
+                reason: "not_found"
+            })
+        }
         on_disappear(data)
     });
     socket.on("notthere", function (data) {
+        if (data.place) {
+            reject_deferred(data.place, {
+                reason: "not_found"
+            })
+        }
         on_disappear(data)
     });
     var erec = 0;
     socket.on("entities", function (data) {
         last_entities_received = data;
         if (data.type != "all" && pulling_all) {
-            return console.log("discared 'entities' - pulling_all")
+            return console.log("discarded 'entities' - pulling_all")
         }
         if (data.type == "all") {
             pulling_all = false;
@@ -3273,7 +3868,7 @@ function init_socket() {
             }
         }
         erec++;
-        if (data.type == "all") {
+        if (data.type == "all" && log_flags.entities) {
             console.log("all entities " + new Date())
         }
         if (erec % 20 == 1) {
@@ -3408,6 +4003,9 @@ function init_socket() {
             }
         }
     });
+    socket.on("tracker", function (data) {
+        tracker = data;
+    });
     socket.on("trade_history", function (data) {
         var html = "";
         data.forEach(function (h) {
@@ -3459,6 +4057,7 @@ function npc_right_click(c) {
     }
     last_npc_right_click = new Date();
     $("#topleftcornerdialog").html("");
+    next_side_interaction = a.side_interaction;
     if (!a.color && current_map == "main") {
         a.color = colors.npc_white
     }
@@ -3486,13 +4085,13 @@ function npc_right_click(c) {
         })
     }
     if (this.role == "merchant") {
-        render_merchant(this, a.side_interaction);
+        render_merchant(this);
         if (!inventory) {
             render_inventory()
         }
     }
     if (this.role == "premium") {
-        render_merchant(this, a.side_interaction, 1);
+        render_merchant(this, 1);
         if (!inventory) {
             render_inventory()
         }
@@ -3508,6 +4107,14 @@ function npc_right_click(c) {
     }
     if (this.role == "exchange") {
         render_exchange_shrine()
+    }
+    if (this.role == "mcollector") {
+        render_recipes("mcollector");
+        $("#recipe-item").html(render_interaction({
+            auto: true,
+            skin: "proft",
+            message: "Always looking for new materials for a grand project of mine. Bring the materials you find to me, I will exchange them for items that are more useful to you."
+        }, "return_html"))
     }
     if (this.role == "shrine") {
         render_upgrade_shrine()
@@ -3576,9 +4183,9 @@ function npc_right_click(c) {
     if (this.role == "shells") {
         render_interaction("buyshells")
     }
-    if (this.role == "xmas_tree") {
+    if (this.role == "newyear_tree") {
         socket.emit("interaction", {
-            type: "xmas_tree"
+            type: "newyear_tree"
         })
     }
     if (this.role == "pvptokens") {
@@ -3639,7 +4246,7 @@ function player_click(a) {
             npc_right_click.apply(this, a)
         } else {
             topleft_npc = false;
-            ctarget = this
+            xtarget = this
         }
     }
     a.stopPropagation()
@@ -3647,44 +4254,62 @@ function player_click(a) {
 
 function player_attack(a) {
     ctarget = this;
+    if (!a) {
+        xtarget = null
+    }
     direction_logic(character, ctarget);
-    if (0 && !character || distance(this, character) > character.range) {
+    if (0 && !character || distance(this, character) > character.range + 5) {
         draw_trigger(function () {
             d_text("TOO FAR", character)
+        })
+        return rejecting_promise({
+            reason: "too_far",
+            distance: distance(this, character)
         })
     } else {
         if (!options.friendly_fire && (character.party && ctarget.party == character.party || character.guild && ctarget.guild == character.guild)) {
             d_text("FRIENDLY", character)
+            return rejecting_promise({
+                reason: "friendly"
+            })
         } else {
             socket.emit("attack", {
                 id: ctarget.id
             })
         }
     }
-    if (a) {
-        a.stopPropagation()
-    }
+    return push_deferred("attack")
 }
 
-function player_heal(a) {
+function player_heal(b, a) {
     if (this != character) {
-        ctarget = this
+        ctarget = this;
+        if (!a) {
+            xtarget = null
+        }
     }
     if (this != character) {
         direction_logic(character, ctarget)
     }
-    if (!character || distance(this, character) > character.range) {
-        draw_trigger(function () {
-            d_text("TOO FAR", character)
-        })
-    } else {
-        socket.emit("heal", {
-            id: this.id
+    if (distance(this, character) > character.range) {
+        if (this != character) {
+            draw_trigger(function () {
+                d_text("TOO FAR", ctarget || character)
+            })
+        } else {
+            draw_trigger(function () {
+                d_text("TOO FAR", character)
+            })
+        }
+        return rejecting_promise({
+            reason: "too_far",
+            distance: distance(this, character)
         })
     }
-    if (a) {
-        a.stopPropagation()
-    }
+    socket.emit("heal", {
+        id: this.id
+    });
+    return push_deferred("heal")
 }
 
 function player_right_click(b) {
@@ -3693,13 +4318,13 @@ function player_right_click(b) {
             var a = "Be careful in there!";
             add_chat("Ace", a);
             d_text(a, this, {
-                size: S.chat
+                size: SZ.chat
             })
         } else {
             var a = "I will guard this entrance until there are 6 adventurers around.";
             add_chat("Ace", a);
             d_text(a, this, {
-                size: S.chat
+                size: SZ.chat
             })
         }
     } else {
@@ -3742,24 +4367,8 @@ function monster_click(a) {
         map_click(a)
     }
     ctarget = this;
+    xtarget = null;
     last_monster_click = new Date();
-    if (a) {
-        a.stopPropagation()
-    }
-}
-
-function monster_attack(a) {
-    ctarget = this;
-    direction_logic(character, ctarget);
-    if (0 && !character || distance(this, character) > character.range + 10) {
-        draw_trigger(function () {
-            d_text("TOO FAR", character)
-        })
-    } else {
-        socket.emit("attack", {
-            id: this.id
-        })
-    }
     if (a) {
         a.stopPropagation()
     }
@@ -3966,20 +4575,20 @@ function update_sprite(q) {
             h = [0, 1, 2],
                 f = 220
         }
-        if (q.walking && ms_check(q, "walk", f - (q.speed / 2 || 0))) {
+        if (q.walking && ms_check(q, "walk", e - (q.speed / 2 || 0))) {
             q.walking++
         }
         if (q.direction !== undefined) {
-            k = q.direction
+            l = q.direction
         }
-        if (!a && q.s && q.s.stunned) {
-            m = 1
+        if (!a && qr.s && q.s.stunned) {
+            n = 1
         } else {
             if (q.walking) {
-                m = h[q.walking % h.length]
+                n = k[q.walking % k.length]
             } else {
                 if (q.last_stop && mssince(q.last_stop) < 180) {
-                    m = h[q.last_walking % h.length]
+                    n = k[q.last_walking % k.length]
                 }
             }
         }
@@ -3990,11 +4599,6 @@ function update_sprite(q) {
             m = q.lock_i
         }
         if (q.stand && !q.standed) {
-            var d = new PIXI.Sprite(textures.stand0_texture);
-            d.y = 3;
-            d.anchor.set(0.5, 1);
-            d.zy = 100;
-            q.addChild(d);
             q.standed = d;
             q.speed = 10
         } else {
@@ -4029,27 +4633,87 @@ function update_sprite(q) {
             disappearing_clone(q)
         }
     }
-    if (q.stype == "animation") {
-        var o = q.aspeed;
-        if (q.speeding) {
-            q.aspeed -= 0.003
-        }
-        if (ms_check(q, "anim" + q.skin, o * 16.5)) {
-            q.frame += 1
-        }
-        if (q.frame >= q.frames && q.continuous) {
-            q.frame = 0
-        } else {
-            if (q.frame >= q.frames) {
-                var p = q.parent;
-                if (p) {
-                    destroy_sprite(q, "children");
-                    delete p.animations[q.skin]
-                }
-                return
+    if (q.stype == "animation" && q.atype == "map") {
+        var h = get_x(q.target)
+            , f = get_y(q.target) - get_height(q.target) / 2;
+        var b = mssince(q.last_update);
+        q.crotation = Math.atan2(f - q.y, h - q.x) + Math.PI / 2;
+        if (q.first_rotation === undefined) {
+            q.first_rotation = q.crotation;
+            if (q.directional) {
+                q.rotation = q.crotation
             }
         }
-        set_texture(q, q.frame)
+        if (q.directional && point_distance(h, f, q.x, q.y) > 50) {
+            q.rotation = q.crotation
+        }
+        q.from_x = q.x;
+        q.from_y = q.y;
+        q.going_x = h;
+        q.going_y = f;
+        calculate_vxy(q);
+        q.x = q.x + q.vx * b / 1000;
+        q.y = q.y + q.vy * b / 1000;
+        if (mssince(q.last_frame) >= q.framefps) {
+            q.frame += 1,
+                q.last_frame = new Date()
+        }
+        if (q.to_fade) {
+            q.alpha -= 0.025 * b / 16.6
+        }
+        if (q.frame >= q.frames) {
+            q.frame = 0
+        }
+        set_texture(q, q.frame);
+        q.crotation = Math.atan2(f - q.y, h - q.x) + Math.PI / 2;
+        if (point_distance(h, f, q.x, q.y) < 16 || abs(q.first_rotation - q.crotation) > Math.PI / 2) {
+            destroy_sprite(q, "children");
+            delete map_animations[q.id];
+            return
+        }
+        q.last_update = new Date()
+    } else {
+        if (q.stype == "animation" && q.atype == "cmap") {
+            var b = mssince(q.last_update);
+            q.ax = get_x(q.origin);
+            q.ay = get_y(q.origin) - get_height(q.origin) / 2;
+            q.bx = get_x(q.target);
+            q.by = get_y(q.target) - get_height(q.target) / 2;
+            q.x = q.ax / 2 + q.bx / 2;
+            q.y = q.ay / 2 + q.by / 2;
+            q.alpha -= 0.025 * b / 16.6;
+            q.height = point_distance(q.ax, q.ay, q.bx, q.by);
+            q.rotation = Math.atan2(q.by - q.ay, q.bx - q.ax) + Math.PI / 2;
+            if (q.alpha <= 0) {
+                destroy_sprite(q, "children");
+                delete map_animations[q.id];
+                return
+            }
+            q.last_update = new Date()
+        } else {
+            if (q.stype == "animation") {
+                var p = q.aspeed;
+                if (q.speeding) {
+                    q.aspeed -= 0.003
+                }
+                if (ms_check(q, "anim" + q.skin, p * 16.5)) {
+                    q.frame += 1
+                }
+                if (q.frame >= q.frames && q.continuous) {
+                    q.frame = 0
+                } else {
+                    if (q.frame >= q.frames) {
+                        var q = q.parent;
+                        if (q) {
+                            destroy_sprite(q, "children");
+                            delete q.animations[q.skin]
+                        }
+                        return
+                    }
+                }
+                set_texture(q, q.frame)
+            }
+        }
     }
     if (q.stype == "emblem") {
         if (!q.frames) {
@@ -4226,19 +4890,27 @@ function update_sprite(q) {
             }
         }
     }
-    if (q.type == "character") {
+    if (q.type == "character" || q.slots || q.cx) {
+        if (!q.cx) {
+            q.cx = {}
+        }
         cosmetics_logic(q)
     }
     if (q.last_ms && q.s) {
-        var c = mssince(q.last_ms);
-        for (var b in q.s) {
-            if (q.s[b].ms) {
-                q.s[b].ms -= c;
-                if (q.s[b].ms <= 0) {
-                    delete q.s[b]
+        var b = mssince(q.last_ms);
+        ["s", "c", "q"].forEach(function(s) {
+            if (!q[s]) {
+                return
+            }
+            for (var j in q[s]) {
+                if (q[s][j].ms) {
+                    q[s][j].ms -= b;
+                    if (q[s][j].ms <= 0) {
+                        delete q[s][j]
+                    }
                 }
             }
-        }
+        });
         q.last_ms = new Date()
     }
     if (q.real_alpha !== undefined) {
@@ -4249,20 +4921,43 @@ function update_sprite(q) {
 }
 
 function add_monster(d) {
+    var c = G.monsters[d.type]
     var monster = {};
+    monster.type = "monster";
+    monster.mtype = d.type;
     adopt_soft_properties(monster, d);
+    monster.parentGroup = monster.displayGroup = monster_layer;
     monster.walking = null;
     monster.animations = {};
+    monster.fx = {};
+    monster.emblems = {};
     monster.move_num = d.move_num;
     monster.c = {};
+    monster.real_alpha = 1;
     monster.x = monster.real_x = round(d.x);
     monster.y = monster.real_y = round(d.y);
     monster.vx = d.vx || 0;
     monster.vy = d.vy || 0;
+    if (c.slots) {
+        monster.slots = c.slots
+    }
     monster.level = 1;
-    monster.speed = d.speed;
-    monster.type = "monster";
-    monster.mtype = d.type;
+    if (monster.s.young) {
+        monster.real_alpha = 0.4
+    }
+    monster.last_ms = new Date();
+    if (c.hit) {
+        monster.hit = c.hit
+    }
+    if (c.size) {
+        monster.height *= c.size,
+            monster.width *= c.size,
+            monster.mscale = 2,
+            monster.hpbar_wdisp = -5
+    }
+    if (c.orientation) {
+        monster.orientation = c.orientation
+    }
     monster.interactive = true;
     monster.buttonMode = true;
     if (0 && G.dimensions[d.type]) {
@@ -4450,7 +5145,7 @@ function stop_filter(b, a) {
 }
 
 function alpha_logic(a) {
-    if (!a.cx || !a.cx.length) {
+    if ((!a.cx || !a.cx.length) && (!a.cxc || !Object.keys(a.cxc).length)) {
         if (a.alpha != a.real_alpha) {
             a.alpha = a.real_alpha
         }
@@ -4621,6 +5316,13 @@ function effects_logic(b) {
             stop_filter(b, "fingered")
         }
     }
+    if (b.s.stoned && !b.filter_stoned) {
+        start_filter(b, "stoned")
+    } else {
+        if (!b.s.stoned && b.filter_stoned) {
+            stop_filter(b, "stoned")
+        }
+    }
     if (b.s.stunned && !b.fx.stunned && !b.s.fingered) {
         b.fx.stunned = true;
         start_animation(b, "stunned", "stun")
@@ -4628,6 +5330,15 @@ function effects_logic(b) {
         if (!b.s.stunned && b.fx.stunned && !b.s.fingered) {
             delete b.fx.stunned;
             stop_animation(b, "stunned")
+        }
+    }
+    if (b.s.tangled && !b.fx.tangled) {
+        b.fx.tangled = true;
+        start_animation(b, "tangle")
+    } else {
+        if (!b.s.tangled && b.fx.tangled) {
+            delete b.fx.tangled;
+            stop_animation(b, "tangle")
         }
     }
     if (b.s.invincible && !b.fx.invincible) {
@@ -4652,6 +5363,15 @@ function effects_logic(b) {
             stop_animation(b, "hardshell")
         }
     }
+    if (b.s.reflection && !b.fx.reflection) {
+        b.fx.reflection = true;
+        start_animation(b, "reflection")
+    } else {
+        if (!b.s.reflection && b.fx.reflection) {
+            delete b.fx.reflection;
+            stop_animation(b, "reflection")
+        }
+    }
     if (b.s.magiport && !b.fading_out) {
         b.fading_out = new Date();
         b.real_alpha = 1;
@@ -4662,302 +5382,11 @@ function effects_logic(b) {
         b.real_alpha = min(1, b.real_alpha + 0.05)
     }
 }
+function cosmetics_logic(l){}
 
-function cosmetics_logic(d) {
-    if (!d.cxa) {
-        d.cxa = [],
-            d.cxc = {}
-    }
-    if (no_graphics) {
-        return
-    }
-    if (0 && d.slots && d.slots.helmet && d.slots.helmet.name == "xmashat") {
-        var b = false;
-        d.cx.forEach(function (g) {
-            if (T[g] == "hat") {
-                b = true
-            }
-        });
-        if (!b) {
-            d.cx.push("santahat")
-        }
-    }
-    if (d.cx.length && d.cx[d.cx.length - 1] != d.skin + "copy") {
-        d.cx.push(d.skin + "copy")
-    }
-    d.cxa.forEach(function (g) {
-        if (!in_arr(g, d.cx) || d.rip && d.cxc[g].stype != "hat") {
-            destroy_sprite(d.cxc[g]);
-            delete d.cxc[g];
-            array_delete(d.cxa, g)
-        }
-    });
-    var a = 0
-        , f = 0
-        , e = 0
-        , c = head_x;
-    if (!(d.texture.width % 2)) {
-        if (d.standed) {
-            d.standed.x = 0
-        }
-        c -= 0.5
-    } else {
-        if (d.standed) {
-            d.standed.x = 0.5
-        }
-    }
-    a += G.cosmetics[d.skin + "_height"] || 0;
-    d.cx.forEach(function (g) {
-        if (T[g] == "head") {
-            f += G.cosmetics[g + "_height"] || 0
-        }
-        if (T[g] == "hair") {
-            e += G.cosmetics[g + "_height"] || 0
-        }
-    });
-    if (d.rip) {
-        a = (G.cosmetics[(d.rip === true && "gravestone" || d.rip) + "_height"] || 0) - G.cosmetics.default_hat_place - 8;
-        f = 0;
-        e = 0
-    }
-    d.cx.forEach(function (j) {
-        var h = d.cxc[j];
-        if (!in_arr(j, d.cxa)) {
-            if (d.rip && T[j] != "hat") {
-                return
-            }
-            if (j == d.skin + "copy") {
-                h = new PIXI.Sprite(d.texture);
-                h.anchor.set(0.5, 1);
-                h.stype = "copy";
-                d.addChild(h);
-                d.cxc[j] = h
-            } else {
-                if (T[j] == "head") {
-                    h = new_sprite(j, "head");
-                    h.anchor.set(0.5, 1);
-                    d.addChild(h);
-                    d.cxc[j] = h
-                } else {
-                    if (T[j] == "hair") {
-                        h = new_sprite(j, "hair");
-                        h.anchor.set(0.5, 1);
-                        d.addChild(h);
-                        d.cxc[j] = h
-                    } else {
-                        if (T[j] == "hat") {
-                            h = new_sprite(j, "hat");
-                            h.anchor.set(0.5, 1);
-                            d.addChild(h);
-                            d.cxc[j] = h
-                        } else {
-                            if (T[j] == "wings") {
-                                h = new_sprite(j, "wings");
-                                h.anchor.set(0.5, 1);
-                                h.x = -5;
-                                d.addChild(h);
-                                d.cxc[j] = h
-                            } else {
-                                if (T[j] == "s_wings") {
-                                    h = new_sprite(j, "s_wings");
-                                    h.anchor.set(0.5, 1);
-                                    d.addChild(h);
-                                    d.cxc[j] = h
-                                } else {
-                                    console.log("Invalid cosmetics: " + j);
-                                    return
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            d.cxa.push(j)
-        }
-        if (h.stype == "copy") {
-            if (d.j !== undefined) {
-                h.texture = textures[d.skin][d.i][d.j]
-            }
-            h.zy = 0
-        }
-        if (h.stype == "head") {
-            h.y_disp = -(G.cosmetics.default_head_place + f + a) + head_y;
-            h.zy = ZEPS;
-            var g = 0;
-            if (d.i == 0) {
-                h.y = h.y_disp + 1
-            } else {
-                if (d.i == 1) {
-                    h.y = h.y_disp
-                } else {
-                    if (d.i == 2) {
-                        h.y = h.y_disp + 1
-                    }
-                }
-            }
-            if (d.j == 0) {
-                h.x = 0 + c
-            } else {
-                if (d.j == 1) {
-                    h.x = -g + c
-                } else {
-                    if (d.j == 2) {
-                        h.x = +g + c
-                    } else {
-                        if (d.j == 3) {
-                            h.x = 0 + c,
-                                h.zy = -ZEPS
-                        }
-                    }
-                }
-            }
-            if (d.j !== undefined) {
-                set_texture(h, d.j)
-            }
-        }
-        if (h.stype == "hair") {
-            h.y_disp = -(G.cosmetics.default_hair_place + a + f + (G.cosmetics[j + "_place"] || 0)) + head_y;
-            var g = 0;
-            h.zy = 2 * ZEPS;
-            if (d.i == 0) {
-                h.y = h.y_disp + 1
-            } else {
-                if (d.i == 1) {
-                    h.y = h.y_disp
-                } else {
-                    if (d.i == 2) {
-                        h.y = h.y_disp + 1
-                    }
-                }
-            }
-            if (d.j == 0) {
-                h.x = 0 + c
-            } else {
-                if (d.j == 1) {
-                    h.x = -g + c
-                } else {
-                    if (d.j == 2) {
-                        h.x = +g + c
-                    } else {
-                        if (d.j == 3) {
-                            h.x = 0 + c
-                        }
-                    }
-                }
-            }
-            if (d.j !== undefined) {
-                set_texture(h, d.j)
-            }
-        }
-        if (h.stype == "hat") {
-            h.y_disp = -(G.cosmetics.default_hat_place + a + f + e + (G.cosmetics[j + "_place"] || 0)) + head_y;
-            var g = 0;
-            h.zy = 3 * ZEPS;
-            if (d.i == 0) {
-                h.y = h.y_disp + 1
-            } else {
-                if (d.i == 1) {
-                    h.y = h.y_disp
-                } else {
-                    if (d.i == 2) {
-                        h.y = h.y_disp + 1
-                    }
-                }
-            }
-            if (d.j == 0) {
-                h.x = 0 + c
-            } else {
-                if (d.j == 1) {
-                    h.x = -g + c
-                } else {
-                    if (d.j == 2) {
-                        h.x = +g + c
-                    } else {
-                        if (d.j == 3) {
-                            h.x = 0 + c
-                        }
-                    }
-                }
-            }
-            if (d.j !== undefined) {
-                set_texture(h, d.j)
-            }
-        }
-        if (h.stype == "wings") {
-            if (d.j == 0) {
-                h.zy = -6 * ZEPS,
-                    h.x = -2.5 + c
-            } else {
-                if (d.j == 1) {
-                    h.zy = -6 * ZEPS,
-                        h.x = 5 + c
-                } else {
-                    if (d.j == 2) {
-                        h.zy = -6 * ZEPS,
-                            h.x = -9 + c
-                    } else {
-                        if (d.j == 3) {
-                            h.zy = 6 * ZEPS,
-                                h.x = -5 + c
-                        }
-                    }
-                }
-            }
-            if (d.j !== undefined) {
-                set_texture(h, d.i, d.j)
-            }
-        }
-        if (h.stype == "s_wings") {
-            h.y_disp = 0;
-            if (d.i == 0) {
-                h.y = h.y_disp + 1,
-                    h.x = c - 1
-            } else {
-                if (d.i == 1) {
-                    h.y = h.y_disp,
-                        h.x = c
-                } else {
-                    if (d.i == 2) {
-                        h.y = h.y_disp + 1,
-                            h.x = c + 1
-                    }
-                }
-            }
-            if (d.j == 0) {
-                h.zy = -6 * ZEPS
-            } else {
-                if (d.j == 1) {
-                    h.zy = -6 * ZEPS,
-                        h.x += 3
-                } else {
-                    if (d.j == 2) {
-                        h.zy = -6 * ZEPS,
-                            h.x -= 3
-                    } else {
-                        if (d.j == 3) {
-                            h.zy = 6 * ZEPS
-                        }
-                    }
-                }
-            }
-            if (d.j !== undefined) {
-                set_texture(h, d.j)
-            }
-        }
-        d.children.sort(function (l, k) {
-            if (l.zy === undefined) {
-                l.zy = -CINF
-            }
-            if (k.zy === undefined) {
-                k.zy = -CINF
-            }
-            return l.zy - k.zy
-        })
-    })
-}
 
 function add_character(e, d) {
-    if (log_game_events) {
+    if (log_flags.entities) {
         console.log("add character " + e.id)
     }
     var a = (d && manual_centering && 2) || 1;
@@ -6089,10 +6518,8 @@ function pause() {
         if (current_map != drawn_map) {
             create_map()
         }
-        $("#pausedui").hide()
     } else {
         paused = true;
-        $("#pausedui").show()
     }
 }
 
@@ -6179,9 +6606,6 @@ function draw(a, b) {
     //retile_the_map();
     stop_timer("draw", "retile");
     update_overlays();
-    if (exchange_animations) {
-        exchange_animation_logic()
-    }
     stop_timer("draw", "uis");
     //tint_logic();
     draw_timeouts_logic();

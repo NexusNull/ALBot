@@ -27,6 +27,7 @@ async function main() {
     }
 
     var characters = await httpWrapper.getCharacters();
+    var userAuth = await httpWrapper.getUserAuth();
 
     if (userData.config.fetch) {
         console.log("Populating config file with data.");
@@ -110,6 +111,7 @@ async function main() {
         }
         if (ip && port) {
             var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId, ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
+            console.log(args)
             startGame(args);
         } else {
             console.warn("Couldn't find server: '" + bots[i].server + "'.");

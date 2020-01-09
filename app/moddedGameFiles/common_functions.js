@@ -11,6 +11,7 @@ var colors = {
     str: "#F07F2F",
     "int": "#3E6EED",
     dex: "#44B75C",
+    "for": "#5F3085",
     speed: "#36B89E",
     cash: "#5DAC40",
     hp: "#FF2E46",
@@ -40,6 +41,7 @@ var colors = {
     serious_green: "#428727",
     heal: "#EE4D93",
     lifesteal: "#9A1D27",
+    manasteal: "#353C9C",
 };
 var trade_slots = []
     , check_slots = ["elixir"];
@@ -176,7 +178,7 @@ function hardcore_logic() {
     G.monsters.mvampire.respawn = 1
 }
 function can_stack(e, c, f) {
-    if (e && c && e.name && G.items[e.name].s && e.name == c.name && e.l == c.l && e.q + c.q + (f || 0) < 10000) {
+    if (e && c && e.name && G.items[e.name].s && e.name === c.name && e.l === c.l && e.q + c.q + (f || 0) < 10000 && (e.name != "cxjar" || e.data == c.data)) {
         return true
     }
     return false
@@ -219,7 +221,7 @@ function can_add_items(d, b, c) {
     }
     var e = b.length
         , a = [];
-    if (d.esize + (c.space || 0) >= e) {
+    if (d.esize + (c.space || 0) >= e || !e) {
         return true;
     }
     b.forEach(function(h) {
@@ -259,10 +261,24 @@ function push_deferred(a) {
     deferreds[a].push(b);
     return b.promise
 }
+function push_deferreds(a, d) {
+    var c = [];
+    for (var b = 0; b < d; b++) {
+        c.push(push_deferred(a))
+    }
+    return c
+}
+
 function resolve_deferred(a, b) {
+    if (a == "attack" && (!deferreds.attack || !deferreds.attack.length) && deferreds.heal && deferreds.heal.length) {
+        a = "heal"
+    }
+    if (a == "heal" && (!deferreds.heal || !deferreds.heal.length) && deferreds.attack && deferreds.attack.length) {
+        a = "attack"
+    }
     if (!deferreds[a] || !deferreds[a].length) {
-        return add_log("Weird resolve_deferred issue: " + a, "gray"),
-            add_log("If you emit socket events manually, ignore this message", "gray")
+        return console.error("Weird resolve_deferred issue: " + a),
+            console.log("If you emit socket events manually, ignore this message")
     }
     current_deferred = deferreds[a].shift();
     if (current_deferred.start) {
@@ -306,28 +322,78 @@ function rejecting_promise(a) {
         }
     )
 }
-function object_sort(e, d) {
-    function b(h, g) {
-        if (h[0] < g[0]) {
+function resolving_promise(a) {
+    return new Promise(function(c, b) {
+            c(a)
+        }
+    )
+}
+function object_sort(c, h) {
+    function g(a, l) {
+        if (a[0] < l[0]) {
             return -1
         }
         return 1
     }
-    var c = [];
-    for (var f in e) {
-        c.push([f, e[f]])
+    function e(a, l) {
+        return 0.5 - Math.random()
     }
-    if (!d) {
-        c.sort(b)
+    function d(a, l) {
+        if (a[1] < l[1]) {
+            return -1
+        } else {
+            if (a[1] == l[1] && a[0] < l[0]) {
+                return -1
+            }
+        }
+        return 1
     }
-    return c
+    function f(a, l) {
+        if (G.items[a[0]].g < G.items[l[0]].g) {
+            return -1
+        } else {
+            if (G.items[a[0]].g < G.items[l[0]].g && a[0] < l[0]) {
+                return -1
+            }
+        }
+        return 1
+    }
+    function j(a, l) {
+        if (a[1].hp != l[1].hp) {
+            return a[1].hp - l[1].hp
+        }
+        if (a[0] < l[0]) {
+            return -1
+        }
+        return 1
+    }
+    var k = [];
+    for (var b in c) {
+        k.push([b, c[b]])
+    }
+    if (h == "hpsort") {
+        k.sort(j)
+    } else {
+        if (h == "random") {
+            k.sort(e)
+        } else {
+            if (h == "value") {
+                k.sort(d)
+            } else {
+                if (h == "gold_value") {
+                    k.sort(f)
+                } else {
+                    k.sort(g)
+                }
+            }
+        }
+    }
+    return k
 }
 function direction_logic(a, b, c) {
-    if (a.moving) {
-        return
-    }
-    a.angle = Math.atan2(get_y(b) - get_y(a), get_x(b) - get_x(a)) * 180 / Math.PI;
-    set_direction(a, c)
+    a.a_angle = Math.atan2(get_y(b) - get_y(a), get_x(b) - get_x(a)) * 180 / Math.PI;
+    a.angle = a.a_angle;
+    set_direction(a, a.moving && "soft" || c)
 }
 function within_xy_range(c, b) {
     if (c["in"] != b["in"]) {
@@ -349,8 +415,8 @@ function distance(l, j, o) {
     if (o && l["in"] != j["in"]) {
         return 99999999
     }
-    if ("width"in l && "width"in j) {
-        var f = 99999999, n = l.width, e = l.height, d = j.width, h = j.height, g;
+    if (get_width(l) && get_width(j)) {
+        var f = 99999999, n = get_width(l), e = get_height(l), d = get_width(j), h = get_height(j), g;
         if ("awidth"in l) {
             n = l.awidth,
                 e = l.aheight
@@ -417,8 +483,13 @@ function can_walk(a) {
     }
     return !is_disabled(a)
 }
+function is_silenced(a) {
+    if (!a || is_disabled(a) || (a.s && a.s.silenced)) {
+        return true
+    }
+}
 function is_disabled(a) {
-    if (!a || a.rip || (a.s && a.s.stunned)) {
+    if (!a || a.rip || (a.s && (a.s.stunned || a.s.fingered || a.s.stoned))) {
         return true
     }
 }
@@ -516,18 +587,19 @@ function calculate_item_properties(e, d) {
     if (prop_cache[a]) {
         return prop_cache[a]
     }
-    var g = {
+    var h = {
         gold: 0,
         luck: 0,
         xp: 0,
         "int": 0,
         str: 0,
         dex: 0,
+        vit: 0,
+        "for": 0,
         charisma: 0,
         cuteness: 0,
         awesomeness: 0,
         bling: 0,
-        vit: 0,
         hp: 0,
         mp: 0,
         attack: 0,
@@ -541,114 +613,134 @@ function calculate_item_properties(e, d) {
         miss: 0,
         reflection: 0,
         lifesteal: 0,
+        manasteal: 0,
         attr0: 0,
         attr1: 0,
         rpiercing: 0,
         apiercing: 0,
         crit: 0,
+        critdamage: 0,
         dreturn: 0,
         frequency: 0,
         mp_cost: 0,
         output: 0,
     };
+    var f = {
+        gold: 0.5,
+        luck: 1,
+        xp: 0.5,
+        "int": 1,
+        str: 1,
+        dex: 1,
+        vit: 1,
+        "for": 1,
+        armor: 2.25,
+        resistance: 2.25,
+        speed: 0.325,
+        evasion: 0.325,
+        reflection: 0.15,
+        lifesteal: 0.15,
+        manasteal: 0.04,
+        rpiercing: 2.25,
+        apiercing: 2.25,
+        crit: 0.125,
+        dreturn: 0.5,
+        frequency: 0.325,
+        mp_cost: -0.6,
+        output: 0.175,
+    };
     if (e.upgrade || e.compound) {
         var c = e.upgrade || e.compound;
         level = d.level || 0;
-        g.level = level;
+        h.level = level;
         for (var b = 1; b <= level; b++) {
-            var f = 1;
+            var g = 1;
             if (e.upgrade) {
                 if (b == 7) {
-                    f = 1.25
+                    g = 1.25
                 }
                 if (b == 8) {
-                    f = 1.5
+                    g = 1.5
                 }
                 if (b == 9) {
-                    f = 2
+                    g = 2
                 }
                 if (b == 10) {
-                    f = 3
+                    g = 3
                 }
                 if (b == 11) {
-                    f = 1.25
+                    g = 1.25
                 }
                 if (b == 12) {
-                    f = 1.5
+                    g = 1.5
                 }
             } else {
                 if (e.compound) {
                     if (b == 5) {
-                        f = 1.25
+                        g = 1.25
                     }
                     if (b == 6) {
-                        f = 1.5
+                        g = 1.5
                     }
                     if (b == 7) {
-                        f = 2
+                        g = 2
                     }
                     if (b >= 8) {
-                        f = 3
+                        g = 3
                     }
                 }
             }
             for (p in c) {
                 if (p == "stat") {
-                    g[p] += round(c[p] * f)
+                    h[p] += round(c[p] * g)
                 } else {
-                    g[p] += c[p] * f
+                    h[p] += c[p] * g
                 }
                 if (p == "stat" && b >= 7) {
-                    g.stat++
+                    h.stat++
                 }
             }
         }
     }
     for (p in e) {
-        if (g[p] != undefined) {
-            g[p] += e[p]
+        if (h[p] != undefined) {
+            h[p] += e[p]
         }
     }
-    for (p in g) {
-        if (!in_arr(p, ["evasion", "reflection", "lifesteal", "attr0", "attr1", "crit"])) {
-            g[p] = round(g[p])
+    for (p in h) {
+        if (!in_arr(p, ["evasion", "miss", "reflection", "dreturn", "lifesteal", "manasteal", "attr0", "attr1", "crit", "critdamage"])) {
+            h[p] = round(h[p])
         }
     }
     if (e.stat && d.stat_type) {
-        g[d.stat_type] += g.stat * {
-            str: 1,
-            vit: 1,
-            dex: 1,
-            "int": 1,
-            evasion: 0.125,
-            reflection: 0.875,
-            rpiercing: 1.25,
-            apiercing: 1.25
-        }[d.stat_type];
-        g.stat = 0
+        h[d.stat_type] += h.stat * f[d.stat_type];
+        h.stat = 0
     }
     if (d.p == "shiny") {
-        if (g.attack) {
-            g.attack += 5
+        if (h.attack) {
+            h.attack += 5
         } else {
-            if (g.stat) {
-                g.stat += 2
+            if (h.stat) {
+                h.stat += 2
             } else {
-                if (g.armor) {
-                    g.armor += 15;
-                    g.resistance = (g.resistance || 0) + 10
+                if (h.armor) {
+                    h.armor += 15;
+                    h.resistance = (h.resistance || 0) + 10
                 }
             }
         }
     } else {
         if (d.p == "superfast") {
-            g.frequency += 20
+            h.frequency += 20
         }
     }
-    prop_cache[a] = g;
-    return g
+    prop_cache[a] = h;
+    return h
 }
 function random_one(a) {
+    if (!is_array(a)) {
+        return random_one(Object.values(a))
+    }
     return a[parseInt(a.length * Math.random())]
 }
 function floor_f2(a) {
@@ -696,6 +788,46 @@ function to_pretty_num(a) {
     }
     return "" + b
 }
+function smart_num(a, b) {
+    if (!b) {
+        b = 10000
+    }
+    if (a >= b) {
+        return to_pretty_num(a)
+    }
+    return a
+}
+function to_shrinked_num(b) {
+    if (!b) {
+        return "0"
+    }
+    b = round(b);
+    if (b < 1000) {
+        return "" + b
+    }
+    var a = [[1000, "K"], [1000000, "M"], [1000000000, "B"], [1000000000000, "T"]];
+    for (var c = 0; c < a.length; c++) {
+        var g = a[c];
+        if (b >= 1000 * g[0]) {
+            continue
+        }
+        var e = floor(b / g[0]);
+        var f = floor((b % g[0]) / (g[0] / 10));
+        var d = e + "." + f;
+        d = d.substr(0, 3);
+        if (d.endsWith(".00")) {
+            d = d.replace(".00", "")
+        }
+        if (d.endsWith(".0")) {
+            d = d.replace(".0", "")
+        }
+        if (d.endsWith(".")) {
+            d = d.replace(".", "")
+        }
+        return d + g[1]
+    }
+    return "LOTS"
+}
 function e_array(a) {
     var c = [];
     for (var b = 0; b < a; b++) {
@@ -726,6 +858,24 @@ function get_y(a) {
         return a.real_y
     }
     return a.y
+}
+function get_width(a) {
+    if (a.proxy_character) {
+        return a.awidth
+    }
+    if ("awidth" in a) {
+        return a.awidth
+    }
+    return a.width
+}
+function get_height(a) {
+    if (a.proxy_character) {
+        return a.aheight
+    }
+    if ("aheight"in a) {
+        return a.aheight
+    }
+    return a.height
 }
 function simple_distance(e, d) {
     var c = get_x(e)
@@ -1392,14 +1542,26 @@ function safe_stringify(f, c) {
         if (f === undefined) {
             return "undefined"
         }
-        var a = JSON.stringify(f, function(e, g) {
-            if (g != null && typeof g == "object") {
-                if (b.indexOf(g) >= 0) {
+        var a = JSON.stringify(f, function(g, j) {
+            if (j != null && typeof j == "object") {
+                if (b.indexOf(j) >= 0) {
                     return
                 }
-                b.push(g)
+                b.push(j);
+                if ("x"in j) {
+                    var e = {};
+                    ["x", "y", "width", "height"].forEach(function(k) {
+                        if (k in j) {
+                            e[k] = j[k]
+                        }
+                    });
+                    for (var h in j) {
+                        e[h] = j[h]
+                    }
+                    j = e
+                }
             }
-            return g
+            return j
         }, c);
         try {
             if ("x"in f) {
@@ -1548,6 +1710,11 @@ function shuffle(c) {
     }
     return c
 }
+function cshuffle(d) {
+    var c = d.slice();
+    shuffle(c);
+    return c
+}
 function random_binary() {
     var b = "";
     for (var a = 0; a < 2 + parseInt(Math.random() * 12); a++) {
@@ -1598,7 +1765,7 @@ String.prototype.replace_all = function(c, a) {
     return b.replace(new RegExp(c.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&"),"g"), a)
 };
 function html_escape(a) {
-    var d = a;
+    var d = "" + a;
     var b = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"]];
     for (var c in b) {
         d = d.replace(b[c][0], b[c][1])
@@ -1608,11 +1775,9 @@ function html_escape(a) {
 function he(a) {
     return html_escape(a)
 }
-function future_ms(ms) {
-    if(isNaN(ms))
-        ms=0;
+function future_ms(a) {
     var b = new Date();
-    b.setMilliseconds(b.getMilliseconds() + ms);
+    b.setMilliseconds(b.getMilliseconds() + a);
     return b
 }
 function future_s(a) {

@@ -9,6 +9,7 @@ var character = {
     "note": "This is a proxy object, the real character is in parent.character",
     "properties": ["x", "y"],
     "read_only": ["x", "y", "real_x", "real_y", "from_x", "from_y", "going_x", "going_y", "moving", "target", "vx", "vy", "move_num", "attack", "speed", "hp", "mp", "xp", "max_hp", "max_mp", "range", "level", "rip", "s", "c", "in", "map", "stand", "items", "slots"],
+    "proxy_character": true,
 };
 
 Object.defineProperty(character, 'x', {
@@ -53,17 +54,22 @@ function start_character(name, code_slot_or_name) {
     // Loads a character in [CODE] mode
     //TODO implement
     throw new Error("Not supported in ALBot. yet");
+    return;
+    //TODO implement
     parent.start_character_runner(name, code_slot_or_name)
 }
 
 function stop_character(name) {
     throw new Error("Not supported in ALBot. yet");
+    return
+    //TODO implement
     parent.stop_character_runner(name)
 }
 
 function command_character(name, code_snippet) {
     // Commands the character in [CODE] mode
     throw new Error("Not supported in ALBot. yet");
+    return;
     parent.character_code_eval(name, code_snippet)
 }
 
@@ -76,6 +82,7 @@ function get_active_characters() {
 function change_server(region, name) // change_server("EU","I") or change_server("ASIA","PVP") or change_server("US","III")
 {
     throw new Error("Not supported in ALBot. yet");
+    //TODO implement
     parent.window.location.href = "/character/" + character.name + "/in/" + region + "/" + name + "/";
 }
 
@@ -129,19 +136,19 @@ function use(name, target) // a multi-purpose use function, works for skills too
     }
 }
 
-function use_skill(name, target) {
+function use_skill(name, target, extra_arg) {
     // for blink: use_skill("blink",[x,y])
     if (!target) target = get_target();
-    parent.use_skill(name, target);
+    parent.use_skill(name, target, extra_arg);
 }
 
 function reduce_cooldown(name, ms) {
     // parent.next_skill contains Date objects of when the skills will be available next
-    // show_json(parent.next_skill) to get a better idea
-    // reduce_cooldown("attack",100) would cause the attack cooldown to reduce by 100 ms
-    // If your ping is 100+ms - this would ~correct/improve/adjust the cooldown
-    // attack(target).then(function(data){ reduce_cooldown("attack",character.ping*0.95); });
-    // Above call is likely the ideal usage
+    //     // show_json(parent.next_skill) to get a better idea
+    //     // reduce_cooldown("attack",100) would cause the attack cooldown to reduce by 100 ms
+    //     // If your ping is 100+ms - this would ~correct/improve/adjust the cooldown
+    //     // attack(target).then(function(data){ reduce_cooldown("attack",character.ping*0.95); });
+    //     // Above call is likely the ideal usage
     if (parent.next_skill[name])
         parent.skill_timeout(name, -mssince(parent.next_skill[name]) - ms);
 }
@@ -263,6 +270,14 @@ function log(message, color) {
     game_log(message, color);
 }
 
+function safe_log(message, color) {
+    // If the logged message/object is from an untrusted source, this function must be used
+    // For example if you: character.on("cm",function(data){log(data)});
+    // Someone can: send_cm("You","<script>alert('All your items are now mine!')</script>");
+    if (is_object(message)) message = JSON.stringify(message);
+    game_log(html_escape(message), color, true);
+}
+
 function get_target_of(entity) // .target is a Name for Monsters and `id` for Players - this function return whatever the entity in question is targeting
 {
     if (!entity || !entity.target) return null;
@@ -312,10 +327,19 @@ function xmove(x, y) {
     else smart_move({x: x, y: y});
 }
 
-function in_attack_range(target) // also works for priests/heal
-{
-    if (!target) return false;
-    if (parent.distance(character, target) <= character.range) return true;
+function is_in_range(target, skill) {
+    // Valid usages: is_in_range(target), is_in_range(target,"attack"), is_in_range(target,"heal"), is_in_range(target,"mentalburst")
+    if (!target || !target.visible) return false;
+    // When a target leaves your viewpoint, .visible becomes false and the object reference is never updated again
+    var range_multiplier = 1, range_bonus = 0;
+    if (G.skills[skill] && G.skills[skill].range_multiplier) range_multiplier = G.skills[skill].range_multiplier;
+    if (G.skills[skill] && G.skills[skill].range_bonus) range_bonus = G.skills[skill].range_bonus;
+    if (distance(character, target) <= character.range * range_multiplier + range_bonus) return true;
+    return false;
+}
+
+function is_on_cooldown(skill) {
+    if (parent.next_skill[skill] && new Date() < parent.next_skill[skill]) return true;
     return false;
 }
 
@@ -356,12 +380,12 @@ function attack(target) {
 }
 
 function heal(target) {
-    if (safeties && mssince(last_attack) < 400) return;
+    if (target == character) target = parent.character;
     if (!target) {
         game_log("No one to heal()", "gray");
         return rejecting_promise({reason: "not_found"});
     }
-    return parent.player_heal.call(target);
+    return parent.player_heal.call(target, null, true);
 }
 
 function buy(name, quantity) //item names can be spotted from show_json(character.items) - they can be bought only if an NPC sells them
@@ -405,26 +429,34 @@ function trade_buy(target, trade_slot) // target needs to be an actual player
 
 function upgrade(item_num, scroll_num, offering_num) //number of the item and scroll on the show_json(character.items) array - 0 to N-1
 {
-    return parent.upgrade(item_num, scroll_num, offering_num);
+    return parent.upgrade(item_num, scroll_num, offering_num,"code");
 }
 
 function compound(item0, item1, item2, scroll_num, offering_num) // for example -> compound(0,1,2,6) -> 3 items in the first 3 slots, scroll at the 6th spot
 {
-    return parent.compound(item0, item1, item2, scroll_num, offering_num);
+    return parent.compound(item0, item1, item2, scroll_num, offering_num,"code");
 }
 
 function craft(i0, i1, i2, i3, i4, i5, i6, i7, i8)
 // for example -> craft(null,0,null,null,1,null,null,2,null)
 // sends 3 items to be crafted, the 0th, 1st, 2nd items in your inventory, and it places them all in the middle column of crafting
 {
+    parent.cr_items = [i0, i1, i2, i3, i4, i5, i6, i7, i8];
     parent.craft(i0, i1, i2, i3, i4, i5, i6, i7, i8);
 }
 
+function auto_craft(name) {
+    // Picks the inventory positions automatically. Example: auto_craft("computer")
+    return parent.auto_craft(name, true);
+}
+
 function dismantle(item_num) {
+    parent.ds_item = item_num;
     parent.dismantle(item_num);
 }
 
 function exchange(item_num) {
+    parent.e_item = item_num;
     parent.exchange(item_num, 1);
 }
 
@@ -452,17 +484,44 @@ function show_json(e) // renders the object as json inside the game
     parent.show_json(parent.game_stringify(e, 2));
 }
 
+function get_monster(id) {
+    // returns the monster by id, an integer, if the monster is within the vision area
+    var target = parent.entities[id];
+    if (target && target.type !== "monster") target = null;
+    return target;
+}
+
 function get_player(name) // returns the player by name, if the player is within the vision area
 {
     var target = null, entities = parent.entities;
-    if (character && name == character.name)
+    if (character && name === character.name)
         target = character;
     for (let i in entities)
-        if (entities[i] && entities[i].type == "character" && entities[i].name == name)
+        if (entities[i] && entities[i].type === "character" && entities[i].name === name)
             target = entities[i];
     return target;
 }
 
+function get_entity(id) {
+    // entities are currently players, monsters and citizen npcs, this function returns players and monsters
+    var target = parent.entities[id];
+    if (id == character.name) target = character;
+    return target;
+}
+
+function find_npc(npc_id) {
+    // returns smart_move'able coordinates for an NPC key from G.npcs
+    for (var name in parent.G.maps) {
+        var map = parent.G.maps[name];
+        if (map.ignore || !map.npcs) continue;
+        for (var i = 0; i < map.npcs.length; i++) {
+            var npc = map.npcs[i];
+            if (npc.id == npc_id)
+                return {map: name, "in": name, x: npc.position[0], y: npc.position[1]};
+        }
+    }
+    return null;
+}
 function get_nearest_monster(args) {
     //args:
     // max_att - max attack
@@ -475,23 +534,24 @@ function get_nearest_monster(args) {
 
     if (!args) args = {};
     if (args && args.target && args.target.name) args.target = args.target.name;
-    if (args && args.type == "monster") game_log("get_nearest_monster: you used monster.type, which is always 'monster', use monster.mtype instead");
+    if (args && args.type === "monster") game_log("get_nearest_monster: you used monster.type, which is always 'monster', use monster.mtype instead");
     if (args && args.mtype) game_log("get_nearest_monster: you used 'mtype', you should use 'type'");
 
     for (var id in parent.entities) {
         var current = parent.entities[id];
-        if (current.type != "monster" || current.dead) continue;
-        if (args.type && current.mtype != args.type) continue;
+        if (current.type !== "monster" || !current.visible || current.dead) continue;
+        if (args.type && current.mtype !== args.type) continue;
         if (args.min_xp && current.xp < args.min_xp) continue;
         if (args.max_att && current.attack > args.max_att) continue;
-        if (args.target && current.target != args.target) continue;
-        if (args.no_target && current.target && current.target != character.name) continue;
+        if (args.target && current.target !== args.target) continue;
+        if (args.no_target && current.target && current.target !== character.name) continue;
         if (args.path_check && !can_move_to(current)) continue;
         var c_dist = parent.distance(character, current);
         if (c_dist < min_d) min_d = c_dist, target = current;
     }
     return target;
 }
+
 
 function get_nearest_hostile(args) // mainly as an example [08/02/17]
 {
@@ -502,9 +562,10 @@ function get_nearest_hostile(args) // mainly as an example [08/02/17]
 
     for (var id in parent.entities) {
         var current = parent.entities[id];
-        if (current.type != "character" || current.rip || current.invincible || current.npc) continue;
-        if (current.party && character.party == current.party) continue;
-        if (current.guild && character.guild == current.guild) continue;
+        if (current.type !== "character" || !current.visible || current.rip || current.invincible || current.npc) continue;
+        if (character.team && current.team === character.team) continue;
+        if (!character.team && current.party && character.party === current.party) continue;
+        if (!character.team && current.guild && character.guild === current.guild) continue;
         if (args.friendship && in_arr(current.owner, parent.friends)) continue;
         if (args.exclude && in_arr(current.name, args.exclude)) continue; // get_nearest_hostile({exclude:["Wizard"]}); Thanks
         var c_dist = parent.distance(character, current);
@@ -512,7 +573,6 @@ function get_nearest_hostile(args) // mainly as an example [08/02/17]
     }
     return target;
 }
-
 function use_hp_or_mp() {
     if (safeties && mssince(last_potion) < min(200, character.ping * 3)) return;
     var used = false;
@@ -526,23 +586,30 @@ function use_hp_or_mp() {
 }
 
 // loot(true) allows code characters to make their commanders' loot instead, extremely useful [14/01/18]
-function loot(commander) {
-    if (commander) {
-        console.log("Commander looting is not supported in this version")
-    }
+function loot(id_or_arg) {
+    // loot(id) loots a specific chest
+    // loot(true) allows code characters to make their commanders' loot instead, extremely useful [14/01/18]
+    // after recent looting changes, loot(true) isn't too useful any more [08/12/19]
+    if (id_or_arg && id_or_arg !== true) return parent.parent.open_chest(id_or_arg);
     var looted = 0;
     if (safeties && mssince(last_loot) < min(300, character.ping * 3)) return;
     last_loot = new Date();
-    for (let id in parent.chests) {
+    for (var id in parent.chests) {
         var chest = parent.chests[id];
-        if (safeties && (chest.items > character.esize || chest.last_loot && mssince(chest.last_loot) < 1600))
-            continue;
+        if (safeties && (chest.items > character.esize || chest.last_loot && mssince(chest.last_loot) < 1600)) continue;
         chest.last_loot = last_loot;
-        parent.open_chest(id);
+        if (id_or_arg == true) parent.parent.open_chest(id);
+        else parent.open_chest(id);
         // parent.socket.emit("open_chest",{id:id}); old version [02/07/18]
         looted++;
         if (looted == 2) break;
     }
+}
+
+function get_chests() {
+    // parent.chests is an object, each key is a chest ID
+    // you can: for(var id in get_chests()) loot(id);
+    return parent.chests;
 }
 
 function send_gold(receiver, gold) {
@@ -557,7 +624,7 @@ function send_item(receiver, num, quantity) {
     parent.socket.emit("send", {name: receiver, num: num, q: quantity || 1});
 }
 
-function destroy_item(num) // num: 0 to 41
+function destroy(num) // num: 0 to 41
 {
     parent.socket.emit("destroy", {num: num});
 }
@@ -816,12 +883,12 @@ function send_local_cm(name, data) {
 function is_character_local(name) {
 }
 
-function pset(name, value) {
+function set(name, value) {
     // on Web, window.localStorage is used, on Steam/Mac, the electron-store package is used for persistent storage
     return parent.storage_set(name, value);
 }
 
-function pget(name) {
+function get(name) {
     // on Web, window.localStorage is used, on Steam/Mac, the electron-store package is used for persistent storage
     return parent.storage_get(name);
 }
@@ -873,36 +940,44 @@ function smart_move(destination, on_done) // despite the name, smart_move isn't 
         smart.x = destination.x;
         smart.y = destination.y;
     } else if ("to" in destination || "map" in destination) {
-        if (destination.to == "town") destination.to = "main";
+        if (destination.to === "town") destination.to = "main";
         if (G.monsters[destination.to]) {
+            var locations = [], theone;
             for (var name in G.maps)
                 (G.maps[name].monsters || []).forEach(function (pack) {
-                    if (pack.type != destination.to || G.maps[name].ignore || G.maps[name].instance) return;
+                    if (pack.type !== destination.to || G.maps[name].ignore || G.maps[name].instance) return;
                     if (pack.boundaries) // boundaries: for phoenix, mvampire
                     {
                         pack.last = pack.last || 0;
                         var boundary = pack.boundaries[pack.last % pack.boundaries.length];
                         pack.last++;
-                        smart.map = boundary[0];
-                        smart.x = (boundary[1] + boundary[3]) / 2;
-                        smart.y = (boundary[2] + boundary[4]) / 2;
+                        locations.push([boundary[0], (boundary[1] + boundary[3]) / 2, (boundary[2] + boundary[4]) / 2]);
                     } else if (pack.boundary) {
                         var boundary = pack.boundary;
-                        smart.map = name;
-                        smart.x = (boundary[0] + boundary[2]) / 2;
-                        smart.y = (boundary[1] + boundary[3]) / 2;
+                        locations.push([name, (boundary[0] + boundary[2]) / 2, (boundary[1] + boundary[3]) / 2]);
                     }
                 });
+            if (locations.length) // This way, when you smart_move("snake") repeatedly - you can keep visiting different maps with snakes
+            {
+                theone = random_one(locations);
+                smart.map = theone[0];
+                smart.x = theone[1];
+                smart.y = theone[2];
+            }
         } else if (G.maps[destination.to || destination.map]) {
             smart.map = destination.to || destination.map;
             smart.x = G.maps[smart.map].spawns[0][0];
             smart.y = G.maps[smart.map].spawns[0][1];
-        } else if (destination.to == "upgrade" || destination.to == "compound") smart.map = "main", smart.x = -204, smart.y = -129;
-        else if (destination.to == "exchange") smart.map = "main", smart.x = -26, smart.y = -432;
-        else if (destination.to == "potions" && character.map == "halloween") smart.map = "halloween", smart.x = 149, smart.y = -182;
-        else if (destination.to == "potions" && in_arr(character.map, ["winterland", "winter_inn", "winter_cave"])) smart.map = "winter_inn", smart.x = -84, smart.y = -173;
-        else if (destination.to == "potions") smart.map = "main", smart.x = 56, smart.y = -122;
-        else if (destination.to == "scrolls") smart.map = "main", smart.x = -465, smart.y = -71;
+        } else if (destination.to === "upgrade" || destination.to === "compound") smart.map = "main", smart.x = -204, smart.y = -129;
+        else if (destination.to === "exchange") smart.map = "main", smart.x = -26, smart.y = -432;
+        else if (destination.to === "potions" && character.map === "halloween") smart.map = "halloween", smart.x = 149, smart.y = -182;
+        else if (destination.to === "potions" && in_arr(character.map, ["winterland", "winter_inn", "winter_cave"])) smart.map = "winter_inn", smart.x = -84, smart.y = -173;
+        else if (destination.to === "potions") smart.map = "main", smart.x = 56, smart.y = -122;
+        else if (destination.to === "scrolls") smart.map = "main", smart.x = -465, smart.y = -71;
+        else if (find_npc(destination.to)) {
+            var l = find_npc(destination.to);
+            smart.map = l.map, smart.x = l.x, smart.y = l.y + 15;
+        }
     }
     if (!smart.map) {
         game_log("Unrecognized", "#CF5B5B");
@@ -985,7 +1060,7 @@ function bfs() {
     while (start < queue.length) {
         var current = queue[start];
         var map = G.maps[current.map];
-        var c_moves = moves;
+        var c_moves = moves, qlist = [];
         if (current.map == smart.map) {
             var c_dist = abs(current.x - smart.x) + abs(current.y - smart.y);
             var s_dist = abs(current.x - smart.start_x) + abs(current.y - smart.start_y);
@@ -1004,8 +1079,9 @@ function bfs() {
             }
             map.doors.forEach(function (door) {
                 // if(simple_distance({x:map.spawns[door[6]][0],y:map.spawns[door[6]][1]},{x:current.x,y:current.y})<30)
+                if (smart.map != "bank" && door[4] == "bank") return; // manually patch the bank shortcut
                 if (is_door_close(current.map, door, current.x, current.y) && can_use_door(current.map, door, current.x, current.y))
-                    qpush({
+                    qlist.push({
                         map: door[4],
                         x: G.maps[door[4]].spawns[door[5] || 0][0],
                         y: G.maps[door[4]].spawns[door[5] || 0][1],
@@ -1019,7 +1095,7 @@ function bfs() {
                     y: current.y
                 }) < 75) {
                     for (var place in G.npcs.transporter.places) {
-                        qpush({
+                        qlist.push({
                             map: place,
                             x: G.maps[place].spawns[G.npcs.transporter.places[place]][0],
                             y: G.maps[place].spawns[G.npcs.transporter.places[place]][1],
@@ -1046,7 +1122,9 @@ function bfs() {
                 going_y: new_y,
                 base: character.base
             }))
-                qpush({map: current.map, x: new_x, y: new_y});
+                qlist.forEach(function (q) {
+                    qpush(q);
+                }); // So regular move's are priotised
         });
 
         start++;
@@ -1166,3 +1244,6 @@ var last_loot = new Date(0);
 var last_attack = new Date(0);
 var last_potion = new Date(0);
 var last_transport = new Date(0);
+
+function code_draw() {
+}

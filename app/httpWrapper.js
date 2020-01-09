@@ -8,10 +8,10 @@ const vm = require('vm');
  *
  * @constructor
  */
-var HttpWrapper = function (sessionCookie, userAuth, userId) {
+var HttpWrapper = function (sessionCookie) {
     this.sessionCookie = sessionCookie ? sessionCookie : "";
-    this.userAuth = userAuth ? userAuth : "";
-    this.userId = userId ? userId : 0;
+    this.userAuth = sessionCookie.split("-") ? sessionCookie.split("-")[1] : "";
+    this.userId = sessionCookie.split("-") ? sessionCookie.split("-")[0] : 0;
 };
 
 /**

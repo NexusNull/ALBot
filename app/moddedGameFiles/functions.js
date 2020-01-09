@@ -1,3 +1,7 @@
+function render_interaction(){}
+
+
+//
 var auto_api_methods = [], base_url = "http://adventure.land";
 var sounds = {};
 var draw_timeouts = []
@@ -13,19 +17,29 @@ function is_hidden() {
     return false
 }
 
-var last_id_sent = "";
+var last_id_sent = ""
+    , last_xid_sent = "";
 
 function send_target_logic() {
+    var a = false;
     if (ctarget && last_id_sent != ctarget.id) {
-        last_id_sent = ctarget.id;
-        socket.emit("target", {
-            id: ctarget.id
-        })
+        a = true
     }
     if (!ctarget && last_id_sent) {
-        last_id_sent = "";
+        a = true
+    }
+    if (xtarget && last_xid_sent != xtarget.id) {
+        a = true
+    }
+    if (!xtarget && last_xid_sent) {
+        a = true
+    }
+    last_id_sent = ctarget && ctarget.id || "";
+    last_xid_sent = xtarget && xtarget.id || "";
+    if (a) {
         socket.emit("target", {
-            id: ""
+            id: last_id_sent,
+            xid: last_xid_sent
         })
     }
 }
@@ -69,6 +83,7 @@ setInterval(function () {
 }, 16000);
 
 function push_ping(a) {
+    last_ping = new Date();
     pings.push(a);
     if (pings.length > 40) {
         pings.shift()
@@ -196,55 +211,43 @@ function hide_modals() {
         hide_modal()
     }
 }
-
+function show_alert(a) {
+}
 function show_modal(f, a) {
-
 }
-
 function position_modals() {
-
 }
-
+function set_status(a) {
+    current_status = a
+}
 function show_json(a) {
-    return;
-    if (!is_string(a)) {
-        a = safe_stringify(a, 2)
-    }
-    show_modal("<div style='font-size: 24px; white-space: pre;' class='yesselect'>" + syntax_highlight(a) + "</div>")
 }
 
 function json_to_html(a) {
-    return;
     if (!is_string(a)) {
         a = safe_stringify(a, 2)
     }
     return "<div style='font-size: 24px; white-space: pre;' class='yesselect'>" + syntax_highlight(a) + "</div>"
 }
-
-function add_frequest(a) {
-    call_code_function("on_friend_request", a)
+function add_magiport(a) {
 }
 
 function add_invite(a) {
-    call_code_function("on_party_invite", a)
+}
+
+function add_challenge(a) {
+}
+
+function add_duel(a, c, b) {
 }
 
 function add_request(a) {
-    call_code_function("on_party_request", a)
 }
 
 function add_frequest(a) {
-    call_code_function("on_party_request", a)
 }
 
 function add_update_notes() {
-    /*update_notes.forEach(function (b) {
-        var a = "gray";
-        if (b.indexOf("Hardcore!") != -1) {
-            a = "#C01626"
-        }
-        add_log(b, a)
-    })*/
 }
 
 var game_logs = []
@@ -255,10 +258,19 @@ function clear_game_logs() {
 }
 
 function add_log(c, a) {
+
+    if (game_logs.length > 480) {
+        var b = "<div class='gameentry' style='color: gray'>- Truncated -</div>";
+        game_logs = game_logs.slice(-160);
+        game_logs.forEach(function(d) {
+            b += "<div class='gameentry' style='color: " + (d[1] || "white") + "'>" + d[0] + "</div>"
+        });
+    }
+    game_logs.push([c,a]);
     console.log(c);
 }
 
-function add_xmas_log() {
+function add_holiday_log() {
 
 }
 
@@ -266,7 +278,25 @@ function add_greenlight_log() {
 
 }
 
+var unread_chat = 0
+    , no_chat_notification = false;
 function add_chat(c, o, g, b) {
+    game_chats.push([c, o, g, b]);
+    if (game_chats.length > 250) {
+        var m = "";
+        if (game_chats.length > 250) {
+            m = "<div class='chatentry' style='color: gray'>- Truncated -</div>";
+            var a = [];
+            for (var l = 0; l < game_chats.length; l++) {
+                var h = game_chats[l];
+                if (l < 100 && !h[0]) {
+                    continue
+                }
+                a.push(h)
+            }
+            game_chats = a.slice(-225)
+        }
+    }
     console.log(c, o, g, b)
 }
 
@@ -275,7 +305,7 @@ function cpm_window(a) {
 }
 
 function add_pmchat(g, a, d) {
-    console.log("party: " + g + " :", a, d)
+    console.log("pm: " + g + " :", a, d)
 }
 
 function add_partychat(a, d) {
@@ -328,13 +358,16 @@ function get_nearby_hostiles(a) {
         if (b.rip || b.invincible || b.npc) {
             continue
         }
-        if (b.party && character.party == b.party) {
+        if (character.team && b.team === character.team) {
             continue
         }
-        if (b.guild && character.guild == b.guild) {
+        if (b.party && character.party === b.party) {
             continue
         }
-        if (b.type == "character" && !(is_pvp || G.maps[character.map].pvp)) {
+        if (b.guild && character.guild === b.guild) {
+            continue
+        }
+        if (b.type === "character" && !(is_pvp || G.maps[character.map].pvp)) {
             continue
         }
         if (in_arr(b.owner, parent.friends)) {
@@ -346,7 +379,7 @@ function get_nearby_hostiles(a) {
                 b.c_dist = c
         }
     }
-    d.sort(function (g, f) {
+    d.sort(function(g, f) {
         return (g.c_dist > f.c_dist) ? 1 : ((f.c_dist > g.c_dist) ? -1 : 0)
     });
     return d
@@ -355,185 +388,242 @@ function get_nearby_hostiles(a) {
 var input_onclicks = [];
 
 function get_input(b) {
-
 }
-
+function show_mail_modal() {
+}
 function show_confirm(d, b, c, a) {
 }
 
-function use_skill(b, h, k) {
-    if (h && h.id) {
-        h = h.id
+
+function use_skill(b, j, l) {
+    if (j && j.id) {
+        j = j.id
     }
-    if (b == "use_hp" || b == "hp") {
-        use("hp")
+    if (j && is_array(j)) {
+        for (var d = 0; d < j.length; d++) {
+            if (j[d] && j[d].id) {
+                j[d] = j[d].id
+            }
+            if (j[d] && j[d][0] && j[d][0].id) {
+                j[d][0] = j[d][0].id
+            }
+        }
+    }
+    if (b === "use_hp" || b === "hp") {
+        use("hp");
+        return resolving_promise({
+            result: "requested"
+        })
     } else {
-        if (b == "use_mp" || b == "mp") {
-            use("mp")
+        if (b === "use_mp" || b === "mp") {
+            use("mp");
+            return resolving_promise({
+                result: "requested"
+            })
         } else {
-            if (b == "stop") {
+            if (b === "stop") {
                 move(character.real_x, character.real_y + 0.00001);
                 socket.emit("stop");
-                code_eval_if_r("smart.moving=false")
+                code_eval_if_r("smart.moving=false");
+                return resolving_promise({
+                    result: "requested"
+                })
             } else {
-                if (b == "use_town" || b == "town") {
+                if (b === "use_town" || b === "town") {
                     if (character.rip) {
                         socket.emit("respawn")
                     } else {
                         socket.emit("town")
                     }
+                    return resolving_promise({
+                        result: "requested"
+                    })
                 } else {
-                    if (b == "cburst") {
-                        if (is_array(h)) {
+                    if (b === "cburst") {
+                        if (is_array(j)) {
                             socket.emit("skill", {
                                 name: "cburst",
-                                targets: h
-                            })
+                                targets: j
+                            });
+                            return push_deferreds("skill", j.length)
                         } else {
-                            var g = get_nearby_hostiles({
+                            var h = get_nearby_hostiles({
                                 range: character.range - 2,
                                 limit: 12
                             })
-                                , f = []
+                                , g = []
                                 , c = character.mp - 200
-                                , j = parseInt(c / g.length);
-                            g.forEach(function (l) {
-                                f.push([l.id, j])
+                                , k = parseInt(c / h.length);
+                            h.forEach(function(m) {
+                                g.push([m.id, k])
                             });
                             socket.emit("skill", {
                                 name: "cburst",
-                                targets: f
-                            })
+                                targets: g
+                            });
+                            return push_deferreds("skill", g.length)
                         }
                     } else {
-                        if (b == "3shot") {
-                            if (is_array(h)) {
+                        if (b === "3shot") {
+                            if (is_array(j)) {
                                 socket.emit("skill", {
                                     name: "3shot",
-                                    ids: h
-                                })
+                                    ids: j
+                                });
+                                return push_deferreds("skill", j.length)
                             } else {
-                                var g = get_nearby_hostiles({
+                                let h = get_nearby_hostiles({
                                     range: character.range - 2,
                                     limit: 3
                                 })
                                     , a = [];
-                                g.forEach(function (l) {
-                                    a.push(l.id)
+                                h.forEach(function(m) {
+                                    a.push(m.id)
                                 });
                                 socket.emit("skill", {
                                     name: "3shot",
                                     ids: a
-                                })
+                                });
+                                return push_deferreds("skill", a.length)
                             }
                         } else {
-                            if (b == "5shot") {
-                                if (is_array(h)) {
+                            if (b === "5shot") {
+                                if (is_array(j)) {
                                     socket.emit("skill", {
                                         name: "5shot",
-                                        ids: h
-                                    })
+                                        ids: j
+                                    });
+                                    return push_deferreds("skill", j.length)
                                 } else {
-                                    var g = get_nearby_hostiles({
+                                    let h = get_nearby_hostiles({
                                         range: character.range - 2,
                                         limit: 5
                                     })
-                                        , a = [];
-                                    g.forEach(function (l) {
-                                        a.push(l.id)
+                                    let a = [];
+                                    h.forEach(function(m) {
+                                        a.push(m.id)
                                     });
                                     socket.emit("skill", {
                                         name: "5shot",
                                         ids: a
-                                    })
+                                    });
+                                    return push_deferreds("skill", a.length)
                                 }
                             } else {
-                                if (in_arr(b, ["invis", "partyheal", "darkblessing", "agitate", "cleave", "stomp", "charge", "light", "hardshell", "track", "warcry", "mcourage", "scare"])) {
+                                if (in_arr(b, ["invis", "partyheal", "darkblessing", "agitate", "cleave", "stomp", "charge", "light", "hardshell", "track", "warcry", "mcourage", "scare", "alchemy"])) {
                                     socket.emit("skill", {
                                         name: b
                                     })
                                 } else {
-                                    if (in_arr(b, ["supershot", "quickpunch", "quickstab", "taunt", "curse", "burst", "4fingers", "magiport", "absorb", "mluck", "rspeed", "charm", "mentalburst", "piercingshot", "huntersmark"])) {
+                                    if (in_arr(b, ["supershot", "quickpunch", "quickstab", "taunt", "curse", "burst", "4fingers", "magiport", "absorb", "mluck", "rspeed", "charm", "mentalburst", "piercingshot", "huntersmark", "reflection"])) {
                                         socket.emit("skill", {
                                             name: b,
-                                            id: h
+                                            id: j
                                         })
                                     } else {
-                                        if (b == "pcoat") {
-                                            var d = item_position("poison");
-                                            if (d === undefined) {
+                                        if (b === "pcoat") {
+                                            let f = item_position("poison");
+                                            if (f === undefined) {
                                                 add_log("You don't have a poison sack", "gray");
-                                                return
+                                                return rejecting_promise({
+                                                    reason: "no_item"
+                                                })
                                             }
                                             socket.emit("skill", {
                                                 name: "pcoat",
-                                                num: d
+                                                num: f
                                             })
                                         } else {
-                                            if (b == "revive") {
-                                                var d = item_position("essenceoflife");
-                                                if (d === undefined) {
+                                            if (b === "revive") {
+                                                let f = item_position("essenceoflife");
+                                                if (f === undefined) {
                                                     add_log("You don't have an essence", "gray");
-                                                    return
+                                                    return rejecting_promise({
+                                                        reason: "no_item"
+                                                    })
                                                 }
                                                 socket.emit("skill", {
                                                     name: "revive",
-                                                    num: d,
-                                                    id: h
+                                                    num: f,
+                                                    id: j
                                                 })
                                             } else {
-                                                if (b == "poisonarrow") {
-                                                    var d = item_position("poison");
-                                                    if (d === undefined) {
-                                                        add_log("You don't have a poison sack", "gray");
-                                                        return
+                                                if (b === "entangle") {
+                                                    let f = item_position("essenceofnature");
+                                                    if (f === undefined) {
+                                                        add_log("You don't have an essence", "gray");
+                                                        return rejecting_promise({
+                                                            reason: "no_item"
+                                                        })
                                                     }
                                                     socket.emit("skill", {
-                                                        name: "poisonarrow",
-                                                        num: d,
-                                                        id: h
+                                                        name: "entangle",
+                                                        num: f,
+                                                        id: j
                                                     })
                                                 } else {
-                                                    if (b == "shadowstrike" || b == "phaseout") {
-                                                        var d = item_position("shadowstone");
-                                                        if (d === undefined) {
-                                                            add_log("You don't have any shadow stones", "gray");
-                                                            return
+                                                    if (b === "poisonarrow") {
+                                                        let f = item_position("poison");
+                                                        if (f === undefined) {
+                                                            add_log("You don't have a poison sack", "gray");
+                                                            return rejecting_promise({
+                                                                reason: "no_item"
+                                                            })
                                                         }
                                                         socket.emit("skill", {
-                                                            name: b,
-                                                            num: d
+                                                            name: "poisonarrow",
+                                                            num: f,
+                                                            id: j
                                                         })
                                                     } else {
-                                                        if (b == "throw") {
-                                                            if (!character.items[k]) {
-                                                                add_log("Inventory slot is empty", "gray");
-                                                                return
+                                                        if (b === "shadowstrike" || b === "phaseout") {
+                                                            let f = item_position("shadowstone");
+                                                            if (f === undefined) {
+                                                                add_log("You don't have any shadow stones", "gray");
+                                                                return rejecting_promise({
+                                                                    reason: "no_item"
+                                                                })
                                                             }
                                                             socket.emit("skill", {
                                                                 name: b,
-                                                                num: k,
-                                                                id: h
+                                                                num: f
                                                             })
                                                         } else {
-                                                            if (b == "blink") {
+                                                            if (b === "throw") {
+                                                                if (!character.items[l]) {
+                                                                    add_log("Inventory slot is empty", "gray");
+                                                                    return rejecting_promise({
+                                                                        reason: "no_item"
+                                                                    })
+                                                                }
                                                                 socket.emit("skill", {
-                                                                    name: "blink",
-                                                                    x: h[0],
-                                                                    y: h[1]
+                                                                    name: b,
+                                                                    num: l,
+                                                                    id: j
                                                                 })
                                                             } else {
-                                                                if (b == "energize") {
+                                                                if (b === "blink") {
                                                                     socket.emit("skill", {
-                                                                        name: "energize",
-                                                                        id: h,
-                                                                        mana: k
+                                                                        name: "blink",
+                                                                        x: j[0],
+                                                                        y: j[1]
                                                                     })
                                                                 } else {
-                                                                    if (b == "stack") {
-                                                                        on_skill("attack")
+                                                                    if (b === "energize") {
+                                                                        socket.emit("skill", {
+                                                                            name: "energize",
+                                                                            id: j,
+                                                                            mp: l
+                                                                        })
                                                                     } else {
-                                                                        add_log("Skill not found: " + b, "gray")
+                                                                        if (b === "stack") {
+                                                                            on_skill("attack")
+                                                                        } else {
+                                                                            add_log("Skill not found: " + b, "gray");
+                                                                            return rejecting_promise({
+                                                                                reason: "no_skill"
+                                                                            })
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -551,6 +641,7 @@ function use_skill(b, h, k) {
             }
         }
     }
+    return push_deferred("skill")
 }
 
 function on_skill(d, h) {
@@ -559,17 +650,17 @@ function on_skill(d, h) {
     if (!a) {
         return
     }
-    if (a.type == "item") {
+    if (a.type === "item") {
         var b = -1;
         for (i = character.items.length - 1; i >= 0; i--) {
-            if (character.items[i] && character.items[i].name == a.name) {
+            if (character.items[i] && character.items[i].name === a.name) {
                 b = i;
                 break
             }
         }
         if (b >= 0) {
             var g = character.items[b];
-            if (G.items[g.name].type == "stand") {
+            if (G.items[g.name].type === "stand" || G.items[g.name].stand) {
                 if (character.stand) {
                     socket.emit("merchant", {
                         close: 1
@@ -588,16 +679,17 @@ function on_skill(d, h) {
             add_log("Item not found", "gray")
         }
     } else {
-        if (c == "attack") {
-            if (ctarget && ctarget.id) {
+        if (c === "attack") {
+            var j = xtarget || ctarget;
+            if (j && j.id) {
                 socket.emit("attack", {
-                    id: ctarget.id
+                    id: j.id
                 })
             } else {
                 add_log("No target", "gray")
             }
         } else {
-            if (c == "heal") {
+            if (c === "heal") {
                 if (ctarget && ctarget.id) {
                     socket.emit("heal", {
                         id: ctarget.id
@@ -606,160 +698,61 @@ function on_skill(d, h) {
                     add_log("No target", "gray")
                 }
             } else {
-                if (c == "blink") {
+                if (c === "blink") {
                     if (h) {
                         blink_pressed = true
                     }
                     last_blink_pressed = new Date()
                 } else {
-                    if (c == "move_up") {
+                    if (c === "move_up") {
                         arrow_up = true;
                         next_minteraction = "up";
                         setTimeout(arrow_movement_logic, 40)
                     } else {
-                        if (c == "move_down") {
+                        if (c === "move_down") {
                             arrow_down = true;
                             next_minteraction = "down";
                             setTimeout(arrow_movement_logic, 40)
                         } else {
-                            if (c == "move_left") {
+                            if (c === "move_left") {
                                 arrow_left = true;
                                 next_minteraction = "left";
                                 setTimeout(arrow_movement_logic, 40)
                             } else {
-                                if (c == "move_right") {
+                                if (c === "move_right") {
                                     arrow_right = true;
                                     next_minteraction = "right";
                                     setTimeout(arrow_movement_logic, 40)
                                 } else {
-                                    if (c == "esc") {
+                                    if (c === "esc") {
                                         esc_pressed()
                                     } else {
-                                        if (c == "travel") {
-                                            render_travel()
+                                        if (c === "travel") {
+
                                         } else {
-                                            if (c == "gm") {
-                                                var f = [];
-                                                hide_modal();
-                                                f.push({
-                                                    button: "Travel",
-                                                    onclick: function () {
+                                            if (c === "gm") {
 
-                                                    }
-                                                });
-                                                f.push({
-                                                    button: "P Jump",
-                                                    onclick: function () {
-                                                        socket.emit("gm", {
-                                                            action: "jump_list"
-                                                        })
-                                                    }
-                                                });
-                                                f.push({
-                                                    button: "M Jump",
-                                                    onclick: function () {
-
-                                                    }
-                                                });
-                                                f.push({
-                                                    button: "Invincible",
-                                                    onclick: function () {
-                                                        socket.emit("gm", {
-                                                            action: "invincible"
-                                                        });
-                                                        hide_modal()
-                                                    }
-                                                });
-                                                f.push({
-                                                    button: "Mute",
-                                                    onclick: function () {
-                                                        hide_modal();
-                                                        get_input({
-                                                            button: "Mute",
-                                                            onclick: function () {
-                                                                socket.emit("gm", {
-                                                                    action: "mute",
-                                                                    id: $(".mglocx").val()
-                                                                });
-                                                                hide_modal()
-                                                            },
-                                                            input: "mglocx",
-                                                            placeholder: "Name",
-                                                            title: "Character"
-                                                        })
-                                                    }
-                                                });
-                                                f.push({
-                                                    button: "Jail",
-                                                    onclick: function () {
-                                                        hide_modal();
-                                                        get_input({
-                                                            button: "Jail",
-                                                            onclick: function () {
-                                                                socket.emit("gm", {
-                                                                    action: "jail",
-                                                                    id: $(".mglocx").val()
-                                                                });
-                                                                hide_modal()
-                                                            },
-                                                            input: "mglocx",
-                                                            placeholder: "Name",
-                                                            title: "Character"
-                                                        })
-                                                    }
-                                                });
-                                                f.push({
-                                                    button: "Ban",
-                                                    onclick: function () {
-                                                        hide_modal();
-                                                        get_input({
-                                                            button: "Ban",
-                                                            onclick: function () {
-                                                                socket.emit("gm", {
-                                                                    action: "ban",
-                                                                    id: $(".mglocx").val()
-                                                                });
-                                                                hide_modal()
-                                                            },
-                                                            input: "mglocx",
-                                                            placeholder: "Name",
-                                                            title: "Character"
-                                                        })
-                                                    }
-                                                });
-                                                get_input({
-                                                    no_wrap: true,
-                                                    elements: f
-                                                })
                                             } else {
                                                 if (c == "interact") {
-                                                    npc_focus()
+
                                                 } else {
                                                     if (c == "toggle_inventory") {
-                                                        render_inventory()
+
                                                     } else {
                                                         if (c == "toggle_character") {
-                                                            toggle_character()
+
                                                         } else {
                                                             if (c == "toggle_stats") {
-                                                                toggle_stats()
+
                                                             } else {
                                                                 if (c == "open_snippet") {
-                                                                    show_snippet()
+
                                                                 } else {
                                                                     if (c == "toggle_run_code") {
-                                                                        toggle_runner()
+
                                                                     } else {
                                                                         if (c == "toggle_code") {
-                                                                            toggle_code();
-                                                                            if (code) {
-                                                                                setTimeout(function () {
-                                                                                    try {
-                                                                                        codemirror_render.focus()
-                                                                                    } catch (j) {
-                                                                                    }
-                                                                                }, 1)
-                                                                            }
+
                                                                         } else {
                                                                             if (c == "snippet") {
                                                                                 code_eval(a.code)
@@ -772,7 +765,7 @@ function on_skill(d, h) {
                                                                                             small: true,
                                                                                             button: "Engage",
                                                                                             onclick: function () {
-                                                                                                use_skill("magiport", $(".mglocx").val());
+                                                                                                use_skill("magiport", );
                                                                                                 hide_modal()
                                                                                             },
                                                                                             input: "mglocx",
@@ -1085,7 +1078,7 @@ function target_player(a) {
         add_log(a + " isn't around", "gray");
         return
     }
-    ctarget = b
+    xtarget = b
 }
 
 function travel_p(a) {
@@ -1425,71 +1418,78 @@ function h_shake() {
     })
 }
 
-function set_direction(entity, c) {
-    var b = 70;
-    if (c == "npc") {
+function set_direction(a, d) {
+    if (d != "soft" && a.moving && a.name_tag) {
+        start_name_tag(a)
+    }
+    var b = 70
+        , c = 0;
+    if (d == "npc") {
         b = 45
     }
-    if (abs(entity.angle) < b) {
-        entity.direction = 2
+    if (abs(a.angle) < b) {
+        c = 2
     } else {
-        if (abs(abs(entity.angle) - 180) < b) {
-            entity.direction = 1
+        if (abs(abs(a.angle) - 180) < b) {
+            c = 1
         } else {
-            if (abs(entity.angle + 90) < 90) {
-                entity.direction = 3
-            } else {
-                entity.direction = 0
+            if (abs(a.angle + 90) < 90) {
+                c = 3
             }
         }
     }
-    if (c == "attack" && entity && !entity.me && is_monster(entity)) {
-        if (entity.direction == 0) {
-            entity.real_y += 2, entity.y_disp = 2
-        } else {
-            if (entity.direction == 3) {
-                entity.real_y -= 2, entity.y_disp = -2
-            } else {
-                if (entity.direction == 1) {
-                    entity.real_x -= 2
-                } else {
-                    entity.real_x += 2
-                }
-            }
-        }
-        setTimeout(function () {
-            if (entity.direction == 0) {
-                entity.real_y -= 1, entity.y_disp -= 1
-            } else {
-                if (entity.direction == 3) {
-                    entity.real_y += 1, entity.y_disp += 1
-                } else {
-                    if (entity.direction == 1) {
-                        entity.real_x += 1
-                    } else {
-                        entity.real_x -= 1
-                    }
-                }
-            }
-        }, 60);
-        setTimeout(function () {
-            if (entity.direction == 0) {
-                entity.real_y -= 1, entity.y_disp -= 1
-            } else {
-                if (entity.direction == 3) {
-                    entity.real_y += 1, entity.y_disp += 1
-                } else {
-                    if (entity.direction == 1) {
-                        entity.real_x += 1
-                    } else {
-                        entity.real_x -= 1
-                    }
-                }
-            }
-        }, 60)
+    a.a_direction = c;
+    if (d != "soft") {
+        a.direction = c
     }
 }
 
+function leave_references(a) {
+    a.visible = false;
+    (function() {
+            var d = a.real_x
+                , f = a.real_y
+                , c = a.awidth || 10
+                , b = a.aheight || 10;
+            Object.defineProperty(a, "x", {
+                get: function() {
+                    return d
+                },
+                set: function(g) {
+                    d = g
+                },
+                configurable: true
+            });
+            Object.defineProperty(a, "y", {
+                get: function() {
+                    return f
+                },
+                set: function(g) {
+                    f = g
+                },
+                configurable: true
+            });
+            Object.defineProperty(a, "width", {
+                get: function() {
+                    return c
+                },
+                set: function(g) {
+                    c = g
+                },
+                configurable: true
+            });
+            Object.defineProperty(a, "height", {
+                get: function() {
+                    return b
+                },
+                set: function(g) {
+                    b = g
+                },
+                configurable: true
+            })
+        }
+    )()
+}
 function free_children(b) {
     if (!b.children) {
         return
@@ -1537,6 +1537,23 @@ function trade(d, a, b, c) {
         slot: d,
         num: a,
         price: b
+    });
+}
+function giveaway(d, a, c, b) {
+    socket.emit("equip", {
+        q: c || 1,
+        slot: d,
+        num: a,
+        giveaway: true,
+        minutes: b || 0
+    });
+}
+
+function join_giveaway(c, b, a) {
+    socket.emit("join_giveaway", {
+        slot: c,
+        id: b,
+        rid: a
     });
 }
 
@@ -1594,12 +1611,15 @@ function buy(a, b) {
         name: a,
         quantity: b
     });
-    if (c == "buy") {
+    if (c === "buy") {
         return push_deferred("buy")
     }
 }
 
 function buy_with_gold(a, b) {
+    if (mssince(last_npc_right_click) < 100) {
+        return
+    }
     socket.emit("buy", {
         name: a,
         quantity: b
@@ -1608,6 +1628,9 @@ function buy_with_gold(a, b) {
 }
 
 function buy_with_shells(a, b) {
+    if (mssince(last_npc_right_click) < 100) {
+        return
+    }
     socket.emit("buy_with_cash", {
         name: a,
         quantity: b
@@ -1637,18 +1660,23 @@ function code_eval_if_r(code) {
 }
 
 function get_code_function(a) {
-    return code_active && self.executor && self.executor.callbacks && self.executor.callbacks[a] || (function () {
-    })
+    return self.executor && self.executor.callbacks && self.executor.callbacks[a] || (function () {})
 }
 
 function private_say(a, c, b) {
-    socket.emit("say", {message: c, code: b, name: a})
+    socket.emit("say", {
+        message: c,
+        code: b,
+        name: a
+    })
 }
-
 function party_say(b, a) {
-    socket.emit("say", {message: b, code: a, party: true})
+    socket.emit("say", {
+        message: b,
+        code: a,
+        party: true
+    })
 }
-
 var last_say = "normal";
 
 function say(message, code) {
@@ -1665,10 +1693,13 @@ function say(message, code) {
             add_chat("", "/list");
             add_chat("", "/uptime");
             add_chat("", "/guide");
+            add_chat("", "/learn");
+            add_chat("", "/docs");
             add_chat("", "/invite NAME");
             add_chat("", "/request NAME");
             add_chat("", "/friend NAME");
             add_chat("", "/leave");
+            add_chat("", "/challenge");
             add_chat("", "/whisper NAME MESSAGE");
             add_chat("", "/p MESSAGE");
             add_chat("", "/ping");
@@ -1944,7 +1975,7 @@ function close_merchant() {
 
 function donate(a) {
     if (a === undefined) {
-        var a = parseInt($(".dgold").html().replace_all(",", ""));
+        a = 1;
         if (!a) {
             a = 100000
         }
@@ -1956,10 +1987,10 @@ function donate(a) {
 }
 
 function dice(c, b, a) {
-    if (c == 1) {
+    if (c === 1) {
         c = "up"
     }
-    if (c == 2) {
+    if (c === 2) {
         c = "down"
     }
     socket.emit("bet", {
@@ -1969,21 +2000,100 @@ function dice(c, b, a) {
         gold: a
     })
 }
+function quantity(a, d) {
+    var c = 0;
+    for (var b = 0; b < character.items.length; b++) {
+        if (character.items[b] && character.items[b].name === a && (character.items[b].level || 0) === (d || 0)) {
+            c += character.items[b].q || 1
+        }
+    }
+    return c
+}
+function auto_craft(d, f) {
+    var a = null;
+    if (!G.craft[d]) {
+        a = "recipe"
+    } else {
+        if (G.craft[d].gold < character.gold) {
+            a = "gold"
+        } else {
+            G.craft[d].items.forEach(function(g) {
+                if (quantity(g[1], g[2]) < g[0]) {
+                    a = "items"
+                }
+            })
+        }
+    }
+    if (a) {
+        if (a === "recipe") {
+            add_log("Can't craft that item", "gray")
+        } else {
+            if (a === "gold") {
+                add_log("Not enough gold", "gray")
+            } else {
+                if (a === "items") {
+                    add_log("Don't have the required items", "gray")
+                }
+            }
+        }
+        if (f) {
+            return a
+        }
+    } else {
+        var c = []
+            , b = 0;
+        G.craft[d].items.forEach(function(h) {
+            for (var g = 0; g < character.items.length; g++) {
+                if (character.items[g] && character.items[g].name === h[1] && (character.items[g].level || 0) === (h[2] || 0) && (character.items[g].q || 1) >= h[0]) {
+                    c.push([b++, g]);
+                    break
+                }
+            }
+        });
+        console.log(c);
+        socket.emit("craft", {
+            items: c
+        })
+    }
+}
 
-function upgrade(u_item, u_scroll, u_offering) {
-    if (u_item == null || (u_scroll == null && u_offering == null)) {
+var suppress_calculations = false;
+function upgrade(u_item, u_scroll, offering_num, c, calculate) {
+    if (!c && calculate && suppress_calculations) {
+        return
+    }
+    if (!c && (u_item == null || (u_scroll == null && offering_num == null))) {
         d_text("INVALID", character)
     } else {
         socket.emit("upgrade", {
             item_num: u_item,
             scroll_num: u_scroll,
-            offering_num: u_offering,
-            clevel: (character.items[u_item] && character.items[u_item].level || 0)
+            offering_num: offering_num,
+            clevel: (character.items[u_item] && character.items[u_item].level || 0),
+            calculate: calculate
         });
+        last_uping = new Date();
         return push_deferred("upgrade")
     }
 }
 
+function compound(d, c, b, a, h, g, f) {
+    if (!g && f && suppress_calculations) {
+        return
+    }
+    if (!g && (d == null || c == null || b == null || a == null)) {
+        d_text("INVALID", character)
+    } else {
+        socket.emit("compound", {
+            items: [d, c, b],
+            scroll_num: a,
+            offering_num: h,
+            clevel: (character.items[d].level || 0),
+            calculate: f
+        });
+        return push_deferred("compound")
+    }
+}
 function lock_item(a) {
     if (a === undefined) {
         a = l_item
@@ -2037,8 +2147,7 @@ function withdraw(a) {
     })
 }
 
-var exchange_animations = false
-    , last_excanim = new Date()
+var last_excanim = new Date()
     , exclast = 0;
 var exccolors1 = ["#f1c40f", "#f39c12", "#e74c3c", "#c0392b", "#8e44ad", "#9b59b6", "#2980b9", "#3498db", "#1abc9c"];
 var exccolorsl = ["#CD6F1A", "#A95C15"];
@@ -2049,16 +2158,16 @@ var exccolorssea = ["#24A7CB", "#EBECEE"];
 
 function exchange_animation_logic() {
     var a = exccolors1;
-    if (exchange_type == "leather") {
+    if (character.q.exchange.qs == "leather") {
         a = exccolorsl
     }
-    if (exchange_type == "lostearring") {
+    if (character.q.exchange.qs == "lostearring") {
         a = exccolorsg
     }
-    if (exchange_type == "seashell") {
+    if (character.q.exchange.qs == "seashell") {
         a = exccolorssea
     }
-    if (exchange_type == "poof") {
+    if (character.q.exchange.qs == "poof") {
         a = exccolorsgray
     }
     if (in_arr(exchange_type, ["mistletoe", "ornament", "candycane"])) {
@@ -2067,6 +2176,144 @@ function exchange_animation_logic() {
     if (mssince(last_excanim) > 300) {
         last_excanim = new Date();
         exclast++
+    }
+}
+
+var u_valid = false
+    , last_uchance = null
+    , last_uchance_for = "upgrade_or_compound";
+
+function set_uchance(f, b) {
+    last_uchance = f;
+    last_uchance_for = rendered_target;
+    if (f === "?") {
+        return
+    }
+    if (parseInt(f * 10000000000)) {
+        u_valid = true
+    }
+    var a = min(9999, (parseInt(f * 10000) || 0))
+        , d = "" + parseInt(a / 100)
+        , c = "" + parseInt(a % 100);
+    a = a / 100;
+    if (d.length == 1) {
+        d = "0" + d
+    }
+    if (c.length == 1) {
+        c = c + "0"
+    }
+    if (a > 95) {
+        color = "#31C760"
+    } else {
+        if (a > 80) {
+            color = "#259248"
+        } else {
+            if (a > 75) {
+                color = "#56923B"
+            } else {
+                if (a > 60) {
+                    color = "#76922C"
+                } else {
+                    if (a > 50) {
+                        color = "#8F8A23"
+                    } else {
+                        if (a > 40) {
+                            color = "#8E682D"
+                        } else {
+                            if (a > 30) {
+                                color = "#8E5744"
+                            } else {
+                                if (a > 20) {
+                                    color = "#8E456A"
+                                } else {
+                                    if (a > 10) {
+                                        color = "#8E6087"
+                                    } else {
+                                        color = "#AA3248"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (b) {
+        return [color, "%" + d + "." + c]
+    }
+}
+var uroll_colors = ["#f1c40f", "#f39c12", "#e74c3c", "#c0392b", "#8e44ad", "#9b59b6", "#2980b9", "#3498db", "#1abc9c"];
+var uroll_colors = ["#868590"];
+var uroll_characters = ["|", "/", "-", "\\"]
+    , last_uc = 0;
+function set_uroll(g, f) {
+    var h = uroll_characters[last_uc++ % uroll_characters.length]
+        , a = 0;
+    var d = "";
+    if (g.success) {
+        h = "$",
+            a = "#49C528"
+    }
+    if (g.failure) {
+        h = "^",
+            a = "#9F1020"
+    }
+    d += "<span style='color:" + (a || random_one(uroll_colors)) + ";'>" + h + "</span>";
+    for (var b = 3; b >= 0; b--) {
+        if (g.nums[b] !== undefined) {
+            d += "<span style='color:" + (a || "white") + "'>" + g.nums[b] + "</span>"
+        } else {
+            d += "<span style='color:" + (a || random_one(uroll_colors)) + "'>" + parseInt(Math.random() * 10) + "</span>"
+        }
+        if (b == 2) {
+            d += "<span style='color:" + (a || random_one(uroll_colors)) + "'>.</span>"
+        }
+    }
+    if (f) {
+        return d
+    }
+}
+
+var last_companim = new Date();
+function compound_animation_logic() {
+    if (topleft_npc == "compound" && character.q.compound && character.items[character.q.compound.num] && character.items[character.q.compound.num].name === "placeholder") {
+        var a = character.items[character.q.compound.num].p;
+        if (mssince(last_companim) > 120) {
+            last_companim = new Date();
+            set_uroll(a)
+        }
+    }
+    if (character.map == "main" && Math.random() < 0.4) {
+        random_spark({
+            map: "main",
+            x: G.maps.main.ref.c_mid[0] + 5 - Math.random() * 10,
+            y: G.maps.main.ref.c_mid[1] - Math.random() * 6 + 1,
+            "in": "main"
+        }, {
+            color: "spark"
+        })
+    }
+}
+var last_upganim = new Date()
+    , last_uping = new Date();
+function upgrade_animation_logic() {
+    if (topleft_npc == "upgrade" && character.q.upgrade && character.items[character.q.upgrade.num] && character.items[character.q.upgrade.num].name === "placeholder") {
+        var a = character.items[character.q.upgrade.num].p;
+        if (mssince(last_upganim) > 120) {
+            last_upganim = new Date();
+            set_uroll(a)
+        }
+    }
+    if (character.map == "main" && Math.random() < 0.4) {
+        random_spark({
+            map: "main",
+            x: G.maps.main.ref.u_mid[0] + 5 - Math.random() * 10,
+            y: G.maps.main.ref.u_mid[1] - Math.random() * 6 + 1,
+            "in": "main"
+        }, {
+            color: "spark"
+        })
     }
 }
 
@@ -2107,43 +2354,20 @@ function poof(a) {
     }
 }
 
-function exchange(e_item, a) {
-    var b = 3000;
-    if (a) {
-        socket.emit("exchange", {
-            item_num: e_item,
-            q: character.items[e_item].q
-        });
-        return
-    }
-
-    function c(d, f) {
-        return function () {
-            if (!exchange_animations) {
-                return
-            }
-            socket.emit("exchange", {
-                item_num: d,
-                q: f
-            })
-        }
-    }
-
-    if (e_item == null) {
-        d_text("INVALID", character)
+function exchange(a) {
+    if (character.q.exchange) {
+        d_text("WAIT", character)
     } else {
-        if (exchange_animations) {
-            d_text("WAIT FOR IT", character)
+        if (!a && e_item == null) {
+            d_text("INVALID", character)
         } else {
-            if (exchange_type) {
-                b = 2400
-            }
-            exchange_animations = true;
-            draw_timeout(c(e_item, character.items[e_item].q), b)
+            socket.emit("exchange", {
+                item_num: e_item,
+                q: character.items[e_item].q
+            });
         }
     }
 }
-
 function exchange_buy(c, b) {
     var a = item_position(c);
     if (a == undefined) {
@@ -2157,21 +2381,9 @@ function exchange_buy(c, b) {
     }
 }
 
-function compound(item0, item1, item2, scroll_num, offering_num) {
-    if (scroll_num == null || typeof item0 === "undefined" || typeof item1 === "undefined" || typeof item2 === "undefined") {
-        console.log("INVALID")
-    } else {
-        socket.emit("compound", {
-            items: [item0, item1, item2],
-            scroll_num: scroll_num,
-            offering_num: offering_num,
-            clevel: (character.items[item0].level || 0)
-        });
-    }
-}
-
-function craft(i0, i1, i2, i3, i4, i5, i6, i7, i8) {
-    var a = [i0, i1, i2, i3, i4, i5, i6, i7, i8], b = false;
+function craft() {
+    var a = []
+        , b = false;
     for (var c = 0; c < 9; c++) {
         if (cr_items[c] || cr_items[c] === 0) {
             b = true,
@@ -2192,8 +2404,8 @@ function dismantle() {
         num: ds_item
     })
 }
-
-var u_retain = false;
+var u_retain = false
+    , u_retain_t = false;
 
 function reopen() {
     throw new Error("reopen is not supported.");
@@ -2289,6 +2501,7 @@ function esc_pressed() {
 }
 
 function toggle_stats() {
+    return;
     throw new Error("toggle_stats is not supported.");
     if (topright_npc != "character") {
         render_character_sheet()
@@ -2297,22 +2510,12 @@ function toggle_stats() {
     }
 }
 
-function reset_inventory() {
-    throw new Error("reset_inventory is not supported.");
-    if (ctarget == character && !topleft_npc) {
-        ctarget = null
-    } else {
-        topleft_npc = false, ctarget = character
-    }
-}
-
 function reset_inventory(a) {
-    throw new Error("reset_inventory is not supported.");
     if (inventory) {
         if (a && !in_arr(rendered_target, ["upgrade", "compound", "exchange", "npc", "merchant", "craftsman", "dismantler", "none", "locksmith"])) {
             return
         }
-        render_inventory(), render_inventory()
+        render_inventory(true)
     }
 }
 
@@ -2338,95 +2541,6 @@ function open_chest(b) {
 
 function generate_textures(b, m) {
     return;
-    console.log("generate_textures " + b + " " + m);
-    if (in_arr(m, ["full", "wings", "body", "armor", "skin"])) {
-        var l = XYWH[b]
-            , c = l[2]
-            , p = l[3]
-            , r = 0
-            , q = 0;
-        var o = G.dimensions[b];
-        if (o) {
-            c = o[0];
-            p = o[1];
-            r = round((l[2] - c) / 2 + (o[2] || 0));
-            q = round(l[3] - p)
-        }
-        textures[b] = [[null, null, null, null], [null, null, null, null], [null, null, null, null]];
-        for (var k = 0; k < 3; k++) {
-            for (var g = 0; g < 4; g++) {
-                var n = new PIXI.Rectangle(l[0] + k * l[2] + r, l[1] + g * l[3] + q, c, p);
-                if (offset_walking && !o) {
-                    n.y += 2,
-                        n.height -= 2
-                }
-                textures[b][k][g] = new PIXI.Texture(C[FC[b]], n)
-            }
-        }
-    }
-    if (in_arr(m, ["emblem", "gravestone"])) {
-        var l = XYWH[b];
-        var n = new PIXI.Rectangle(l[0], l[1], l[2], l[3]);
-        textures[b] = new PIXI.Texture(C[FC[b]], n)
-    }
-    if (m == "machine") {
-        var f = b;
-        b = f.type;
-        textures[b] = e_array(f.frames.length);
-        for (var k = 0; k < f.frames.length; k++) {
-            var n = new PIXI.Rectangle(f.frames[k][0], f.frames[k][1], f.frames[k][2], f.frames[k][3]);
-            textures[b][k] = new PIXI.Texture(PIXI.utils.BaseTextureCache[G.tilesets[f.set]], n)
-        }
-        if (f.subframes) {
-            textures[b + "sub"] = e_array(f.subframes.length);
-            for (var k = 0; k < f.subframes.length; k++) {
-                var n = new PIXI.Rectangle(f.subframes[k][0], f.subframes[k][1], f.subframes[k][2], f.subframes[k][3]);
-                textures[b + "sub"][k] = new PIXI.Texture(PIXI.utils.BaseTextureCache[G.tilesets[f.set]], n)
-            }
-        }
-    }
-    if (m == "animation") {
-        var o = G.animations[b];
-        if (no_graphics) {
-            PIXI.utils.BaseTextureCache[o.file] = {
-                width: 20,
-                height: 20
-            }
-        }
-        var c = PIXI.utils.BaseTextureCache[o.file].width
-            , h = Math.floor(c / o.frames);
-        var p = PIXI.utils.BaseTextureCache[o.file].height;
-        textures[b] = e_array(o.frames);
-        for (var k = 0; k < o.frames; k++) {
-            var n = new PIXI.Rectangle(0 + h * k, 0, h, p);
-            textures[b][k] = new PIXI.Texture(PIXI.utils.BaseTextureCache[o.file], n)
-        }
-    }
-    if (m == "animatable") {
-        var l = G.positions[b];
-        textures[b] = e_array(l.length);
-        var k = 0;
-        l.forEach(function (d) {
-            var a = new PIXI.Rectangle(d[1], d[2], d[3], d[4]);
-            textures[b][k++] = new PIXI.Texture(PIXI.utils.BaseTextureCache[G.tilesets[d[0]]], a)
-        })
-    }
-    if (m == "emote") {
-        var l = XYWH[b];
-        textures[b] = [null, null, null];
-        for (var k = 0; k < 3; k++) {
-            var n = new PIXI.Rectangle(l[0] + k * l[2], l[1], l[2], l[3]);
-            textures[b][k] = new PIXI.Texture(C[FC[b]], n)
-        }
-    }
-    if (in_arr(m, ["v_animation", "head", "hair", "hat", "s_wings", "face"])) {
-        var l = XYWH[b];
-        textures[b] = [null, null, null, null];
-        for (var k = 0; k < 4; k++) {
-            var n = new PIXI.Rectangle(l[0], l[1] + k * l[3], l[2], l[3]);
-            textures[b][k] = new PIXI.Texture(C[FC[b]], n)
-        }
-    }
 }
 
 function restore_dimensions(a) {
@@ -2460,109 +2574,9 @@ function set_texture(d, b, a) {
 }
 
 function new_sprite(h, b, j) {
-    return;
-    if (in_arr(b, ["full", "wings", "body", "armor", "skin"])) {
-        if (j == "renew") {
-            var f = h;
-            h = f.skin;
-            if (!textures[h]) {
-                generate_textures(h, "full")
-            }
-            f.texture = textures[h][1][0]
-        } else {
-            if (!textures[h]) {
-                generate_textures(h, "full")
-            }
-            var f = new PIXI.Sprite(textures[h][1][0])
-        }
-        f.cskin = "10";
-        f.i = 1;
-        f.j = 0
-    }
-    if (in_arr(b, ["head", "hair", "hat", "s_wings", "face"])) {
-        if (!textures[h]) {
-            generate_textures(h, b)
-        }
-        var f = new PIXI.Sprite(textures[h][0]);
-        f.cskin = "0";
-        f.i = 0;
-        f.frames = 4
-    }
-    if (in_arr(b, ["emblem", "gravestone"])) {
-        if (!textures[h]) {
-            generate_textures(h, "emblem")
-        }
-        var f = new PIXI.Sprite(textures[h]);
-        f.cskin = ""
-    }
-    if (b == "machine") {
-        if (!textures[h.type]) {
-            generate_textures(h, "machine")
-        }
-        var f = new PIXI.Sprite(textures[h.type][0]);
-        f.cskin = "0";
-        f.i = 0
-    }
-    if (b == "v_animation") {
-        if (!textures[h]) {
-            generate_textures(h, "v_animation")
-        }
-        var f = new PIXI.Sprite(textures[h][0]);
-        f.cskin = "0" + undefined;
-        f.i = 0;
-        f.frame = 0;
-        f.frames = textures[h].length
-    }
-    if (b == "animatable") {
-        if (!textures[h]) {
-            generate_textures(h, "animatable")
-        }
-        var f = new PIXI.Sprite(textures[h][0]);
-        f.cskin = "0" + undefined;
-        f.i = 0;
-        f.frame = 0;
-        f.frames = textures[h].length
-    }
-    if (b == "animation") {
-        if (!textures[h]) {
-            generate_textures(h, "animation")
-        }
-        var f = new PIXI.Sprite(textures[h][0]);
-        f.cskin = "0" + undefined;
-        f.i = 0;
-        f.frame = 0;
-        f.frames = textures[h].length
-    }
-    if (b == "emote") {
-        if (!textures[h]) {
-            generate_textures(h, "emote")
-        }
-        var f = new PIXI.Sprite(textures[h][0]);
-        f.cskin = "0" + undefined;
-        f.i = 0;
-        f.frame = 0
-    }
-    if (b == "static") {
-        var g = textures["static_" + h];
-        if (!g) {
-            var a = G.positions[h]
-                , d = G.tilesets[a[0]];
-            var c = new PIXI.Rectangle(a[1], a[2], a[3], a[4]);
-            var g = new PIXI.Texture(PIXI.utils.BaseTextureCache[d], c);
-            textures["static_" + h] = g
-        }
-        var f = new PIXI.Sprite(g);
-        f.cskin = undefined + "" + undefined
-    }
-    f.skin = h;
-    f.stype = b;
-    f.updates = 0;
-    return f
 }
 
 function recreate_dtextures() {
-    return;
-
 }
 
 function water_frame() {
@@ -2570,102 +2584,19 @@ function water_frame() {
 }
 
 function new_map_tile(b) {
-    total_map_tiles++;
-    if (b.length == 8) {
-        var a = new PIXI.Sprite(b[5]);
-        a.textures = [b[5], b[6], b[7]];
-        return a
-    }
-    return new PIXI.Sprite(b[5])
 }
 
 function random_rotating_rectangle(g, j) {
-    return;
-    if (!g.cxc.bg) {
-        return
-    }
-    if (!j) {
-        j = {}
-    }
-    var h = new PIXI.Graphics();
-    var b = [62270, 15999275, 16316471, 5340664, 14765049, 2008313, 7216377, 16216621];
-    if (j.color == "success") {
-        b = [8767339, 11403147, 15662319]
-    } else {
-        if (j.color == "purple") {
-            b = [10044616, 8140963, 16046847]
-        }
-    }
-    var f = random_one(b);
-    var m = random_one([3, 5, 7])
-        , k = random_one([1, -1, 2, -2])
-        , a = random_one([-0.5, 0, 1, 2, 3])
-        , l = random_one([-0.2, 0.2, -0.4, 0.4]);
-    h.lineStyle(3, f);
-    h.beginFill(f);
-    h.drawRect(-m / 2, -m / 2, m / 2, m / 2);
-    h.rotation = Math.random();
-    var d = new PIXI.filters.PixelateFilter(7, 7);
-    h.filters = [d];
-    h.x = 0;
-    h.y = -15;
-    g.cxc.bg.addChild(h);
-
-    function c(p, q, o, n) {
-        return function () {
-            if (p >= 10.6) {
-                destroy_sprite(h)
-            } else {
-                h.x -= q * DTM * 2;
-                h.y -= o * DTM * 2;
-                h.rotation -= n * DTM;
-                h.opacity -= 0.07 * DTM;
-                draw_timeout(c(p + DTM, q, o, n), 15)
-            }
-        }
-    }
-
-    draw_timeout(c(0, k, a, l), 15)
 }
+function random_spark(f, h) {}
 
 function small_success(a, c) {
-    for (var b = 0; b < 4; b++) {
-        for (var d = 0; d < 30; d++) {
-            draw_timeout(function () {
-                random_rotating_rectangle(a, c)
-            }, d * 16)
-        }
-    }
 }
 
 function assassin_smoke(m, k, j) {
 }
 
 function confetti_shower(b, h) {
-    var a = 200
-        , f = 1
-        , g = 25;
-    if (h == 2) {
-        a = 150,
-            f = 2,
-            g = 60
-    }
-    if (is_hidden()) {
-        g = 2
-    }
-    for (var d = 0; d < g; d++) {
-        for (var c = 0; c < f; c++) {
-            draw_timeout(function () {
-                if (!b.real_x) {
-                    b = get_entity(b)
-                }
-                if (!b) {
-                    return
-                }
-                assassin_smoke(b.real_x + (Math.random() * 80 - 40), b.real_y + (Math.random() * 80 - 40), "confetti")
-            }, d * a)
-        }
-    }
 }
 
 function firecrackers(a) {
@@ -2679,6 +2610,10 @@ function stop_emblem(b, a) {
 
 function start_animation(d, c, h) {
 }
+
+function map_animation(d, c) {}
+
+function continuous_map_animation(){}
 
 function stop_animation(b, a) {
 }
@@ -2721,9 +2656,10 @@ function draw_timeouts_logic(f) {
             try {
                 timeout[0]()
             } catch (d) {
+                //TODO make a debug mode where this is logged but tbh I don't care anymore and would like to have a clean log
                 //Never append an exception to a string you basically lose the stacktrace which contains very useful info
-                console.log("draw_timeout_error: ", d);
-                console.log(timeout[0])
+                //console.log("draw_timeout_error: ", d);
+                //console.log(timeout[0])
             }
         }
     }
@@ -2781,16 +2717,21 @@ var tint_c = {
 var next_attack = new Date()
     , next_potion = new Date();
 
-function attack_timeout(a) {
+function attack_timeout_animation(a) {
     if (a <= 0) {
         return
     }
-    next_attack = next_skill.attack = future_ms(a);
-    draw_trigger(function () {
+    draw_trigger(function() {
         tint_c.a++;
-    skill_timeout("attack", -mssince(next_skill.attack) - DMS);
-    skill_timeout("heal", -mssince(next_skill.attack) - DMS)
-})
+        add_tint(".atint", {
+            ms: -mssince(next_skill.attack) - DMS,
+            color: "#4C4C4C",
+            reset_to: "#6A6A6A",
+            type: "brute",
+            key: "a",
+            cur: tint_c.a
+        })
+    })
 }
 
 function pot_timeout(a) {
@@ -2803,24 +2744,8 @@ function pot_timeout(a) {
     next_potion = future_ms(a);
     skill_timeout("use_hp", a);
     skill_timeout("use_mp", a);
-}
-
-function pvp_timeout(a, b) {
-    if (a <= 0) {
-        return
-    }
-    skill_timeout("use_town", a);
-    if (b) {
-        return
-    }
-    draw_trigger(function () {
-        for (var d = 1; d < 10; d++) {
-            var h = 200 - d * 15, f = 50 - d * 3, c = 20 - d;
-            draw_timeout(function (l, k, j) {
-                return function () {
-                }
-            }(h, f, c), d * 600)
-        }
+    draw_trigger(function() {
+        tint_c.p++;
     })
 }
 
@@ -2848,24 +2773,44 @@ var next_skill = {
     use_mp: new Date(),
     use_town: new Date()
 };
-
-function skill_timeout(skill, b) {
+function skill_timeout_singular(c, b) {
     if (b <= 0) {
         return
     }
     var a = [];
-    if (!b) {
-        b = G.skills[skill].cooldown
-    }
-    if (b == "1X") {
-        b = 1000 * 100 / character.speed
-    }
-    next_skill[skill] = future_ms(b);
-    draw_trigger(function () {
-        if (G.skills[skill] && G.skills[skill].share == "attack") {
-            attack_timeout(-mssince(next_skill[skill] - DMS))
+    if (!b && G.skills[c].cooldown) {
+        b = G.skills[c].cooldown
+    } else {
+        if (!b && G.skills[c].reuse_cooldown) {
+            b = G.skills[c].reuse_cooldown
+        } else {
+            if (!b && G.skills[c].share) {
+                b = G.skills[G.skills[c].share].cooldown * (G.skills[c].cooldown_multiplier || 1)
+            } else {
+                if (c == "attack") {
+                    b = 1000 / character.frequency
+                }
+            }
         }
-    })
+    }
+    next_skill[c] = future_ms(b);
+    if (c === "attack") {
+        next_attack = next_skill[c]
+    }
+}
+function skill_timeout(b, a) {
+    if (G.skills[b].share) {
+        skill_timeout_singular(G.skills[b].share, a);
+        for (var c in G.skills) {
+            if (G.skills[c].share == G.skills[b].share) {
+                skill_timeout_singular(c, a)
+            }
+        }
+    } else {
+        if (G.skills[b].cooldown || b == "attack") {
+            skill_timeout_singular(b, a)
+        }
+    }
 }
 
 function disappearing_circle(a, g, d, b) {
@@ -3016,35 +2961,28 @@ function api_call_l(c, a, b) {
     return api_call(c, a, b)
 }
 
-var warned = {}
-    , map_info = {};
-
+var warned = {};
 function new_map_logic(a, b) {
-    map_info = b.info || {};
-    if (current_map == "abtesting" && !abtesting) {
-        abtesting = {
-            A: 0,
-            B: 0
-        };
-        abtesting_ui = true;
-        abtesting.end = future_s(G.events.abtesting.duration)
-    }
-    if (current_map != "abtesting" && abtesting_ui) {
-        abtesting = false;
-        abtesting_ui = false;
-        //$("#abtesting").remove()
-    }
+    I = b.info || {};
     if (current_map == "resort") {
         add_log("Resort is a prototype with work in progress", "#ADA9E4")
-    }
-    if (current_map == "tavern") {
-        add_log("Tavern is a prototype with work in progress", "#63ABE4")
     }
     if (is_pvp && (a == "start" || a == "welcome")) {
         add_log("This is a PVP Server. Be careful!", "#E1664C")
     }
-    if (a == "map" && !is_pvp && G.maps[current_map].pvp && !warned[current_map]) {
-        warned[current_map] = 1, add_log("This is a PVP Zone. Be careful!", "#E1664C")
+    if (a == "map" && !is_pvp && G.maps[current_map].safe_pvp && !warned[current_map]) {
+        warned[current_map] = 1,
+            add_log("This is a Safe PVP Zone. You can lose recently looted items if someone defeats you!", "#E1664C")
+    } else {
+        if (a == "map" && !is_pvp && G.maps[current_map].pvp && !warned[current_map]) {
+            warned[current_map] = 1,
+                add_log("This is a PVP Zone. Be careful!", "#E1664C")
+        } else {
+            if (a == "map" && is_pvp && G.maps[current_map].safe && !warned[current_map]) {
+                warned[current_map] = 1,
+                    add_log("This is a Safe Zone. No one can hurt you here!", "#9DE85E")
+            }
+        }
     }
 }
 
@@ -3278,7 +3216,7 @@ function hide_loader() {
 function alert_json(a) {
     alert(JSON.stringify(a))
 }
-
+var ignored_properties = ["transform", "parent", "displayGroup", "parentGroup", "vertexData", "animations", "tiles", "placements", "default", "children", "tempDisplayObjectParent", "cachedTint", "vertexTrimmedData", "hp_bar", "blendMode", "filterArea", "worldAlpha", "pluginName", "roundPixels", "updateOrder", "displayOrder", "shader", "accessible", "interactiveChildren", "hitArea", "cursor", "zOrder", "accessibleTitle", "accessibleHint", "parentLayer", "layerableChildren", "trackedPointers", "interactive", "tabIndex", "zIndex", "buttonMode", "renderable"];
 function game_stringify(d, b) {
     var a = [];
     try {
@@ -3304,24 +3242,37 @@ function game_stringify_simple(d, b) {
         if (d === undefined) {
             return "undefined"
         }
-        var a = JSON.stringify(d, function (f, g) {
-            if (in_arr(f, ["transform", "parent", "displayGroup", "parentGroup", "vertexData", "animations", "tiles", "placements", "default", "children", "tempDisplayObjectParent", "cachedTint", "vertexTrimmedData", "hp_bar"]) || f.indexOf("filter_") != -1 || f[0] == "_") {
+        var a = JSON.stringify(d, function(g, j) {
+            if (in_arr(g, ignored_properties) || g.indexOf("filter_") != -1 || g[0] == "_") {
                 return
             }
-            if (f == "data" && d[f] && d[f].x_lines) {
+            if (g == "data" && d[g] && d[g].x_lines) {
                 return
             }
-            return g
+            if (j != null && typeof j == "object") {
+                if ("x"in j) {
+                    var f = {};
+                    ["x", "y", "width", "height"].forEach(function(k) {
+                        if (k in j) {
+                            f[k] = j[k]
+                        }
+                    });
+                    for (var h in j) {
+                        f[h] = j[h]
+                    }
+                    j = f
+                }
+            }
+            return j
         }, b);
         try {
-            if ("x" in d) {
+            if ("x"in d) {
                 a = JSON.parse(a);
                 a.x = d.x;
                 a.y = d.y;
                 a = JSON.stringify(a, undefined, b)
             }
-        } catch (c) {
-        }
+        } catch (c) {}
         return a
     } catch (c) {
         return "game_stringify_simple_exception"

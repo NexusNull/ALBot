@@ -179,7 +179,6 @@ Game.prototype.init = function () {
         distance: distance,
         is_disabled: is_disabled,
         player_attack: player_attack,
-        monster_attack: monster_attack,
         player_heal: player_heal,
         open_chest: open_chest,
         buy: buy,
