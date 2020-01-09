@@ -9,9 +9,15 @@ const vm = require('vm');
  * @constructor
  */
 var HttpWrapper = function (sessionCookie) {
-    this.sessionCookie = sessionCookie ? sessionCookie : "";
-    this.userAuth = sessionCookie.split("-") ? sessionCookie.split("-")[1] : "";
-    this.userId = sessionCookie.split("-") ? sessionCookie.split("-")[0] : 0;
+    if(sessionCookie && sessionCookie.split("-").length === 2){
+        this.sessionCookie = sessionCookie;
+        this.userId =  sessionCookie.split("-")[0];
+        this.userAuth = sessionCookie.split("-")[1] ;
+    } else {
+        this.sessionCookie = "";
+        this.userId =  0;
+        this.userAuth = "" ;
+    }
 };
 
 /**
