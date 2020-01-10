@@ -1122,10 +1122,11 @@ function bfs() {
                 going_y: new_y,
                 base: character.base
             }))
-                qlist.forEach(function (q) {
-                    qpush(q);
-                }); // So regular move's are priotised
+                qpush({map: current.map, x: new_x, y: new_y});
         });
+        qlist.forEach(function (q) {
+            qpush(q);
+        }); // So regular move's are priotised
 
         start++;
     }
@@ -1243,7 +1244,8 @@ function performance_trick() {
 var last_loot = new Date(0);
 var last_attack = new Date(0);
 var last_potion = new Date(0);
-var last_transport = new Date(0);
+
+var last_message = "", current_message = "";
 
 function code_draw() {
 }
