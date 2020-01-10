@@ -4312,6 +4312,24 @@ function player_heal(b, a) {
     return push_deferred("heal")
 }
 
+function monster_attack(b, a) {
+    ctarget = this;
+    if (!a) {
+        xtarget = null
+    }
+    direction_logic(character, ctarget);
+    if (distance(this, character) > character.range + 10) {
+        return rejecting_promise({
+            reason: "too_far",
+            distance: distance(this, character)
+        })
+    }
+    socket.emit("attack", {
+        id: this.id
+    });
+    return push_deferred("attack")
+}
+
 function player_right_click(b) {
     if (this.npc && this.npc == "pvp") {
         if (this.allow) {
