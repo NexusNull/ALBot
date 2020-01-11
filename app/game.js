@@ -76,7 +76,7 @@ Game.prototype.init = function () {
     var cheerio = require("cheerio");
     var G = this.G;
     var Executor = require("./Executor");
-
+    var friends;
     var character_to_load;
     var first_entities = false;
     var inside = "selection";
@@ -126,7 +126,7 @@ Game.prototype.init = function () {
     var script = this.script;
     var botKey = this.botKey;
     var sandbox;
-
+    var cr_items;
     game = this;
 
     server_addr = this.ip;
@@ -215,7 +215,10 @@ Game.prototype.init = function () {
         craft: craft,
         dismantle: dismantle,
         storage_get: storage_get,
-        storage_set: storage_set
+        storage_set: storage_set,
+        monster_attack: monster_attack,
+        is_bot:true,
+
 
     };
     //non static variables
@@ -278,6 +281,19 @@ Game.prototype.init = function () {
     Object.defineProperty(glob, "chests", {
         get: function () {
             return chests;
+        }
+    });
+    Object.defineProperty(glob, "friends", {
+        get: function () {
+            return friends;
+        }
+    });
+    Object.defineProperty(glob, "cr_items", {
+        get: function () {
+            return cr_items;
+        },
+        set: function (value) {
+            cr_items = value;
         }
     });
     var damage = 0;
