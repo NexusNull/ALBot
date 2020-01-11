@@ -113,7 +113,6 @@ async function main() {
         }
         if (ip && port) {
             var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId, ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
-            console.log(args)
             startGame(args);
         } else {
             console.warn("Couldn't find server: '" + bots[i].server + "'.");
