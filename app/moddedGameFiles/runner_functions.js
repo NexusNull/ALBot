@@ -1,36 +1,6 @@
 // #NOTE: If you want to see a new function/feature, just request it at: https://github.com/kaansoral/adventureland/issues
 // Or at #feedback in Discord: https://discord.gg/4SXJGU
 
-var character = {
-    // This object proxies the real parent.character
-    // Normal entities have normal coordinates, their {x,y}'s are equal to their {real_x,real_y}'s
-    // The character object is special, it's always in the middle of the screen, so it has static {x,y}'s
-    // Added this wrapper so instead of using .real_x and .real_y on all entities, .x and .y's can be used uniformly
-    "note": "This is a proxy object, the real character is in parent.character",
-    "properties": ["x", "y"],
-    "read_only": ["x", "y", "real_x", "real_y", "from_x", "from_y", "going_x", "going_y", "moving", "target", "vx", "vy", "move_num", "attack", "speed", "hp", "mp", "xp", "max_hp", "max_mp", "range", "level", "rip", "s", "c", "in", "map", "stand", "items", "slots"],
-    "proxy_character": true,
-};
-
-Object.defineProperty(character, 'x', {
-    get: function () {
-        return parent.character.real_x;
-    }, set: function () {
-        game_log("You can't set coordinates manually, use the move(x,y) function!");
-    }, enumerable: true
-});
-
-Object.defineProperty(character, 'y', {
-    get: function () {
-        return parent.character.real_y;
-    }, set: function () {
-        game_log("You can't set coordinates manually, use the move(x,y) function!");
-    }, enumerable: true
-});
-for (var p in parent.character)
-    proxy(p); // Not all properties are sadly available right away, new properties are captured imperfectly
-// var character=parent.character; // Old [25/06/2018]
-
 var G = parent.G; // Game Data - Use show_json(Object.keys(G)); and inspect individual data with show_json(G.skills) and alike
 var safeties = true; // Prevents common delay based issues that cause many requests to be sent to the server in a burst that triggers the server to disconnect the character
 
@@ -1207,29 +1177,6 @@ setInterval(function () {
     smart_move_logic();
 }, 80);
 
-function proxy(name) {
-    if (in_arr(name, character.properties)) return;
-    character.properties.push(name);
-    Object.defineProperty(character, name, {
-        get: function () {
-            return parent.character[name];
-        },
-        set: function (value) {
-            delete this[name];
-            if (character.read_only.includes(name)) {
-                game_log("You attempted to change the character." + name + " value manually. You have to use the provided functions to control your character!", colors.code_error);
-            } else {
-                parent.character[name] = value;
-            }
-        },
-        enumerable: true,
-    });
-}
-
-character.read_only.push(...["on", "once"]);
-["bank", "user", "code", "angle", "direction", "target", "from_x", "from_y", "going_x", "going_y", "moving", "vx", "vy", "move_num"].forEach(function (p) {
-    proxy(p)
-});
 
 function eval_s(code) // this is how snippets are eval'ed if they include "output="/"json_output=" - so if they include these, the scope of eval isn't global - doesn't matter much [13/07/18]
 {
