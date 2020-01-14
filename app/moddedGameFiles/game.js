@@ -3629,13 +3629,21 @@ function init_socket() {
     socket.on("eval", function (data) {
         smart_eval(data.code || data || "", data.args)
     });
-    socket.on("player", function (data) {
-        if (data.events) {
-            game_events_logic(data.events)
-        }
+    socket.on("player", function(data) {
+        var hitchhikers = data.hitchhikers;
+        delete data.hitchhikers;
         if (character) {
             adopt_soft_properties(character, data),
                 rip_logic()
+        }
+        if (hitchhikers) {
+            hitchhikers.forEach(function(tuple) {
+                original_onevent.apply(socket, [{
+                    type: 2,
+                    nsp: "/",
+                    data: tuple
+                }])
+            })
         }
     });
     socket.on("q_data", function (data) {
