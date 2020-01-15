@@ -12,6 +12,7 @@ var HttpWrapper = require("./httpWrapper");
 const uiGenerator = require("./uiGenerator");
 const pngUtil = require("./pngUtil");
 const PNG = require('pngjs').PNG;
+const fs = require("fs");
 localStorage = new LocalStorage('./app/localStorage');
 
 function close(error) {
@@ -73,7 +74,7 @@ var Game = function (ip, port, characterId, script, botKey, G, httpWrapper) {
 
 Game.prototype.init = function () {
     let self = this;
-    var fs = require("fs")
+    var fs = require("fs");
     var cheerio = require("cheerio");
     var G = this.G;
     var Executor = require("./Executor");
@@ -218,7 +219,7 @@ Game.prototype.init = function () {
         storage_get: storage_get,
         storage_set: storage_set,
         monster_attack: monster_attack,
-        is_bot:true,
+        is_bot: true,
 
 
     };
@@ -485,7 +486,16 @@ async function main() {
         let success = false;
         while (!success) {
             try {
-                gameData = await httpWrapper.getGameData();
+                let game_version = await httpWrapper.getGameVersion();
+                if (!fs.existsSync("data/data." + game_version + ".json")) {
+                    gameData = await httpWrapper.getGameData();
+                    fs.writeFileSync("data/data." + game_version + ".json", JSON.stringify(gameData));
+                    console.log("Can't find game data creating cache entry");
+                } else {
+                    let buffer = fs.readFileSync("data/data." + game_version + ".json");
+                    gameData = JSON.parse(buffer.toString());
+                    console.log("Reading game data from cache");
+                }
                 success = true;
             } catch (e) {
                 console.log("Fetch for game data failed trying again in 10 seconds");
