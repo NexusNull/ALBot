@@ -5,6 +5,7 @@
 process.on('uncaughtException', function (exception) {
     console.log(exception);
     console.log(exception.stack);
+    process.exit(-1);
 });
 var LocalStorage = require('node-localstorage').LocalStorage;
 var HttpWrapper = require("./httpWrapper");
