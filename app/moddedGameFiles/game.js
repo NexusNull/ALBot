@@ -3527,11 +3527,8 @@ function init_socket() {
         add_chat("SERVER", data.message, data.color || "orange")
     });
     socket.on("reloaded", function (data) {
-        add_chat("SERVER", "Executed a live reload. (Optional) Refresh the game.", "orange");
-        if (data.change) {
-            add_chat("CHANGES", data.change, "#59CAFF")
-        }
-        reload_data()
+        add_chat("SERVER", "Server executed a live reload. Refreshing the game.");
+        disconnect();
     });
     socket.on("chest_opened", function (data) {
         call_code_function("trigger_character_event", "loot", data);
