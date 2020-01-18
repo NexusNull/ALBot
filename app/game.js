@@ -486,13 +486,13 @@ async function main() {
         let success = false;
         while (!success) {
             try {
-                let game_version = await httpWrapper.getGameVersion();
-                if (!fs.existsSync("data/data." + game_version + ".json")) {
+                let gameVersion = await httpWrapper.getGameVersion();
+                if (!fs.existsSync("data/data." + gameVersion + ".json")) {
                     gameData = await httpWrapper.getGameData();
-                    fs.writeFileSync("data/data." + game_version + ".json", JSON.stringify(gameData));
+                    fs.writeFileSync("data/data." + gameVersion + ".json", JSON.stringify(gameData));
                     console.log("Can't find game data creating cache entry");
                 } else {
-                    let buffer = fs.readFileSync("data/data." + game_version + ".json");
+                    let buffer = fs.readFileSync("data/data." + gameVersion + ".json");
                     gameData = JSON.parse(buffer.toString());
                     console.log("Reading game data from cache");
                 }
