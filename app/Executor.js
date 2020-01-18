@@ -16,9 +16,14 @@ var Executor = function (glob, file) {
     var self = this;
 
     this.callbacks = {};
-
     parent = glob;
-    character = glob.character;
+    {
+        let oldCharacter = character;
+        character = glob.character;
+        for(let i in oldCharacter){
+            character[i] = oldCharacter[i];
+        }
+    }
     G = glob.G;
 
     process_game_data();
@@ -54,6 +59,7 @@ var Executor = function (glob, file) {
             on_destroy: {get: () => on_destroy},
             on_draw: {get: () => on_draw},
             on_game_event: {get: () => on_game_event},
+            trigger_character_event:{get:()=>trigger_character_event}
         });
     }
 };
