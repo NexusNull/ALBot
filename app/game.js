@@ -265,6 +265,11 @@ Game.prototype.init = function () {
             return party;
         }
     });
+    Object.defineProperty(glob, "party_list", {
+        get: function () {
+            return party_list;
+        }
+    });
     Object.defineProperty(glob, "is_pvp", {
         get: function () {
             return is_pvp;
