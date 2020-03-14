@@ -3657,6 +3657,33 @@ function init_socket() {
         disconnect_reason = reason;
         disconnect()
     });
+    socket.on("action", function(data) {
+        var attacker = get_entity(data.attacker);
+        if (!attacker) {
+            return
+        }
+        var event_data = {
+            actor: data.attacker,
+            target: data.target,
+            source: data.source,
+            projectile: data.projectile,
+            eta: data.eta
+        };
+        if (data.heal) {
+            event_data.heal = data.heal
+        } else {
+            if (data.damage) {
+                event_data.damage = data.damage
+            }
+        }
+        if (attacker && attacker.me && (data.source == "heal" || data.source == "attack")) {
+            resolve_deferred("heal", event_data)
+        } else {
+            if (attacker && attacker.me && data.source == "attack") {
+                resolve_deferred("attack", event_data)
+            }
+        }
+    });
     socket.on("hit", function (data) {
         var entity = get_entity(data.id);
         var owner = get_entity(data.hid);
