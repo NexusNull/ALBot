@@ -3,16 +3,19 @@
  */
 
 process.on('uncaughtException', function (exception) {
+    console.log("Closing Character");
     console.log(exception);
     console.log(exception.stack);
     process.exit(-1);
 });
+
 var LocalStorage = require('node-localstorage').LocalStorage;
 var HttpWrapper = require("./httpWrapper");
 const uiGenerator = require("./uiGenerator");
 const pngUtil = require("./pngUtil");
 const PNG = require('pngjs').PNG;
 const fs = require("fs");
+const Connector = require("./Connector");
 localStorage = new LocalStorage('./app/localStorage');
 
 function close(error) {
@@ -144,10 +147,7 @@ Game.prototype.init = function () {
     gprocess_game_data();
     init_socket();
     this.socket = socket;
-    /*
-    game.pathfinding = require("./PathFinding/pathFinding");
-    game.pathfinding.initialize(this.G);
-    */
+
     var bwi = {};
 
     //static variables
@@ -437,7 +437,7 @@ Game.prototype.init = function () {
             }, time * 1000 + 1000);
         }
     });
-}
+};
 /**
  * Register's an event in the game
  * @param event string the name f the event

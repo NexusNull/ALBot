@@ -13,6 +13,7 @@ var login = userData.login;
 var bots = userData.bots;
 
 async function main() {
+
     var httpWrapper;
     if (userData.sessionData) {
         if (userData.sessionData !== "")
@@ -28,10 +29,21 @@ async function main() {
         httpWrapper = new HttpWrapper();
         await httpWrapper.login(userData.login.email, userData.login.password);
     }
-
     var characters = await httpWrapper.getCharacters();
     var userAuth = await httpWrapper.getUserAuth();
+    var game_version = await httpWrapper.getGameVersion();
 
+    // starting pathfinding daemon
+    let pathfinderProcess = null;
+    if (userData.config.pathfinding && userData.config.pathfinding.activate) {
+        pathfinderProcess = child_process.fork("./pathfinding/main", [userData.config.pathfinding.daemonPort], {
+            stdio: [0, 1, 2, 'ipc'],
+            execArgv: [
+                //'--inspect-brk',
+                //"--max_old_space_size=4096",
+            ]
+        });
+    }
     if (userData.config.fetch) {
         console.log("Populating config file with data.");
         userData.bots = [];

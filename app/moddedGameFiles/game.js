@@ -359,8 +359,8 @@ function log_in(a, e, c, f) {
         width: screen.width,
         height: screen.height,
         scale: scale,
-        passphrase: f,
-        no_html: b,
+        passphrase: "",
+        no_html: "",
         no_graphics: ""
     };
     /* ALBot is not electron
@@ -1514,12 +1514,11 @@ function init_socket() {
     }
     */
     //TODO set config.userAgent
-    console.log(server_addr, port)
     if (protocol === "https") {
         socket = new Socket("wss://" + server_addr + ":" + port, {
             autoConnect: false,
             extraHeaders: {
-                "user-agent": "AdventureLandBot: (v1.0.0)",
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36",
                 referer: "http://adventure.land/",
                 "accept-language": "en-US,en;q=0.5"
             }
@@ -1528,12 +1527,11 @@ function init_socket() {
         socket = new Socket("ws://" + server_addr + ":" + port, {
             autoConnect: false,
             extraHeaders: {
-                "user-agent": "AdventureLandBot: (v1.0.0)",
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36",
                 referer: "http://adventure.land/",
                 "accept-language": "en-US,en;q=0.5"
             }
         });
-
     }
     add_log("Connecting to the server.");
     socket_ready = false;

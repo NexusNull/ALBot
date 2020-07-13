@@ -16,6 +16,9 @@
                     "width": 376
                 }
             }
+        },
+        "pathfinding": {
+            "activate": false
         }
     },
     "sessionData":{

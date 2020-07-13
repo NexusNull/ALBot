@@ -1,0 +1,167 @@
+/**
+ * Created by nexus on 31/03/17.
+ */
+const PriorityQueue = require("./priorityQueue");
+
+function dist(a, b) {
+    return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+}
+
+function aStar(start, end, map) {
+
+    if (start === undefined || start === null) return null;
+    if (end === undefined || end === null) return null;
+    if (start.pos.x === end.pos.x && start.pos.y === end.pos.y) return [];
+
+    start.cameFrom = null;
+    start.gCost = 0;
+    start.hCost = dist(start.pos, end.pos);
+
+    end.cameFrom = null;
+    end.gCost = Infinity;
+    end.hCost = 0;
+
+    function getNeighbours(current) {
+        var result = [];
+        for (var i = -1; i < 2; i++) {
+            for (var j = -1; j < 2; j++) {
+                if (!(i === 0 && j === 0)) {
+                    let node = map.get(current.pos.x + i, current.pos.y + j);
+                    if (node && node.cost >= 1) {
+                        result.push(node);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+
+    function getNodePath() {
+        var path = [{x: end.pos.x, y: end.pos.y}];
+        var current = end;
+        while (current.cameFrom.pos.x !== start.pos.x || current.cameFrom.pos.y !== start.pos.y) {
+            current = current.cameFrom;
+            path.splice(0, 0, {x: current.pos.x, y: current.pos.y});
+        }
+        return path;
+    }
+
+    var iter = 0;
+    var open = new PriorityQueue((a, b) => a.fCost < b.fCost);
+
+    open.push(start);
+    var found = false;
+    while (!open.isEmpty() && !found) {
+        iter++;
+        let current = open.pop();
+        current.open = false;
+        if (current.pos.x === end.pos.x && current.pos.y === end.pos.y) {
+            found = true;
+            console.log("Found a path in " + iter + " steps.");
+
+            return getNodePath();
+        } else {
+            let nodes = getNeighbours(current);
+            for (let id in nodes) {
+                let node = nodes[id];
+                if (!node.found) {
+                    node.found = true;
+                    node.open = true;
+                    node.hCost = dist(node.pos, end.pos);
+                    node.gCost = current.gCost + node.cost;
+                    node.fCost = node.gCost + node.hCost;
+                    node.cameFrom = current;
+                    open.push(node)
+                } else {
+                    if (!node.open)
+                        continue;
+                    let gCost = current.gCost + node.cost;
+                    if (gCost < node.gCost) {
+                        node.gCost = gCost;
+                        node.fCost = node.gCost + node.hCost;
+                        node.cameFrom = current;
+                    }
+                }
+
+            }
+        }
+    }
+
+    console.log("No path to end Found");
+    return null;
+}
+
+/**
+ * @param {number} mapX
+ * @param {number} mapY
+ * @param {Map} map
+ * @returns {Node}
+ */
+function getClosestWalkableNode(mapX, mapY, map) {
+    var x = Math.floor((mapX - map.position.x) / map.boxSize);
+    var y = Math.floor((mapY - map.position.y) / map.boxSize);
+
+    function getRectangle(x, y, size, map) {
+        var result = [];
+        if (size == 0) {
+            return [map.get(x, y)];
+        }
+        //Top Horizontal Row
+        var top = y - size;
+        for (var i = x - size; i <= x + size; i++) {
+            result.push(map.get(i, top))
+        }
+        //Top Bottom Row
+        var bottom = y + size;
+        for (var j = x - size; j <= x + size; j++) {
+            result.push(map.get(j, bottom))
+        }
+        //Left Vertical Row
+        var left = x - size;
+        for (var k = y - size + 1; k <= y + size - 1; k++) {
+            result.push(map.get(left, k))
+        }
+        //Right Vertical Row
+        var right = x + size;
+        for (var l = y - size + 1; l <= y + size - 1; l++) {
+            result.push(map.get(right, l))
+        }
+        return result;
+    }
+
+    var size = 0;
+    var closest = null;
+    var closestDis = Infinity; //Contains Distance squared
+    while (closestDis > size) {
+        var nodes = getRectangle(x, y, size, map);
+        for (var i in nodes) {
+            if (nodes[i] && nodes[i].cost >= 1) {
+                var node = nodes[i];
+                var dist = Math.sqrt((node.pos.x - x) * (node.pos.x - x) + (node.pos.y - y) * (node.pos.y - y));
+                if (dist < closestDis) {
+                    closest = node;
+                    closestDis = dist;
+                }
+            }
+        }
+        size++;
+    }
+
+    return closest;
+}
+
+function findPath(startX, startY, endX, endY, map) {
+    var path = [];
+    map.resetOverlay();
+    var start = getClosestWalkableNode(startX, startY, map);
+    var end = getClosestWalkableNode(endX, endY, map);
+
+    var aStarPath = aStar(start, end, map);
+    for (var i = 0; i < aStarPath.length; i++) {
+        path.push(map.toGameMapCoordinates(aStarPath[i]));
+    }
+    return path;
+}
+
+module.exports = {findPath: findPath};
