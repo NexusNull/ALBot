@@ -1403,7 +1403,24 @@ function stop_timer(b, a) {
 
 function the_door() {
 }
-
+function v_shake() {
+}
+function v_shake_i(c) {
+}
+function v_shake_i2(c) {
+}
+function v_dive() {
+}
+function v_dive_i(c) {
+}
+function no_no_no(d) {
+}
+function sway(c) {
+}
+function mojo(c) {
+}
+function flurry(d) {
+}
 function h_shake() {
     function b(c) {
         return function () {
@@ -2381,22 +2398,26 @@ function exchange_buy(c, b) {
     }
 }
 
-function craft() {
-    var a = []
-        , b = false;
-    for (var c = 0; c < 9; c++) {
-        if (cr_items[c] || cr_items[c] === 0) {
-            b = true,
-                a.push([c, cr_items[c]])
-        }
-    }
-    if (!b) {
-        d_text("INVALID", character)
+function compound(item0, item1, item2, scroll_num, offering_num) {
+    if (scroll_num == null || typeof item0 === "undefined" || typeof item1 === "undefined" || typeof item2 === "undefined") {
+        console.log("INVALID")
     } else {
-        socket.emit("craft", {
-            items: a
-        })
+        socket.emit("compound", {
+            items: [item0, item1, item2],
+            scroll_num: scroll_num,
+            offering_num: offering_num,
+            clevel: (character.items[item0].level || 0)
+        });
     }
+}
+
+
+function craft(i0, i1, i2, i3, i4, i5, i6, i7, i8) {
+    var a = [i0, i1, i2, i3, i4, i5, i6, i7, i8];
+    socket.emit("craft", {
+        items: a
+    })
+
 }
 
 function dismantle() {
@@ -2544,8 +2565,6 @@ function generate_textures(b, m) {
 }
 
 function restore_dimensions(a) {
-    a.height = a.texture.height * (a.cscale || 1) / (a.mscale || 1);
-    a.width = a.texture.width * (a.cscale || 1) / (a.mscale || 1)
 }
 
 function set_texture(d, b, a) {

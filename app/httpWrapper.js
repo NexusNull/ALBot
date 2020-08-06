@@ -182,7 +182,7 @@ HttpWrapper.prototype.getGameVersion = async function () {
         headers: {
             "x-requested-with": "XMLHttpRequest",
             "Accept": "application/json, text/javascript, */*; q=0.01",
-            "user-agent": config.browserUserAgent,
+            "user-agent": confrowserUserAgent,
             "cookie": "auth=" + this.sessionCookie,
         }
     });
