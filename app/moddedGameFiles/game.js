@@ -3507,6 +3507,10 @@ function init_socket() {
     socket.on("server_info", function (data) {
         S = data;
     });
+    socket.on("hardcore_info", function(a) {
+        S = a.E;
+        a.achiever && add_chat("mainframe", a.achiever + " ranked on the rewards list!", "#60B879");
+    });
     socket.on("server_message", function (data) {
         draw_trigger(function () {
             add_chat("", data.message, data.color || "orange");
