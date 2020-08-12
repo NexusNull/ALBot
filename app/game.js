@@ -303,6 +303,14 @@ Game.prototype.init = function () {
             cr_items = value;
         }
     });
+    Object.defineProperty(glob, "S", {
+        get: function () {
+            return S;
+        },
+        set: function (value) {
+            S = value;
+        }
+    });
     var damage = 0;
     var timeFrame = 60 * 5;
     var goldTimeline = [],
