@@ -395,251 +395,223 @@ function show_confirm(d, b, c, a) {
 }
 
 
-function use_skill(b, j, l) {
-    if (j && j.id) {
-        j = j.id
-    }
-    if (j && is_array(j)) {
-        for (var d = 0; d < j.length; d++) {
-            if (j[d] && j[d].id) {
-                j[d] = j[d].id
-            }
-            if (j[d] && j[d][0] && j[d][0].id) {
-                j[d][0] = j[d][0].id
-            }
-        }
-    }
-    if (b === "use_hp" || b === "hp") {
-        use("hp");
-        return resolving_promise({
-            result: "requested"
-        })
-    } else {
-        if (b === "use_mp" || b === "mp") {
-            use("mp");
-            return resolving_promise({
+function use_skill(a, b, c) {
+    b && b.id && (b = b.id);
+    if (b && is_array(b))
+        for (var d = 0; d < b.length; d++)
+            b[d] && b[d].id && (b[d] = b[d].id),
+            b[d] && b[d][0] && b[d][0].id && (b[d][0] = b[d][0].id);
+    if ("use_hp" == a || "hp" == a)
+        return use("hp"),
+            resolving_promise({
                 result: "requested"
-            })
-        } else {
-            if (b === "stop") {
-                move(character.real_x, character.real_y + 0.00001);
-                socket.emit("stop");
-                code_eval_if_r("smart.moving=false");
-                return resolving_promise({
+            });
+    if ("use_mp" == a || "mp" == a)
+        return use("mp"),
+            resolving_promise({
+                result: "requested"
+            });
+    if ("regen_hp" == a)
+        socket.emit("use", {
+            item: "hp"
+        });
+    else if ("regen_mp" == a)
+        socket.emit("use", {
+            item: "mp"
+        });
+    else {
+        if ("stop" == a)
+            return move(character.real_x, character.real_y + .00001),
+                socket.emit("stop"),
+                code_eval_if_r("stop('smart')"),
+                resolving_promise({
                     result: "requested"
-                })
-            } else {
-                if (b === "use_town" || b === "town") {
-                    if (character.rip) {
-                        socket.emit("respawn")
-                    } else {
-                        socket.emit("town")
-                    }
-                    return resolving_promise({
-                        result: "requested"
-                    })
-                } else {
-                    if (b === "cburst") {
-                        if (is_array(j)) {
-                            socket.emit("skill", {
-                                name: "cburst",
-                                targets: j
-                            });
-                            return push_deferreds("skill", j.length)
-                        } else {
-                            var h = get_nearby_hostiles({
-                                range: character.range - 2,
-                                limit: 12
-                            })
-                                , g = []
-                                , c = character.mp - 200
-                                , k = parseInt(c / h.length);
-                            h.forEach(function(m) {
-                                g.push([m.id, k])
-                            });
-                            socket.emit("skill", {
-                                name: "cburst",
-                                targets: g
-                            });
-                            return push_deferreds("skill", g.length)
-                        }
-                    } else {
-                        if (b === "3shot") {
-                            if (is_array(j)) {
-                                socket.emit("skill", {
-                                    name: "3shot",
-                                    ids: j
-                                });
-                                return push_deferreds("skill", j.length)
-                            } else {
-                                let h = get_nearby_hostiles({
-                                    range: character.range - 2,
-                                    limit: 3
-                                })
-                                    , a = [];
-                                h.forEach(function(m) {
-                                    a.push(m.id)
-                                });
-                                socket.emit("skill", {
-                                    name: "3shot",
-                                    ids: a
-                                });
-                                return push_deferreds("skill", a.length)
-                            }
-                        } else {
-                            if (b === "5shot") {
-                                if (is_array(j)) {
-                                    socket.emit("skill", {
-                                        name: "5shot",
-                                        ids: j
-                                    });
-                                    return push_deferreds("skill", j.length)
-                                } else {
-                                    let h = get_nearby_hostiles({
-                                        range: character.range - 2,
-                                        limit: 5
-                                    })
-                                    let a = [];
-                                    h.forEach(function(m) {
-                                        a.push(m.id)
-                                    });
-                                    socket.emit("skill", {
-                                        name: "5shot",
-                                        ids: a
-                                    });
-                                    return push_deferreds("skill", a.length)
-                                }
-                            } else {
-                                if (in_arr(b, ["invis", "partyheal", "darkblessing", "agitate", "cleave", "stomp", "charge", "light", "hardshell", "track", "warcry", "mcourage", "scare", "alchemy"])) {
-                                    socket.emit("skill", {
-                                        name: b
-                                    })
-                                } else {
-                                    if (in_arr(b, ["supershot", "quickpunch", "quickstab", "taunt", "curse", "burst", "4fingers", "magiport", "absorb", "mluck", "rspeed", "charm", "mentalburst", "piercingshot", "huntersmark", "reflection"])) {
-                                        socket.emit("skill", {
-                                            name: b,
-                                            id: j
-                                        })
-                                    } else {
-                                        if (b === "pcoat") {
-                                            let f = item_position("poison");
-                                            if (f === undefined) {
-                                                add_log("You don't have a poison sack", "gray");
-                                                return rejecting_promise({
-                                                    reason: "no_item"
-                                                })
-                                            }
-                                            socket.emit("skill", {
-                                                name: "pcoat",
-                                                num: f
-                                            })
-                                        } else {
-                                            if (b === "revive") {
-                                                let f = item_position("essenceoflife");
-                                                if (f === undefined) {
-                                                    add_log("You don't have an essence", "gray");
-                                                    return rejecting_promise({
-                                                        reason: "no_item"
-                                                    })
-                                                }
-                                                socket.emit("skill", {
-                                                    name: "revive",
-                                                    num: f,
-                                                    id: j
-                                                })
-                                            } else {
-                                                if (b === "entangle") {
-                                                    let f = item_position("essenceofnature");
-                                                    if (f === undefined) {
-                                                        add_log("You don't have an essence", "gray");
-                                                        return rejecting_promise({
-                                                            reason: "no_item"
-                                                        })
-                                                    }
-                                                    socket.emit("skill", {
-                                                        name: "entangle",
-                                                        num: f,
-                                                        id: j
-                                                    })
-                                                } else {
-                                                    if (b === "poisonarrow") {
-                                                        let f = item_position("poison");
-                                                        if (f === undefined) {
-                                                            add_log("You don't have a poison sack", "gray");
-                                                            return rejecting_promise({
-                                                                reason: "no_item"
-                                                            })
-                                                        }
-                                                        socket.emit("skill", {
-                                                            name: "poisonarrow",
-                                                            num: f,
-                                                            id: j
-                                                        })
-                                                    } else {
-                                                        if (b === "shadowstrike" || b === "phaseout") {
-                                                            let f = item_position("shadowstone");
-                                                            if (f === undefined) {
-                                                                add_log("You don't have any shadow stones", "gray");
-                                                                return rejecting_promise({
-                                                                    reason: "no_item"
-                                                                })
-                                                            }
-                                                            socket.emit("skill", {
-                                                                name: b,
-                                                                num: f
-                                                            })
-                                                        } else {
-                                                            if (b === "throw") {
-                                                                if (!character.items[l]) {
-                                                                    add_log("Inventory slot is empty", "gray");
-                                                                    return rejecting_promise({
-                                                                        reason: "no_item"
-                                                                    })
-                                                                }
-                                                                socket.emit("skill", {
-                                                                    name: b,
-                                                                    num: l,
-                                                                    id: j
-                                                                })
-                                                            } else {
-                                                                if (b === "blink") {
-                                                                    socket.emit("skill", {
-                                                                        name: "blink",
-                                                                        x: j[0],
-                                                                        y: j[1]
-                                                                    })
-                                                                } else {
-                                                                    if (b === "energize") {
-                                                                        socket.emit("skill", {
-                                                                            name: "energize",
-                                                                            id: j,
-                                                                            mp: l
-                                                                        })
-                                                                    } else {
-                                                                        if (b === "stack") {
-                                                                            on_skill("attack")
-                                                                        } else {
-                                                                            add_log("Skill not found: " + b, "gray");
-                                                                            return rejecting_promise({
-                                                                                reason: "no_skill"
-                                                                            })
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                });
+        if ("use_town" == a || "town" == a)
+            return character.rip ? socket.emit("respawn") : socket.emit("town"),
+                resolving_promise({
+                    result: "requested"
+                });
+        if ("cburst" == a) {
+            if (is_array(b))
+                return socket.emit("skill", {
+                    name: "cburst",
+                    targets: b
+                }),
+                    push_deferreds("skill", b.length);
+            a = get_nearby_hostiles({
+                range: character.range - 2,
+                limit: 12
+            });
+            var f = []
+                , g = parseInt((character.mp - 200) / a.length);
+            a.forEach(function(a) {
+                f.push([a.id, g])
+            });
+            socket.emit("skill", {
+                name: "cburst",
+                targets: f
+            });
+            return push_deferreds("skill", f.length)
         }
+        if ("3shot" == a) {
+            if (is_array(b))
+                return socket.emit("skill", {
+                    name: "3shot",
+                    ids: b
+                }),
+                    push_deferreds("skill", b.length);
+            a = get_nearby_hostiles({
+                range: character.range - 2,
+                limit: 3
+            });
+            var h = [];
+            a.forEach(function(a) {
+                h.push(a.id)
+            });
+            socket.emit("skill", {
+                name: "3shot",
+                ids: h
+            });
+            return push_deferreds("skill", h.length)
+        }
+        if ("5shot" == a) {
+            if (is_array(b))
+                return socket.emit("skill", {
+                    name: "5shot",
+                    ids: b
+                }),
+                    push_deferreds("skill", b.length);
+            a = get_nearby_hostiles({
+                range: character.range - 2,
+                limit: 5
+            });
+            h = [];
+            a.forEach(function(a) {
+                h.push(a.id)
+            });
+            socket.emit("skill", {
+                name: "5shot",
+                ids: h
+            });
+            return push_deferreds("skill", h.length)
+        }
+        if (in_arr(a, "invis partyheal darkblessing agitate cleave stomp charge light hardshell track warcry mcourage scare alchemy power xpower".split(" ")))
+            socket.emit("skill", {
+                name: a
+            });
+        else if (in_arr(a, "supershot quickpunch quickstab taunt curse burst 4fingers magiport absorb mluck rspeed charm mentalburst piercingshot huntersmark reflection".split(" ")))
+            socket.emit("skill", {
+                name: a,
+                id: b
+            });
+        else if ("pcoat" == a) {
+            c = item_position("poison");
+            if (void 0 === c)
+                return add_log("You don't have a poison sack", "gray"),
+                    rejecting_promise({
+                        reason: "no_item"
+                    });
+            socket.emit("skill", {
+                name: "pcoat",
+                num: c
+            })
+        } else if ("revive" == a) {
+            c = item_position("essenceoflife");
+            if (void 0 === c)
+                return add_log("You don't have an essence", "gray"),
+                    rejecting_promise({
+                        reason: "no_item"
+                    });
+            socket.emit("skill", {
+                name: "revive",
+                num: c,
+                id: b
+            })
+        } else if ("entangle" == a) {
+            c = item_position("essenceofnature");
+            if (void 0 === c)
+                return add_log("You don't have an essence", "gray"),
+                    rejecting_promise({
+                        reason: "no_item"
+                    });
+            socket.emit("skill", {
+                name: "entangle",
+                num: c,
+                id: b
+            })
+        } else if ("poisonarrow" == a) {
+            c = item_position("poison");
+            if (void 0 === c)
+                return add_log("You don't have a poison sack", "gray"),
+                    rejecting_promise({
+                        reason: "no_item"
+                    });
+            socket.emit("skill", {
+                name: "poisonarrow",
+                num: c,
+                id: b
+            })
+        } else if ("shadowstrike" == a || "phaseout" == a) {
+            c = item_position("shadowstone");
+            if (void 0 === c)
+                return add_log("You don't have any shadow stones", "gray"),
+                    rejecting_promise({
+                        reason: "no_item"
+                    });
+            socket.emit("skill", {
+                name: a,
+                num: c
+            })
+        } else if ("throw" == a) {
+            if (!character.items[c])
+                return add_log("Inventory slot is empty", "gray"),
+                    rejecting_promise({
+                        reason: "no_item"
+                    });
+            socket.emit("skill", {
+                name: a,
+                num: c,
+                id: b
+            })
+        } else if ("blink" == a)
+            socket.emit("skill", {
+                name: "blink",
+                x: b[0],
+                y: b[1]
+            });
+        else if ("energize" == a)
+            socket.emit("skill", {
+                name: "energize",
+                id: b,
+                mp: c
+            });
+        else if ("stack" == a)
+            on_skill("attack");
+        else if ("warp" == a) {
+            if (b && is_string(b) && !b[2])
+                b[2] = character.map;
+            else if (!b || !b[2] || is_string(b)) {
+                var n = !1, p;
+                for (p in G.maps)
+                    a = G.maps[p],
+                    a.ignore || a.instance || a.spawns.forEach(function(a) {
+                        !n && .02 > Math.random() && (n = !0,
+                            b = [a[0], a[1], p])
+                    });
+                n || (b = [100 * Math.random(), 100 * Math.random(), "main"])
+            }
+            socket.emit("skill", {
+                name: "warp",
+                x: b[0],
+                y: b[1],
+                "in": b[2]
+            })
+        } else
+            return add_log("Skill not found: " + a, "gray"),
+                rejecting_promise({
+                    reason: "no_skill"
+                })
     }
     return push_deferred("skill")
 }
