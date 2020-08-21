@@ -9,6 +9,15 @@ process.on('uncaughtException', function (exception) {
     process.exit(-1);
 });
 
+
+process.on('unhandledRejection', function (exception) {
+    console.log("Closing Character");
+    console.log(exception);
+    console.log(exception.stack);
+    process.exit(-1);
+});
+
+
 var LocalStorage = require('node-localstorage').LocalStorage;
 var HttpWrapper = require("./httpWrapper");
 const uiGenerator = require("./uiGenerator");
@@ -301,6 +310,14 @@ Game.prototype.init = function () {
         },
         set: function (value) {
             cr_items = value;
+        }
+    });
+    Object.defineProperty(glob, "S", {
+        get: function () {
+            return S;
+        },
+        set: function (value) {
+            S = value;
         }
     });
     var damage = 0;
