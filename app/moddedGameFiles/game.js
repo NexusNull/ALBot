@@ -1602,30 +1602,30 @@ function init_socket() {
         M = G.maps[current_map].data;
         GEO = G.geometry[current_map];
         //$(".mapname").html(G.maps[current_map].name || "Unknown");
-        character.real_x = data.x;
-        character.real_y = data.y;
-        character.m = data.m;
-        character.moving = false;
-        var odir = character.direction;
-        character.direction = data.direction || 0;
-        character.map = current_map;
-        character["in"] = data["in"];
-        if (data.effect === "blink") {
-            delete character.fading_out;
-            delete character.s.blink;
-            character.real_alpha = 0.5;
-            restore_dimensions(character)
-        }
-        if (data.effect === "magiport") {
-            delete character.fading_out;
-            delete character.s.magiport;
-            stop_filter(character, "bloom");
-            character.real_alpha = 0.5;
-            character.direction = odir;
-            restore_dimensions(character)
-        }
-        if (data.effect) {
-            unstuck_logic(character)
+        if (character) {
+
+            character.real_x = data.x;
+            character.real_y = data.y;
+            character.m = data.m;
+            character.moving = false;
+            var odir = character.direction;
+            character.direction = data.direction || 0;
+            character.map = current_map;
+            character["in"] = data["in"];
+            if (data.effect === "blink") {
+                delete character.fading_out;
+                delete character.s.blink;
+                character.real_alpha = 0.5;
+                restore_dimensions(character)
+            }
+            if (data.effect === "magiport") {
+                delete character.fading_out;
+                delete character.s.magiport;
+                stop_filter(character, "bloom");
+                character.real_alpha = 0.5;
+                character.direction = odir;
+                restore_dimensions(character)
+            }
         }
         character.tp = data.effect;
         var cm_timer = new Date();
@@ -3507,7 +3507,7 @@ function init_socket() {
     socket.on("server_info", function (data) {
         S = data;
     });
-    socket.on("hardcore_info", function(a) {
+    socket.on("hardcore_info", function (a) {
         S = a.E;
         a.achiever && add_chat("mainframe", a.achiever + " ranked on the rewards list!", "#60B879");
     });
@@ -3628,7 +3628,7 @@ function init_socket() {
     socket.on("eval", function (data) {
         smart_eval(data.code || data || "", data.args)
     });
-    socket.on("player", function(data) {
+    socket.on("player", function (data) {
         var hitchhikers = data.hitchhikers;
         delete data.hitchhikers;
         if (character) {
@@ -3636,7 +3636,7 @@ function init_socket() {
                 rip_logic()
         }
         if (hitchhikers) {
-            hitchhikers.forEach(function(tuple) {
+            hitchhikers.forEach(function (tuple) {
                 original_onevent.apply(socket, [{
                     type: 2,
                     nsp: "/",
@@ -3659,7 +3659,7 @@ function init_socket() {
         disconnect_reason = reason;
         disconnect()
     });
-    socket.on("action", function(data) {
+    socket.on("action", function (data) {
         var attacker = get_entity(data.attacker);
         if (!attacker) {
             return
