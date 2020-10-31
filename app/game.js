@@ -3,7 +3,7 @@
  */
 
 process.on('uncaughtException', function (exception) {
-    console.log("Closing Character");
+    console.log("Uncaught Exception");
     console.log(exception);
     console.log(exception.stack);
     process.exit(-1);
@@ -11,10 +11,10 @@ process.on('uncaughtException', function (exception) {
 
 
 process.on('unhandledRejection', function (exception) {
-    console.log("Closing Character");
+    console.log("Unhandled Rejection");
     console.log(exception);
     console.log(exception.stack);
-    process.exit(-1);
+    //process.exit(-1);
 });
 
 
@@ -66,7 +66,7 @@ function toPrettyNum(a) {
     return (sign ? "-" : "") + b
 }
 
-var Game = function (ip, port, characterId, script, botKey, G, httpWrapper) {
+var Game = function (ip, port, characterId, script, botKey, G, httpWrapper, X) {
     this.ip = ip;
     this.port = port;
     this.userId = httpWrapper.userId;
@@ -81,7 +81,9 @@ var Game = function (ip, port, characterId, script, botKey, G, httpWrapper) {
     this.socket = null;
     this.executor = null;
     this.G = G;
+    this.X = X;
     this.pathfinding = null;
+    
 }
 
 Game.prototype.init = function () {
@@ -89,6 +91,7 @@ Game.prototype.init = function () {
     var fs = require("fs");
     var cheerio = require("cheerio");
     var G = this.G;
+    var X = this.X;
     var Executor = require("./Executor");
     var friends;
     var character_to_load;
@@ -172,6 +175,7 @@ Game.prototype.init = function () {
         transporting: transporting,
         party_list: party_list,
         G: G,
+        X: X,
         entities: entities,
         next_potion: next_potion,
         drawings: drawings,
@@ -524,7 +528,27 @@ async function main() {
                 await sleep(10000);
             }
         }
-        let game = new Game(args[3], args[4], args[5], args[6], args[7], gameData, httpWrapper);
+        let X = {};
+        X.servers=[{"name": "I", "region": "EU", "players": 18, "key": "EUI", "port": 2053, "addr": "eu1.adventure.land"}, {"name": "II", "region": "EU", "players": 40, "key": "EUII", "port": 2083, "addr": "eu2.adventure.land"}, {"name": "PVP", "region": "EU", "players": 4, "key": "EUPVP", "port": 2087, "addr": "eupvp.adventure.land"}, {"name": "I", "region": "US", "players": 15, "key": "USI", "port": 2053, "addr": "us1.adventure.land"}, {"name": "II", "region": "US", "players": 47, "key": "USII", "port": 2083, "addr": "us2.adventure.land"}, {"name": "III", "region": "US", "players": 44, "key": "USIII", "port": 2053, "addr": "us3.adventure.land"}, {"name": "PVP", "region": "US", "players": 5, "key": "USPVP", "port": 2087, "addr": "uspvp.adventure.land"}, {"name": "I", "region": "ASIA", "players": 16, "key": "ASIAI", "port": 2053, "addr": "asia1.adventure.land"}];
+        X.characters=[];
+        X.unread=0;
+
+        function setIntervalAndExecute(fn, t) {
+            fn();
+            return(setInterval(fn, t));
+        }
+
+        setIntervalAndExecute(()=>{
+            httpWrapper.getServersAndCharacters().then(info=>{
+                X.servers = info.servers;
+                X.characters = info.characters;
+                X.unread = info.mail;
+            })
+        },48000);
+
+
+
+        let game = new Game(args[3], args[4], args[5], args[6], args[7], gameData, httpWrapper, X);
         game.init();
     } catch (e) {
         console.log(e)

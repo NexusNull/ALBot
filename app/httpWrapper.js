@@ -106,6 +106,19 @@ HttpWrapper.prototype.getCharacters = async function () {
     })
 };
 
+HttpWrapper.prototype.getServersAndCharacters = async function () {
+    var self = this;
+    return new Promise(async function (resolve) {
+        var html = await request.post({
+            url: "https://adventure.land/api/servers_and_characters",
+            headers: {cookie: "auth=" + self.sessionCookie},
+            formData: {method: "servers_and_characters", arguments: "{}"}
+        });
+        let data = JSON.parse(html)[0];
+        resolve(data);
+    })
+};
+
 HttpWrapper.prototype.getServerList = async function () {
     var self = this;
     return new Promise(async function (resolve, reject) {
