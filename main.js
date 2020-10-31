@@ -168,6 +168,30 @@ function startGame(args) {
             }
             BotWebInterface.SocketServer.getPublisher().removeInterface(botInterface);
             startGame(args);
+        } else if (m.type === "albot_deploy") {
+            if(m.overwrite)
+            {
+                childProcess.kill();
+                for (var i in activeChildren) {
+                    if (activeChildren.hasOwnProperty(i) && activeChildren[i] === childProcess) {
+                        activeChildren[i] = null;
+                    }
+                }
+                BotWebInterface.SocketServer.getPublisher().removeInterface(botInterface);
+            }
+                
+            //var args = [httpWrapper.sessionCookie, httpWrapper.userAuth, httpWrapper.userId, ip, port, bots[i].characterId, bots[i].runScript, userData.config.botKey];
+            //startGame();
+            let newArgs = args.slice();
+            if(m.ip)
+                newArgs[3]=m.ip;
+            if(m.port)
+                newArgs[4]=m.port;
+            if(m.character_id)
+                newArgs[5]=m.character_id;
+            if(m.script)
+                newArgs[6]=m.script;
+            startGame(newArgs);
         } else if (m.type === "bwiUpdate") {
             data = m.data;
         } else if (m.type === "bwiPush") {
