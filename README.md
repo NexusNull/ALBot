@@ -27,10 +27,10 @@
     cd ALBot
     npm install 
     ```
-7. Rename copy config file and enter credentials. If you don't know how refer to Section [Understanding userdata.json](#Understanding-userdata.json) 
+7. Rename copy config file and enter credentials. If you don't know how refer to Section [Understanding userData.json](#Understanding-userData.json) 
     ```
-    cp userdata.json-example userdata.json
-    nano userdata.json
+    cp userData.json-example userData.json
+    nano userData.json
     ```
 8. Run the bot once with
     ```
@@ -46,8 +46,6 @@ Currently there is no client side check for character limitations, if you forget
 #TODO
 
 ## Understanding userdata.json
-Rename `userData.json-example` to `userData.json`, and change the data to your own.
-
 
 ### Config 
 With on going updates the properties of config are becoming more and more complex so I want to take some time to explain them in detail here.
