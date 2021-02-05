@@ -83,7 +83,7 @@ var Game = function (ip, port, characterId, script, botKey, G, httpWrapper, X) {
     this.G = G;
     this.X = X;
     this.pathfinding = null;
-    
+
 }
 
 Game.prototype.init = function () {
@@ -339,8 +339,6 @@ Game.prototype.init = function () {
         }
     });
     socket.on("start", function () {
-
-
         var hitLog = [];
         socket.on("hit", function (data) {
             hitLog.push(data);
@@ -509,43 +507,90 @@ async function main() {
         let args = process.argv.slice(2);
         let httpWrapper = new HttpWrapper(args[0], args[1], args[2]);
         let gameData;
-        let success = false;
-        while (!success) {
-            try {
-                let gameVersion = await httpWrapper.getGameVersion();
-                if (!fs.existsSync("data/data." + gameVersion + ".json")) {
-                    gameData = await httpWrapper.getGameData();
-                    fs.writeFileSync("data/data." + gameVersion + ".json", JSON.stringify(gameData));
-                    console.log("Can't find game data creating cache entry");
-                } else {
-                    let buffer = fs.readFileSync("data/data." + gameVersion + ".json");
-                    gameData = JSON.parse(buffer.toString());
-                    console.log("Reading game data from cache");
-                }
-                success = true;
-            } catch (e) {
-                console.log("Fetch for game data failed trying again in 10 seconds");
-                await sleep(10000);
-            }
+
+        let gameVersion = await httpWrapper.getGameVersion();
+        try {
+            let buffer = fs.readFileSync("data/data." + gameVersion + ".json");
+            gameData = JSON.parse(buffer.toString());
+            console.log("Reading game data from cache");
+        } catch (e) {
+            console.log(`Unable to read data for version:${gameVersion} instance stopping.`);
+            process.exit();
         }
+
         let X = {};
-        X.servers=[{"name": "I", "region": "EU", "players": 18, "key": "EUI", "port": 2053, "addr": "eu1.adventure.land"}, {"name": "II", "region": "EU", "players": 40, "key": "EUII", "port": 2083, "addr": "eu2.adventure.land"}, {"name": "PVP", "region": "EU", "players": 4, "key": "EUPVP", "port": 2087, "addr": "eupvp.adventure.land"}, {"name": "I", "region": "US", "players": 15, "key": "USI", "port": 2053, "addr": "us1.adventure.land"}, {"name": "II", "region": "US", "players": 47, "key": "USII", "port": 2083, "addr": "us2.adventure.land"}, {"name": "III", "region": "US", "players": 44, "key": "USIII", "port": 2053, "addr": "us3.adventure.land"}, {"name": "PVP", "region": "US", "players": 5, "key": "USPVP", "port": 2087, "addr": "uspvp.adventure.land"}, {"name": "I", "region": "ASIA", "players": 16, "key": "ASIAI", "port": 2053, "addr": "asia1.adventure.land"}];
-        X.characters=[];
-        X.unread=0;
+        X.servers = [{
+            "name": "I",
+            "region": "EU",
+            "players": 18,
+            "key": "EUI",
+            "port": 2053,
+            "addr": "eu1.adventure.land"
+        }, {
+            "name": "II",
+            "region": "EU",
+            "players": 40,
+            "key": "EUII",
+            "port": 2083,
+            "addr": "eu2.adventure.land"
+        }, {
+            "name": "PVP",
+            "region": "EU",
+            "players": 4,
+            "key": "EUPVP",
+            "port": 2087,
+            "addr": "eupvp.adventure.land"
+        }, {
+            "name": "I",
+            "region": "US",
+            "players": 15,
+            "key": "USI",
+            "port": 2053,
+            "addr": "us1.adventure.land"
+        }, {
+            "name": "II",
+            "region": "US",
+            "players": 47,
+            "key": "USII",
+            "port": 2083,
+            "addr": "us2.adventure.land"
+        }, {
+            "name": "III",
+            "region": "US",
+            "players": 44,
+            "key": "USIII",
+            "port": 2053,
+            "addr": "us3.adventure.land"
+        }, {
+            "name": "PVP",
+            "region": "US",
+            "players": 5,
+            "key": "USPVP",
+            "port": 2087,
+            "addr": "uspvp.adventure.land"
+        }, {
+            "name": "I",
+            "region": "ASIA",
+            "players": 16,
+            "key": "ASIAI",
+            "port": 2053,
+            "addr": "asia1.adventure.land"
+        }];
+        X.characters = [];
+        X.unread = 0;
 
         function setIntervalAndExecute(fn, t) {
             fn();
-            return(setInterval(fn, t));
+            return (setInterval(fn, t));
         }
 
-        setIntervalAndExecute(()=>{
-            httpWrapper.getServersAndCharacters().then(info=>{
+        setIntervalAndExecute(() => {
+            httpWrapper.getServersAndCharacters().then(info => {
                 X.servers = info.servers;
                 X.characters = info.characters;
                 X.unread = info.mail;
             })
-        },48000);
-
+        }, 48000);
 
 
         let game = new Game(args[3], args[4], args[5], args[6], args[7], gameData, httpWrapper, X);
