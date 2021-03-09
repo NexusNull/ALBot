@@ -62,7 +62,7 @@ Granted it doesn't look as fancy as I would like it to, but it does its job. ALB
 
 ![Screenshot](https://pwellershaus.com/uploads/original/ALBot.png)
 
-As you can see it contains the name and level but also TLU which stands for 'time to level up', besides that the rest should be self-explanatory.  
+As you can see it contains the name and level but also TLU which stands for 'time to level up'. BWI also has the option to display and update pictures, we use this here to automatically display what the bot sees and what is happening around it. The green dot represent the current character, red dots are monsters and red lines are attacks. White lines are the collision boxes of the map.
 
 BWI can be enabled/disabled by setting the start property, by default this is set to false. One thing to note is that BWI uses 2 consecutive ports meaning with you want to expose BWI to the internet by port forwarding you will have to port forward the port listed here and one higher. If need be I can change that behaviour but as long as nobody complains it's staying that way.
 If you do decide to open BWI to the internet, there is still the option to protect it with a password so only you can access it. Such a setup can be useful if you have it running on a server but want to check up on it from work.
