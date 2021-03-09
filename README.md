@@ -57,8 +57,8 @@ The fetch property sets the bot up in a way that it will discard any existing da
 An old property used for testing in different environments, as of late it is no longer in use and can be removed.
 
 #### botWebInterface
-Bot-web-interface or BWI is another module that I developed which displays data in a neat format.
-Granted it doesn't look as fancy as I would like it to, but it does its job. BWI offers a simple to set up web interface that can display all kinds of data, ALBot uses it to display basic information about the running characters.
+Bot-web-interface or BWI is another module that I developed which displays data using a graphical interface.
+Granted it doesn't look as fancy as I would like it to, but it does its job. ALBot uses BWI to display basic information about the running characters, this information is constanty updated without requiring user interaction.
 
 ![Screenshot](https://pwellershaus.com/uploads/original/ALBot.png)
 
