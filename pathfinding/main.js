@@ -1,4 +1,4 @@
-const httpWrapper = new (require("../app/httpWrapper"))();
+const httpWrapper = new (require("../app/HttpWrapper"))();
 const ProgressBar = require("./consoleProgress");
 const boxMapAStar = require("./boxMapAStar");
 const io = (require('socket.io'));

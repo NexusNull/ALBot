@@ -1175,7 +1175,7 @@ function smart_move_logic() {
 
 setInterval(function () {
     smart_move_logic();
-}, 80);
+}, 160);
 
 
 function eval_s(code) // this is how snippets are eval'ed if they include "output="/"json_output=" - so if they include these, the scope of eval isn't global - doesn't matter much [13/07/18]

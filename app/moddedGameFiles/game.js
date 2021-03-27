@@ -1626,8 +1626,8 @@ function init_socket() {
                 character.direction = odir;
                 restore_dimensions(character)
             }
-        }
         character.tp = data.effect;
+        }
         var cm_timer = new Date();
         if (create) {
             create_map()
