@@ -22,12 +22,18 @@ class Game extends EventSystem {
                 //"--max_old_space_size=4096",
             ]
         });
+        this.process.on("message", (m) => {
+
+        })
+        this.process.on("exit", (code) => {
+            this.emit("stop");
+        })
+
     }
 
     stop() {
         if (this.process)
             this.process.exit(1);
-        this.emit("stop");
     }
 }
 

@@ -37,19 +37,19 @@ function on_party_invite(name) {
     }
 }
 
+setTimeout(() => {
+    process.exit(1);
+}, 10000)
 
-
-
-
-if(character.rip){
-    setTimeout(function(){
+if (character.rip) {
+    setTimeout(function () {
         respawn();
-        setTimeout(function(){
+        setTimeout(function () {
             smart_move(targetMonster, function () {
                 fighting = true;
             });
-        },1000);
-    },12000);
+        }, 1000);
+    }, 12000);
 } else {
     smart_move(targetMonster, function () {
         fighting = true;
@@ -73,7 +73,7 @@ setInterval(function () {
             respawn();
             setTimeout(function () {
                 reviving = false;
-                smart_move(position, function(){
+                smart_move(position, function () {
                     fighting = true;
                 });
             }, 1000)
@@ -97,9 +97,9 @@ setInterval(function () {
         if (can_attack(target)) {
             attack(target);
         } else {
-            let dist = Math.sqrt(Math.pow(target.real_x-character.real_x,2)+Math.pow(target.real_y-character.real_y,2))
-            if(dist > character.range-20)
-                move((target.real_x+character.real_x)/2, (target.real_y+character.real_y)/2);
+            let dist = Math.sqrt(Math.pow(target.real_x - character.real_x, 2) + Math.pow(target.real_y - character.real_y, 2))
+            if (dist > character.range - 20)
+                move((target.real_x + character.real_x) / 2, (target.real_y + character.real_y) / 2);
         }
     }
 }, 1000 / 4);

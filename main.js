@@ -47,8 +47,6 @@ async function main() {
         promises.push(gameController.startCharacter(bot.characterId, bot.server, bot.runScript))
     }
     await Promise.all(promises);
-    setTimeout(() => {
-    }, 10000000)
 }
 
 main();

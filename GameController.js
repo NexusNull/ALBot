@@ -16,11 +16,23 @@ class GameController {
                 await this.gameDataManager.updateGameData()
             const game = new Game(this.httpWrapper.sessionCookie, serverInfo.ip, serverInfo.port, characterId, runScript, 0);
             game.on("start", resolve);
+            game.on("stop", () => {
+                let data = this.bots.get(characterId);
+                this.bots.delete(characterId);
+                if (!data.stopping) {
+                    console.log(`character: ${characterId} stopped unexpectedly, restarting ...`)
+                    this.bots.delete(characterId);
+                    setTimeout(() => {
+                        this.startCharacter(characterId, server, runScript)
+                    }, 1000);
+                }
+            })
             this.bots.set(characterId, {
                 characterId,
                 server,
                 runScript,
-                game: game
+                game: game,
+                stopping: false,
             });
             game.start();
         })

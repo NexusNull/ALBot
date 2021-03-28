@@ -455,6 +455,7 @@ Game.prototype.init = function () {
             }, 30 * 1000);
         } else if (/Failed: wait_(\d+)_seconds/g.exec(data) != null) {
             let time = /Failed: wait_(\d+)_seconds/g.exec(data)[1];
+            console.log(`Failed: wait_${time}_seconds`);
             setTimeout(function () {
                 console.log("Retrying for " + character_to_load);
                 log_in(user_id, character_to_load, user_auth);
@@ -515,7 +516,14 @@ async function main() {
             gameData = JSON.parse(buffer.toString());
             console.log("Reading game data from cache");
         } catch (e) {
-            console.log(`Unable to read data for version:${gameVersion} instance stopping.`);
+            console.log(`
+            Unable
+            to
+            read
+            data
+            for version:${gameVersion}
+            instance
+            stopping.`);
             process.exit();
         }
 
