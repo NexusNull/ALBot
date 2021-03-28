@@ -37,10 +37,6 @@ function on_party_invite(name) {
     }
 }
 
-setTimeout(() => {
-    process.exit(1);
-}, 10000)
-
 if (character.rip) {
     setTimeout(function () {
         respawn();

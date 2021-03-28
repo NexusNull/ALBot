@@ -37,8 +37,8 @@ function get(from, what) {
 let uiGenerator = function () {
     this.miniMapHeight = get(config, ["botWebInterface", "minimap", "size", "height"]) || 200;
     this.miniMapWidth = get(config, ["botWebInterface", "minimap", "size", "width"]) || 376;
-    this.enableMiniMap = get(config, ["botWebInterface", "minimap", "enable"]) || false;
-    this.enableBotWebInterface = get(config, ["botWebInterface", "start"]) || false;
+    this.enableMiniMap = get(config, ["botWebInterface", "minimap", "enabled"]) || false;
+    this.enableBotWebInterface = get(config, ["botWebInterface", "enabled"]) || false;
     this.updateTiming = get(config, ["botWebInterface", "minimap", "speed"]) || 1000;
 
     this.defaultStructure = [

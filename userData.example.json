@@ -5,11 +5,11 @@
         "botKey": 1,
         "browserUserAgent":"{ALBot: (v1.7.0)}",
         "botWebInterface": {
-            "start": false,
+            "enabled": false,
             "port": 2080,
             "password": "",
             "minimap": {
-                "enable": false,
+                "enabled": false,
                 "speed": 1000,
                 "size": {
                     "height": 200,
