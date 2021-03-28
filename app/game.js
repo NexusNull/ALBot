@@ -506,7 +506,6 @@ async function main() {
     try {
         let args = process.argv.slice(2);
         let httpWrapper = new HttpWrapper();
-        console.log(args)
         httpWrapper.setSession(args[0])
         let gameData;
 
@@ -594,7 +593,6 @@ async function main() {
             })
         }, 48000);
 
-        console.log(args)
         let game = new Game(args[1], args[2], args[3], args[4], args[5], gameData, httpWrapper, X);
         game.init();
     } catch (e) {
