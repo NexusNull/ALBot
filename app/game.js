@@ -495,6 +495,7 @@ Game.prototype.emit = function (event, arguments) {
 Game.prototype.stop = function () {
     if (this.socket)
         this.socket.close();
+    process.exit(1);
 };
 
 async function sleep(ms) {
@@ -517,14 +518,8 @@ async function main() {
             console.log("Reading game data from cache");
         } catch (e) {
             console.log(`
-            Unable
-            to
-            read
-            data
-            for version:${gameVersion}
-            instance
-            stopping.`);
-            process.exit();
+            Unable to read data for version:${gameVersion} instance stopping.`);
+            process.exit(1);
         }
 
         let X = {};

@@ -1,6 +1,6 @@
 {
   "name": "adventurelandbot",
-  "version": "2.7.1",
+  "version": "2.7.2",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -10,7 +10,7 @@
   "author": "Patric Wellershaus",
   "license": "GNU GPLv3.0",
   "dependencies": {
-    "bot-web-interface": "git+https://github.com/NexusNull/bot-web-interface.git",
+    "bot-web-interface": "^2.0.1",
     "cheerio": "1.0.0-rc.3",
     "extend": "3.0.2",
     "lodash": "^4.17.21",

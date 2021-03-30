@@ -22,7 +22,7 @@ class GameController {
             game.on("start", resolve);
             game.on("stop", () => {
                 let data = this.bots.get(characterId);
-                this.botWebInterface.removeInterface(data.botUI);
+                data.botUI.destroy();
                 this.bots.delete(characterId);
                 if (!data.stopping) {
                     console.log(`character: ${characterId} stopped unexpectedly, restarting ...`)
