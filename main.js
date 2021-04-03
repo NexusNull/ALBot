@@ -44,6 +44,25 @@ class ALBot {
         if (session && session !== "") {
             this.httpWrapper.setSession(session);
         }
+
+        if (config.isFetch()) {
+            console.log("Populating config file with data.");
+            const characters = await this.httpWrapper.getCharacters();
+            let bots = [];
+            for (let char of characters) {
+                bots.push({
+                    characterName: char.name,
+                    characterId: char.id,
+                    runScript: "default.js",
+                    server: "US I",
+                    enabled: false,
+                })
+            }
+            config.setBots(bots)
+            config.toggleFetch();
+            process.exit();
+        }
+
         if (!await this.httpWrapper.checkLogin()) {
             let login = config.getLogin();
             let loggedIn = await this.httpWrapper.login(login.email, login.password);

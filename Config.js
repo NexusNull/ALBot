@@ -48,6 +48,20 @@ class UserData {
         return bots;
     }
 
+    isFetch() {
+        return this.config.config.fetch;
+    }
+
+    toggleFetch() {
+        this.config.config.fetch = !this.config.config.fetch;
+        this.writeConfig(this.config);
+    }
+
+    setBots(bots) {
+        this.config.bots = bots
+        this.writeConfig(this.config);
+    }
+
     getLogin() {
         return Object.assign({}, this.config.login)
     }
