@@ -4,13 +4,26 @@
 var fs = require("fs")
 
 request = require("sync-request")
+const pathu = require("path");
 parent = {};
 character = {};
 G = {};
 active = false, catch_errors = true, is_code = 1, is_server = 0, is_game = 0;
 
-(1, eval)(fs.readFileSync('app/moddedGameFiles/common_functions.js') + '');
-(1, eval)(fs.readFileSync('app/moddedGameFiles/runner_functions.js') + '');
+function feval(path) {
+    let code = `//# sourceURL=feval://${pathu.join(__dirname, "..", path)}\n` +
+        fs.readFileSync(path) + '';
+    try {
+        (1, eval)(code);
+    } catch (w) {
+        console.error(w)
+        process.exit(1);
+    }
+}
+
+
+feval('app/moddedGameFiles/common_functions.js');
+feval('app/moddedGameFiles/runner_functions.js');
 
 var Executor = function (glob, file) {
     var self = this;
@@ -20,7 +33,7 @@ var Executor = function (glob, file) {
     {
         let oldCharacter = character;
         character = glob.character;
-        for(let i in oldCharacter){
+        for (let i in oldCharacter) {
             character[i] = oldCharacter[i];
         }
     }
@@ -30,7 +43,7 @@ var Executor = function (glob, file) {
     this.execute = function () {
         console.log("Executing " + file);
         process.send({
-            type:"startupClient",
+            type: "startupClient",
             characterName: character.name,
         });
         process.on('message', (m) => {
@@ -43,8 +56,7 @@ var Executor = function (glob, file) {
                 parent.send_code_message(m.characterName, m.data);
             }
         });
-
-        (1,eval)(fs.readFileSync('CODE/' + file) + '');
+        feval('CODE/' + file)
 
         // This exports scoped functions to the game object,
         // sadly this is the way to go because we don't have a window object.
@@ -59,8 +71,8 @@ var Executor = function (glob, file) {
             on_destroy: {get: () => on_destroy},
             on_draw: {get: () => on_draw},
             on_game_event: {get: () => on_game_event},
-            trigger_event: {get:()=>trigger_event},
-            trigger_character_event: {get:()=>trigger_character_event}
+            trigger_event: {get: () => trigger_event},
+            trigger_character_event: {get: () => trigger_character_event}
         });
     }
 };
