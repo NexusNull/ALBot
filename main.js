@@ -45,6 +45,18 @@ class ALBot {
             this.httpWrapper.setSession(session);
         }
 
+        if (!await this.httpWrapper.checkLogin()) {
+            let login = config.getLogin();
+            let loggedIn = await this.httpWrapper.login(login.email, login.password);
+            if (loggedIn) {
+                const session = this.httpWrapper.sessionCookie;
+                config.setSession(session);
+            } else {
+                console.error("Unable to log in, aborting ...")
+                process.exit(1);
+            }
+        }
+
         if (config.isFetch()) {
             console.log("Populating config file with data.");
             const characters = await this.httpWrapper.getCharacters();
@@ -63,17 +75,6 @@ class ALBot {
             process.exit();
         }
 
-        if (!await this.httpWrapper.checkLogin()) {
-            let login = config.getLogin();
-            let loggedIn = await this.httpWrapper.login(login.email, login.password);
-            if (loggedIn) {
-                const session = this.httpWrapper.sessionCookie;
-                config.setSession(session);
-            } else {
-                console.error("Unable to log in, aborting ...")
-                process.exit(1);
-            }
-        }
 
         console.log("Starting characters");
         let bots = config.getBots();
