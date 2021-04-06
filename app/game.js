@@ -397,13 +397,13 @@ Game.prototype.init = function () {
                     if (time > 0) {
                         //prettify time
                         let tmpTime = time;
-                        var days = Math.floor(tmpTime / (3600 * 24));
+                        var days = Math.floor(tmpTime / (3600 * 24)) || 0;
                         tmpTime -= 3600 * 24 * days;
-                        var hours = Math.floor(tmpTime / 3600);
+                        var hours = Math.floor(tmpTime / 3600) || 0;
                         tmpTime -= 3600 * hours;
-                        var minutes = Math.floor(tmpTime / 60);
+                        var minutes = Math.floor(tmpTime / 60) || 0;
                         tmpTime -= 60 * minutes;
-                        var seconds = tmpTime;
+                        var seconds = tmpTime || 0;
 
                         if (hours < 10) {
                             hours = "0" + hours;
