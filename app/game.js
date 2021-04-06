@@ -393,16 +393,17 @@ Game.prototype.init = function () {
                     var xpps = (character.xp - thenXP) / xpTimeline.length;
 
                     //calculate time until level up
-                    var time = Math.floor((character.max_xp - character.xp) / xpps);
+                    let time = Math.floor((character.max_xp - character.xp) / xpps);
                     if (time > 0) {
                         //prettify time
-                        var days = Math.floor(time / (3600 * 24));
-                        time -= 3600 * 24 * days;
-                        var hours = Math.floor(time / 3600);
-                        time -= 3600 * hours;
-                        var minutes = Math.floor(time / 60);
-                        time -= 60 * minutes;
-                        var seconds = time;
+                        let tmpTime = time;
+                        var days = Math.floor(tmpTime / (3600 * 24));
+                        tmpTime -= 3600 * 24 * days;
+                        var hours = Math.floor(tmpTime / 3600);
+                        tmpTime -= 3600 * hours;
+                        var minutes = Math.floor(tmpTime / 60);
+                        tmpTime -= 60 * minutes;
+                        var seconds = tmpTime;
 
                         if (hours < 10) {
                             hours = "0" + hours;
