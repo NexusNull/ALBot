@@ -1,5 +1,10 @@
 const Game = require("./Game");
 
+async function sleep(ms) {
+    return new Promise(function (res) {
+        setTimeout(res, ms)
+    })
+}
 
 class GameController {
     constructor(httpWrapper, serverList, gameDataManager, botWebInterface) {
@@ -13,6 +18,18 @@ class GameController {
     async startCharacter(characterId, server, runScript) {
         return new Promise(async (resolve, reject) => {
             let serverInfo = await this.serverList.getServerInfo(server);
+            while (!serverInfo) {
+                console.log(`Unable to find server: ${server}, retrying in 10 seconds`);
+                await sleep(10000);
+                serverInfo = await this.serverList.getServerInfo(server);
+            }
+            if (!serverInfo) {
+                console.log("Server unavailable, retrying in 10 seconds")
+                setTimeout(() => {
+                    this.startCharacter(characterId, server, runScript)
+                }, 10000);
+                return;
+            }
             let gameVersion = await this.httpWrapper.getGameVersion();
             if (gameVersion > this.gameDataManager.versions[0])
                 await this.gameDataManager.updateGameData()
