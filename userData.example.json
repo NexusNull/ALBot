@@ -18,7 +18,7 @@
             }
         },
         "pathfinding": {
-            "activate": false
+            "enabled": false
         }
     },
     "login": {

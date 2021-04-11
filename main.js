@@ -5,6 +5,8 @@ const ServerList = require("./ServerList")
 const GameDataManager = require("./GameDataManager")
 const BotWebInterface = require("bot-web-interface");
 const uiGenerator = require("./app/uiGenerator");
+const Pathfinding = require("./pathfinding/Pathfinding");
+
 
 process.on('uncaughtException', function (exception) {
     console.log("Uncaught Exception");
@@ -75,6 +77,10 @@ class ALBot {
             process.exit();
         }
 
+        if (config.isPathfinding()) {
+            let pathFinding = new Pathfinding();
+            await pathFinding.start();
+        }
 
         console.log("Starting characters");
         let bots = config.getBots();

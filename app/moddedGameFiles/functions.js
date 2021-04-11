@@ -267,7 +267,7 @@ function add_log(c, a) {
         });
     }
     game_logs.push([c,a]);
-    //console.log(c);
+    console.log(c);
 }
 
 function add_holiday_log() {

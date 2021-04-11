@@ -84,6 +84,10 @@ class UserData {
         let json = JSON.stringify(data, null, 4);
         fs.writeFileSync("userData.json", json)
     }
+
+    isPathfinding() {
+        return this.config.config.pathfinding.enabled;
+    }
 }
 
 module.exports = new UserData();
