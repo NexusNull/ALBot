@@ -1,60 +1,40 @@
 function draw_line(x1, y1, x2, y2, png, color) {
-    x1 = Math.floor(x1);
-    y1 = Math.floor(y1);
-    x2 = Math.floor(x2);
-    y2 = Math.floor(y2);
-    if (Math.abs(x2 - x1) > Math.abs(y2 - y1)) {
-        if (x1 > x2) {
-            let tmp = x2;
-            x2 = x1;
-            x1 = tmp;
+  x1 = Math.floor(x1);
+  y1 = Math.floor(y1);
+  x2 = Math.floor(x2);
+  y2 = Math.floor(y2);
 
-            let tmp1 = y2;
-            y2 = y1;
-            y1 = tmp1;
-        }
-        let vecX = x2 - x1;
-        let vecY = y2 - y1;
-        if (!color)
-            color = [0, 0, 0, 255];
+  const xs = Math.min(x2, x1);
+  const xl = Math.max(x2, x1);
+  const ys = Math.min(y2, y1);
+  const yl = Math.max(y2, y1);
+  if (!color) color = [0, 0, 0, 255];
 
-        for (let x = x1, i = 0; x < x2; i++, x++) {
-            let y = y1 + Math.round((vecY / vecX) * i);
-            //out of bounds check
-            if (x > png.width - 1 || x < 0 || y > png.height - 1 || y < 0)
-                continue;
-            let idx = (png.width * y + x) << 2;
-            png.data[idx] = color[0];
-            png.data[idx + 1] = color[1];
-            png.data[idx + 2] = color[2];
-            png.data[idx + 3] = color[3];
-        }
-    } else {
-        if (y1 > y2) {
-            let tmp = x2;
-            x2 = x1;
-            x1 = tmp;
 
-            let tmp1 = y2;
-            y2 = y1;
-            y1 = tmp1;
-        }
-        let vecY = y2 - y1;
-        let vecX = x2 - x1;
-        if (!color)
-            color = [0, 0, 0, 255];
-
-        for (let y = y1, i = 0; y < y2; i++, y++) {
-            let x = x1 + Math.round((vecX / vecY) * i);
-            if (x > png.width - 1 || x < 0 || y > png.height - 1 || y < 0)
-                continue;
-            let idx = (png.width * y + x) << 2;
-            png.data[idx] = color[0];
-            png.data[idx + 1] = color[1];
-            png.data[idx + 2] = color[2];
-            png.data[idx + 3] = color[3];
-        }
+  if (x2 - x1 > y2 - y1) {
+    const slope = (yl - ys)/(xl - xs)
+    for (let x = xs, i = 0; x < xl; i++, x++) {
+      let y = ys + Math.round(slope * i);
+      //out of bounds check
+      if (x > png.width - 1 || x < 0 || y > png.height - 1 || y < 0) continue;
+      let idx = (png.width * y + x) << 2;
+      png.data[idx] = color[0];
+      png.data[idx + 1] = color[1];
+      png.data[idx + 2] = color[2];
+      png.data[idx + 3] = color[3];
     }
+  } else {
+    const slope = (xl - xs)/(yl - ys)
+    for (let y = ys, i = 0; y < yl; i++, y++) {
+      let x = xs + Math.round((slope) * i);
+      if (x > png.width - 1 || x < 0 || y > png.height - 1 || y < 0) continue;
+      let idx = (png.width * y + x) << 2;
+      png.data[idx] = color[0];
+      png.data[idx + 1] = color[1];
+      png.data[idx + 2] = color[2];
+      png.data[idx + 3] = color[3];
+    }
+  }
 }
 
 function draw_dot(x, y, size, png, color) {
