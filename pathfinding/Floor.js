@@ -32,18 +32,22 @@ class Floor {
 
     fill(x, y, value) {
         const width = this.size.x;
-        const open = [(x + y * width)-1];
-        let c = 0;
-        while (open.length - c > 0) {
-            let pos = open[c];
+        const open = new Uint32Array(0x4000);
+        open[0] = (x + y * width) | 0xf0000000;
+        let first = 0,
+            last = 0;
+        while (first !== last + 1) {
+            const pos = open[first] & 0x0fffffff;
+            const dir = open[first] & 0xf0000000;
+
             if (this.matrices.base[pos] === 0) {
                 this.matrices.base[pos] = value;
-                (pos + 1) % width === 0 ? 0 : open.push(pos + 1);
-                (pos - 1) % width === width - 1 ? 0 : open.push(pos - 1);
-                open.push(pos + width);
-                open.push(pos - width);
+                if (dir & 0x80000000 && (pos + 1) % width !== 0) open[(last = (last + 1) % open.length)] = (pos + 1) | 0xb0000000; // going right set direction all but left
+                if (dir & 0x40000000 && (pos - 1) % width !== width - 1) open[(last = (last + 1) % open.length)] = (pos - 1) | 0x70000000; // going left set direction all but right
+                if (dir & 0x20000000) open[(last = (last + 1) % open.length)] = (pos + width) | 0xe0000000; // going down set direction all but up
+                if (dir & 0x10000000) open[(last = (last + 1) % open.length)] = (pos - width) | 0xd0000000; // going up set direction all but down
             }
-            c++;
+            first = (first + 1) % open.length;
         }
     }
 
