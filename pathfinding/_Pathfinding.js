@@ -20,8 +20,7 @@ class _Pathfinding {
             this.gameData = JSON.parse(buffer.toString());
             console.log("Reading game data from cache for pathfinding");
         } catch (e) {
-            console.log(`
-            Unable to read data for version:${gameVersion} instance stopping.`);
+            console.log(`Unable to read data for version:${gameVersion} instance stopping.`);
             process.exit(1);
         }
 
