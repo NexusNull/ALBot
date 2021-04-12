@@ -4,7 +4,7 @@ function draw_line(x1, y1, x2, y2, png, color) {
   x2 = Math.floor(x2);
   y2 = Math.floor(y2);
 
-  const xs = x1,
+  var xs = x1,
     xl = x2,
     ys = y1,
     yl = y2;
