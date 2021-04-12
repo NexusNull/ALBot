@@ -583,6 +583,7 @@ async function main() {
         }];
         X.characters = [];
         X.unread = 0;
+        X.codes = {};
 
         function setIntervalAndExecute(fn, t) {
             fn();
@@ -594,6 +595,7 @@ async function main() {
                 X.servers = info.servers;
                 X.characters = info.characters;
                 X.unread = info.mail;
+                X.codes = info.code_list;
             })
         }, 48000);
 

@@ -31,7 +31,8 @@ class GameController {
                 return;
             }
             let gameVersion = await this.httpWrapper.getGameVersion();
-            if (gameVersion > this.gameDataManager.versions[0])
+            if (this.gameDataManager.versions.length <= 0 ||
+                gameVersion > this.gameDataManager.versions[0])
                 await this.gameDataManager.updateGameData()
             const botUI = this.botWebInterface.publisher.createInterface();
             const game = new Game(this.httpWrapper.sessionCookie, serverInfo.ip, serverInfo.port, characterId, runScript, botUI);
