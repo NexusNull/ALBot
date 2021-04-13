@@ -15,8 +15,8 @@ class GameController {
         this.botWebInterface = botWebInterface;
     }
 
-    async startCharacter(characterId, server, runScript) {
-        return new Promise(async (resolve, reject) => {
+    async startCharacter(characterId, server, runScript, characterName) {
+        return new Promise(async (resolve) => {
             let serverInfo = await this.serverList.getServerInfo(server);
             while (!serverInfo) {
                 console.log(`Unable to find server: ${server}, retrying in 10 seconds`);
@@ -35,7 +35,7 @@ class GameController {
                 gameVersion > this.gameDataManager.versions[0])
                 await this.gameDataManager.updateGameData()
             const botUI = this.botWebInterface.publisher.createInterface();
-            const game = new Game(this.httpWrapper.sessionCookie, serverInfo.ip, serverInfo.port, characterId, runScript, botUI);
+            const game = new Game(this.httpWrapper.sessionCookie, serverInfo.ip, serverInfo.port, characterId, runScript, botUI, characterName);
 
             game.on("start", resolve);
             game.on("stop", () => {
@@ -49,6 +49,15 @@ class GameController {
                         this.startCharacter(characterId, server, runScript)
                     }, 1000);
                 }
+            });
+
+            game.on("cm", (data) => {
+                for (let [characterId, bot] of this.bots) {
+                    if(bot.game.send_cm(data)){
+                        return;
+                    }
+                }
+                game.send_cm_failed(data)
             })
 
             this.bots.set(characterId, {

@@ -2,7 +2,7 @@ const EventSystem = require("./EventSystem");
 const child_process = require("child_process");
 
 class Game extends EventSystem {
-    constructor(session, ip, port, characterId, runScript, botUI) {
+    constructor(session, ip, port, characterId, runScript, botUI, characterName) {
         super();
         this.process = null;
         this.session = session;
@@ -11,6 +11,7 @@ class Game extends EventSystem {
         this.characterId = characterId;
         this.runScript = runScript;
         this.botUI = botUI;
+        this.characterName = characterName;
 
     }
 
@@ -38,13 +39,36 @@ class Game extends EventSystem {
                     this.botUI.pushData(m.name, m.data);
                     break;
                 case "send_cm":
+                    this.emit("cm", m)
                     break;
             }
         });
-        this.process.on("exit", (code) => {
+        this.process.on("exit", () => {
             this.emit("stop");
         })
 
+    }
+
+    send_cm(data) {
+        if (data.characterName === this.characterName) {
+            this.process.send({
+                type: "on_cm",
+                from: data.from,
+                data: data.data,
+
+            })
+            return true;
+        }
+        return false;
+    }
+
+    send_cm_failed(data) {
+        this.process.send({
+            type: "send_cm_failed",
+            characterName: data.characterName,
+            data: data.data,
+        });
+        console.log("cm failed")
     }
 
     stop() {

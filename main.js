@@ -87,7 +87,7 @@ class ALBot {
 
         let promises = [];
         for (let bot of bots) {
-            promises.push(this.gameController.startCharacter(bot.characterId, bot.server, bot.runScript))
+            promises.push(this.gameController.startCharacter(bot.characterId, bot.server, bot.runScript, bot.characterName))
         }
         await Promise.all(promises);
     }
