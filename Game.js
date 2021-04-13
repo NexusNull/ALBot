@@ -68,7 +68,6 @@ class Game extends EventSystem {
             characterName: data.characterName,
             data: data.data,
         });
-        console.log("cm failed")
     }
 
     stop() {
