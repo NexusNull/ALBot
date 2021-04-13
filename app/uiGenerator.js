@@ -54,7 +54,8 @@ let uiGenerator = function () {
         {name: "dps", type: "text", label: "Damage/s"},
         {name: "gph", type: "text", label: "Gold/h"},
         {name: "xpph", type: "text", label: "XP/h"},
-        {name: "tlu", type: "text", label: "TLU"}
+        {name: "tlu", type: "text", label: "TLU"},
+        {name: "party_leader", type: "text", label: "Party Leader"}
     ];
 
     if (this.enableMiniMap) {
