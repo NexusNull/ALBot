@@ -432,6 +432,7 @@ Game.prototype.init = function () {
                             gph: toPrettyNum(Math.floor(gps) * 3600),
                             xpph: toPrettyNum(Math.floor(xpps) * 3600),
                             tlu: (time > 0) ? days + "d " + hours + ":" + minutes + ":" + seconds : "Infinity",
+                            party_leader: character.party || "N/A",
                         }
                     })
 
