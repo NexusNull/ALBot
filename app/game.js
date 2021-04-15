@@ -25,6 +25,7 @@ const pngUtil = require("./pngUtil");
 const PNG = require('pngjs').PNG;
 const fs = require("fs");
 const Connector = require("./Connector");
+const logger = require("./Logger");
 localStorage = new LocalStorage('./app/localStorage');
 
 function close(error) {
@@ -158,6 +159,7 @@ Game.prototype.init = function () {
     eval(fs.readFileSync('./app/moddedGameFiles/game.js') + '');
     gprocess_game_data();
     init_socket();
+
     this.socket = socket;
 
     var bwi = {};
@@ -233,7 +235,7 @@ Game.prototype.init = function () {
         storage_set: storage_set,
         monster_attack: monster_attack,
         is_bot: true,
-
+        logger: logger,
 
     };
     //non static variables
@@ -329,7 +331,12 @@ Game.prototype.init = function () {
     var goldTimeline = [],
         xpTimeline = [],
         damageTimeline = [];
-
+    logger.set({
+        characterId: this.userId,
+        runScript: this.script,
+        server_region: this.server_region,
+        server_identifier: this.server_identifier,
+    })
     var damageStart = Date.now();
     socket.on("hit", function (data) {
         if (data.hid && data.damage && character) {

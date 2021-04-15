@@ -5,6 +5,7 @@ var fs = require("fs")
 
 request = require("sync-request")
 const pathu = require("path");
+const logger = require("./Logger");
 parent = {};
 character = {};
 G = {};
@@ -57,7 +58,7 @@ var Executor = function (glob, file) {
             }
         });
         feval('CODE/' + file)
-
+        logger.set({characterName: character.id})
         // This exports scoped functions to the game object,
         // sadly this is the way to go because we don't have a window object.
         Object.defineProperties(self.callbacks, {

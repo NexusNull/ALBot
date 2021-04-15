@@ -1,4 +1,5 @@
-function render_interaction(){}
+function render_interaction() {
+}
 
 
 //
@@ -211,15 +212,20 @@ function hide_modals() {
         hide_modal()
     }
 }
+
 function show_alert(a) {
 }
+
 function show_modal(f, a) {
 }
+
 function position_modals() {
 }
+
 function set_status(a) {
     current_status = a
 }
+
 function show_json(a) {
 }
 
@@ -229,6 +235,7 @@ function json_to_html(a) {
     }
     return "<div style='font-size: 24px; white-space: pre;' class='yesselect'>" + syntax_highlight(a) + "</div>"
 }
+
 function add_magiport(a) {
 }
 
@@ -262,12 +269,12 @@ function add_log(c, a) {
     if (game_logs.length > 480) {
         var b = "<div class='gameentry' style='color: gray'>- Truncated -</div>";
         game_logs = game_logs.slice(-160);
-        game_logs.forEach(function(d) {
+        game_logs.forEach(function (d) {
             b += "<div class='gameentry' style='color: " + (d[1] || "white") + "'>" + d[0] + "</div>"
         });
     }
-    game_logs.push([c,a]);
-    console.log(c);
+    logger.log(c, a)
+    game_logs.push([c, a]);
 }
 
 function add_holiday_log() {
@@ -280,6 +287,7 @@ function add_greenlight_log() {
 
 var unread_chat = 0
     , no_chat_notification = false;
+
 function add_chat(c, o, g, b) {
     game_chats.push([c, o, g, b]);
     if (game_chats.length > 250) {
@@ -297,7 +305,7 @@ function add_chat(c, o, g, b) {
             game_chats = a.slice(-225)
         }
     }
-    console.log(c, o, g, b)
+    logger.log(c, o, g, b)
 }
 
 function cpm_window(a) {
@@ -305,11 +313,11 @@ function cpm_window(a) {
 }
 
 function add_pmchat(g, a, d) {
-    console.log("pm: " + g + " :", a, d)
+    logger.log("pm: " + g + " :", a, d)
 }
 
 function add_partychat(a, d) {
-    console.log("party: " + a + ": " + d);
+    logger.log("party: " + a + ": " + d);
 }
 
 function refresh_page() {
@@ -379,7 +387,7 @@ function get_nearby_hostiles(a) {
                 b.c_dist = c
         }
     }
-    d.sort(function(g, f) {
+    d.sort(function (g, f) {
         return (g.c_dist > f.c_dist) ? 1 : ((f.c_dist > g.c_dist) ? -1 : 0)
     });
     return d
@@ -389,8 +397,10 @@ var input_onclicks = [];
 
 function get_input(b) {
 }
+
 function show_mail_modal() {
 }
+
 function show_confirm(d, b, c, a) {
 }
 
@@ -445,7 +455,7 @@ function use_skill(a, b, c) {
             });
             var f = []
                 , g = parseInt((character.mp - 200) / a.length);
-            a.forEach(function(a) {
+            a.forEach(function (a) {
                 f.push([a.id, g])
             });
             socket.emit("skill", {
@@ -466,7 +476,7 @@ function use_skill(a, b, c) {
                 limit: 3
             });
             var h = [];
-            a.forEach(function(a) {
+            a.forEach(function (a) {
                 h.push(a.id)
             });
             socket.emit("skill", {
@@ -487,7 +497,7 @@ function use_skill(a, b, c) {
                 limit: 5
             });
             h = [];
-            a.forEach(function(a) {
+            a.forEach(function (a) {
                 h.push(a.id)
             });
             socket.emit("skill", {
@@ -595,7 +605,7 @@ function use_skill(a, b, c) {
                 var n = !1, p;
                 for (p in G.maps)
                     a = G.maps[p],
-                    a.ignore || a.instance || a.spawns.forEach(function(a) {
+                    a.ignore || a.instance || a.spawns.forEach(function (a) {
                         !n && .02 > Math.random() && (n = !0,
                             b = [a[0], a[1], p])
                     });
@@ -737,7 +747,7 @@ function on_skill(d, h) {
                                                                                             small: true,
                                                                                             button: "Engage",
                                                                                             onclick: function () {
-                                                                                                use_skill("magiport", );
+                                                                                                use_skill("magiport",);
                                                                                                 hide_modal()
                                                                                             },
                                                                                             input: "mglocx",
@@ -1375,24 +1385,34 @@ function stop_timer(b, a) {
 
 function the_door() {
 }
+
 function v_shake() {
 }
+
 function v_shake_i(c) {
 }
+
 function v_shake_i2(c) {
 }
+
 function v_dive() {
 }
+
 function v_dive_i(c) {
 }
+
 function no_no_no(d) {
 }
+
 function sway(c) {
 }
+
 function mojo(c) {
 }
+
 function flurry(d) {
 }
+
 function h_shake() {
     function b(c) {
         return function () {
@@ -1435,43 +1455,43 @@ function set_direction(a, d) {
 
 function leave_references(a) {
     a.visible = false;
-    (function() {
+    (function () {
             var d = a.real_x
                 , f = a.real_y
                 , c = a.awidth || 10
                 , b = a.aheight || 10;
             Object.defineProperty(a, "x", {
-                get: function() {
+                get: function () {
                     return d
                 },
-                set: function(g) {
+                set: function (g) {
                     d = g
                 },
                 configurable: true
             });
             Object.defineProperty(a, "y", {
-                get: function() {
+                get: function () {
                     return f
                 },
-                set: function(g) {
+                set: function (g) {
                     f = g
                 },
                 configurable: true
             });
             Object.defineProperty(a, "width", {
-                get: function() {
+                get: function () {
                     return c
                 },
-                set: function(g) {
+                set: function (g) {
                     c = g
                 },
                 configurable: true
             });
             Object.defineProperty(a, "height", {
-                get: function() {
+                get: function () {
                     return b
                 },
-                set: function(g) {
+                set: function (g) {
                     b = g
                 },
                 configurable: true
@@ -1479,6 +1499,7 @@ function leave_references(a) {
         }
     )()
 }
+
 function free_children(b) {
     if (!b.children) {
         return
@@ -1528,6 +1549,7 @@ function trade(d, a, b, c) {
         price: b
     });
 }
+
 function giveaway(d, a, c, b) {
     socket.emit("equip", {
         q: c || 1,
@@ -1649,7 +1671,8 @@ function code_eval_if_r(code) {
 }
 
 function get_code_function(a) {
-    return self.executor && self.executor.callbacks && self.executor.callbacks[a] || (function () {})
+    return self.executor && self.executor.callbacks && self.executor.callbacks[a] || (function () {
+    })
 }
 
 function private_say(a, c, b) {
@@ -1659,6 +1682,7 @@ function private_say(a, c, b) {
         name: a
     })
 }
+
 function party_say(b, a) {
     socket.emit("say", {
         message: b,
@@ -1666,6 +1690,7 @@ function party_say(b, a) {
         party: true
     })
 }
+
 var last_say = "normal";
 
 function say(message, code) {
@@ -1989,6 +2014,7 @@ function dice(c, b, a) {
         gold: a
     })
 }
+
 function quantity(a, d) {
     var c = 0;
     for (var b = 0; b < character.items.length; b++) {
@@ -1998,6 +2024,7 @@ function quantity(a, d) {
     }
     return c
 }
+
 function auto_craft(d, f) {
     var a = null;
     if (!G.craft[d]) {
@@ -2006,7 +2033,7 @@ function auto_craft(d, f) {
         if (G.craft[d].gold < character.gold) {
             a = "gold"
         } else {
-            G.craft[d].items.forEach(function(g) {
+            G.craft[d].items.forEach(function (g) {
                 if (quantity(g[1], g[2]) < g[0]) {
                     a = "items"
                 }
@@ -2031,7 +2058,7 @@ function auto_craft(d, f) {
     } else {
         var c = []
             , b = 0;
-        G.craft[d].items.forEach(function(h) {
+        G.craft[d].items.forEach(function (h) {
             for (var g = 0; g < character.items.length; g++) {
                 if (character.items[g] && character.items[g].name === h[1] && (character.items[g].level || 0) === (h[2] || 0) && (character.items[g].q || 1) >= h[0]) {
                     c.push([b++, g]);
@@ -2039,7 +2066,7 @@ function auto_craft(d, f) {
                 }
             }
         });
-        console.log(c);
+        logger.log(c);
         socket.emit("craft", {
             items: c
         })
@@ -2047,6 +2074,7 @@ function auto_craft(d, f) {
 }
 
 var suppress_calculations = false;
+
 function upgrade(u_item, u_scroll, offering_num, c, calculate) {
     if (!c && calculate && suppress_calculations) {
         return
@@ -2083,6 +2111,7 @@ function compound(d, c, b, a, h, g, f) {
         return push_deferred("compound")
     }
 }
+
 function lock_item(a) {
     if (a === undefined) {
         a = l_item
@@ -2232,10 +2261,12 @@ function set_uchance(f, b) {
         return [color, "%" + d + "." + c]
     }
 }
+
 var uroll_colors = ["#f1c40f", "#f39c12", "#e74c3c", "#c0392b", "#8e44ad", "#9b59b6", "#2980b9", "#3498db", "#1abc9c"];
 var uroll_colors = ["#868590"];
 var uroll_characters = ["|", "/", "-", "\\"]
     , last_uc = 0;
+
 function set_uroll(g, f) {
     var h = uroll_characters[last_uc++ % uroll_characters.length]
         , a = 0;
@@ -2265,7 +2296,9 @@ function set_uroll(g, f) {
 }
 
 var last_companim = new Date();
+
 function compound_animation_logic() {
+    logge
     if (topleft_npc == "compound" && character.q.compound && character.items[character.q.compound.num] && character.items[character.q.compound.num].name === "placeholder") {
         var a = character.items[character.q.compound.num].p;
         if (mssince(last_companim) > 120) {
@@ -2284,8 +2317,10 @@ function compound_animation_logic() {
         })
     }
 }
+
 var last_upganim = new Date()
     , last_uping = new Date();
+
 function upgrade_animation_logic() {
     if (topleft_npc == "upgrade" && character.q.upgrade && character.items[character.q.upgrade.num] && character.items[character.q.upgrade.num].name === "placeholder") {
         var a = character.items[character.q.upgrade.num].p;
@@ -2357,6 +2392,7 @@ function exchange(a) {
         }
     }
 }
+
 function exchange_buy(c, b) {
     var a = item_position(c);
     if (a == undefined) {
@@ -2372,7 +2408,7 @@ function exchange_buy(c, b) {
 
 function compound(item0, item1, item2, scroll_num, offering_num) {
     if (scroll_num == null || typeof item0 === "undefined" || typeof item1 === "undefined" || typeof item2 === "undefined") {
-        console.log("INVALID")
+        logger.log("INVALID")
     } else {
         socket.emit("compound", {
             items: [item0, item1, item2],
@@ -2397,8 +2433,9 @@ function dismantle() {
         num: ds_item
     })
 }
+
 var u_retain = false
-    , u_retain_t = false;
+    , u_retain_t = false;console
 
 function reopen() {
     throw new Error("reopen is not supported.");
@@ -2579,7 +2616,9 @@ function new_map_tile(b) {
 
 function random_rotating_rectangle(g, j) {
 }
-function random_spark(f, h) {}
+
+function random_spark(f, h) {
+}
 
 function small_success(a, c) {
 }
@@ -2602,9 +2641,11 @@ function stop_emblem(b, a) {
 function start_animation(d, c, h) {
 }
 
-function map_animation(d, c) {}
+function map_animation(d, c) {
+}
 
-function continuous_map_animation(){}
+function continuous_map_animation() {
+}
 
 function stop_animation(b, a) {
 }
@@ -2641,7 +2682,8 @@ function draw_timeouts_logic(f) {
             if (timeout[4]) {
                 try {
                     DTM = (currentDate - timeout[3]) / timeout[4]
-                } catch (d) {}
+                } catch (d) {
+                }
             }
             indices.push(i);
             try {
@@ -2649,8 +2691,8 @@ function draw_timeouts_logic(f) {
             } catch (d) {
                 //TODO make a debug mode where this is logged but tbh I don't care anymore and would like to have a clean log
                 //Never append an exception to a string you basically lose the stacktrace which contains very useful info
-                //console.log("draw_timeout_error: ", d);
-                //console.log(timeout[0])
+                //logger.log("draw_timeout_error: ", d);
+                //logger.log(timeout[0])
             }
         }
     }
@@ -2712,7 +2754,7 @@ function attack_timeout_animation(a) {
     if (a <= 0) {
         return
     }
-    draw_trigger(function() {
+    draw_trigger(function () {
         tint_c.a++;
         add_tint(".atint", {
             ms: -mssince(next_skill.attack) - DMS,
@@ -2735,7 +2777,7 @@ function pot_timeout(a) {
     next_potion = future_ms(a);
     skill_timeout("use_hp", a);
     skill_timeout("use_mp", a);
-    draw_trigger(function() {
+    draw_trigger(function () {
         tint_c.p++;
     })
 }
@@ -2764,6 +2806,7 @@ var next_skill = {
     use_mp: new Date(),
     use_town: new Date()
 };
+
 function skill_timeout_singular(c, b) {
     if (b <= 0) {
         return
@@ -2789,6 +2832,7 @@ function skill_timeout_singular(c, b) {
         next_attack = next_skill[c]
     }
 }
+
 function skill_timeout(b, a) {
     if (G.skills[b].share) {
         skill_timeout_singular(G.skills[b].share, a);
@@ -2953,6 +2997,7 @@ function api_call_l(c, a, b) {
 }
 
 var warned = {};
+
 function new_map_logic(a, b) {
     I = b.info || {};
     if (current_map == "resort") {
@@ -3110,7 +3155,7 @@ function handle_information(g) {
 }
 
 function add_alert(a) {
-    console.log("caught exception: " + a);
+    logger.log("caught exception: " + a);
 }
 
 function sfx(b, a, h) {
@@ -3207,7 +3252,9 @@ function hide_loader() {
 function alert_json(a) {
     alert(JSON.stringify(a))
 }
+
 var ignored_properties = ["transform", "parent", "displayGroup", "parentGroup", "vertexData", "animations", "tiles", "placements", "default", "children", "tempDisplayObjectParent", "cachedTint", "vertexTrimmedData", "hp_bar", "blendMode", "filterArea", "worldAlpha", "pluginName", "roundPixels", "updateOrder", "displayOrder", "shader", "accessible", "interactiveChildren", "hitArea", "cursor", "zOrder", "accessibleTitle", "accessibleHint", "parentLayer", "layerableChildren", "trackedPointers", "interactive", "tabIndex", "zIndex", "buttonMode", "renderable"];
+
 function game_stringify(d, b) {
     var a = [];
     try {
@@ -3233,7 +3280,7 @@ function game_stringify_simple(d, b) {
         if (d === undefined) {
             return "undefined"
         }
-        var a = JSON.stringify(d, function(g, j) {
+        var a = JSON.stringify(d, function (g, j) {
             if (in_arr(g, ignored_properties) || g.indexOf("filter_") != -1 || g[0] == "_") {
                 return
             }
@@ -3241,9 +3288,9 @@ function game_stringify_simple(d, b) {
                 return
             }
             if (j != null && typeof j == "object") {
-                if ("x"in j) {
+                if ("x" in j) {
                     var f = {};
-                    ["x", "y", "width", "height"].forEach(function(k) {
+                    ["x", "y", "width", "height"].forEach(function (k) {
                         if (k in j) {
                             f[k] = j[k]
                         }
@@ -3257,13 +3304,14 @@ function game_stringify_simple(d, b) {
             return j
         }, b);
         try {
-            if ("x"in d) {
+            if ("x" in d) {
                 a = JSON.parse(a);
                 a.x = d.x;
                 a.y = d.y;
                 a = JSON.stringify(a, undefined, b)
             }
-        } catch (c) {}
+        } catch (c) {
+        }
         return a
     } catch (c) {
         return "game_stringify_simple_exception"
@@ -3312,7 +3360,7 @@ function url_factory(b) {
             }
         }
     } catch (f) {
-        console.log("url_factory: " + f)
+        logger.log("url_factory: " + f)
     }
     return b
 }
@@ -3368,7 +3416,7 @@ function electron_screenshot(b, a) {
     }
     if (!a) {
         a = function () {
-            console.log("Screenshot taken!")
+            logger.log("Screenshot taken!")
         }
     }
     if (!b.filename) {
@@ -3396,7 +3444,7 @@ function electron_mas_receipt() {
         a = a.split(".app/Contents/")[0] + ".app/Contents/_MASReceipt/receipt";
         return electron.remote.require("fs").readFileSync(a).toString("base64")
     } catch (b) {
-        console.log(b)
+        logger.log(b)
     }
     return ""
 }
@@ -3405,7 +3453,7 @@ function electron_steam_ticket() {
     try {
         return storage_get("ticket") || ""
     } catch (a) {
-        console.log(a)
+        logger.log(a)
     }
     return ""
 }
@@ -3432,7 +3480,7 @@ function electron_get_http_mode() {
     try {
         return storage_get("http_mode")
     } catch (a) {
-        console.log(a)
+        logger.log(a)
     }
     return false
 }
@@ -3446,7 +3494,7 @@ function electron_is_main() {
             return false
         }
     } catch (a) {
-        console.log(a)
+        logger.log(a)
     }
     return true
 }
