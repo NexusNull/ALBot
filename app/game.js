@@ -26,6 +26,7 @@ const PNG = require('pngjs').PNG;
 const fs = require("fs");
 const Connector = require("./Connector");
 const logger = require("./Logger");
+const config = require("../userData").config;
 localStorage = new LocalStorage('./app/localStorage');
 
 function close(error) {
@@ -331,11 +332,13 @@ Game.prototype.init = function () {
     var goldTimeline = [],
         xpTimeline = [],
         damageTimeline = [];
+    if (config.logging && config.logging.enabled)
+        logger.setPrefixString(config.logging.prefixString)
     logger.set({
         characterId: this.userId,
-        runScript: this.script,
-        server_region: this.server_region,
-        server_identifier: this.server_identifier,
+        runScript: script,
+        serverRegion: server_region,
+        serverIdentifier: server_identifier,
     })
     var damageStart = Date.now();
     socket.on("hit", function (data) {

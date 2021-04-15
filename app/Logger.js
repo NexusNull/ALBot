@@ -1,6 +1,6 @@
 class Logger {
     constructor() {
-        this.prefixString = "{{h}}:{{m}}:{{s}} {{characterName}}: ";
+        this.prefixString = "";
         this.characterName = "";
         this.characterId = "";
         this.runScript = "";
@@ -35,12 +35,21 @@ class Logger {
             switch (group) {
                 case "characterName":
                     return this.characterName.slice(0, 10).padEnd(10);
+                case "serverRegion":
+                    return this.serverRegion;
+                case "serverIdentifier":
+                    return this.serverIdentifier;
+                case "runScript":
+                    return this.runScript;
                 case "h":
-                    return time.getHours();
+                    const h = time.getHours();
+                    return (h < 10) ? '0' + h : h;
                 case "m":
-                    return time.getMinutes();
+                    const m = time.getMinutes();
+                    return (m < 10) ? '0' + m : m;
                 case "s":
-                    return time.getSeconds();
+                    const s = time.getSeconds();
+                    return (s < 10) ? '0' + s : s;
                 default:
                     return "";
             }
