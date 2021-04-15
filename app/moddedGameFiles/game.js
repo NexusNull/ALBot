@@ -6107,7 +6107,6 @@ function create_map() {
         if (r.type == "full" || r.role == "citizen") {
             continue
         }
-        console.log("NPC: " + F.id);
         var m = add_npc(r, F.position, F.name, F.id);
         //map.addChild(n);
         map_npcs.push(m);
@@ -6117,7 +6116,6 @@ function create_map() {
     for (var B = 0; B < doors.length; B++) {
         var v = doors[B];
         var m = add_door(v);
-        console.log("Door: " + v);
         //map.addChild(n);
         map_doors.push(m);
         map_entities.push(m);
@@ -6129,7 +6127,7 @@ function create_map() {
     for (var B = 0; B < machines.length; B++) {
         var c = machines[B];
         var m = {};
-        console.log("Machine: " + c.type);
+
         //map.addChild(n);
         map_npcs.push(m);
         map_entities.push(m);
@@ -6142,14 +6140,12 @@ function create_map() {
     for (var B = 0; B < quirks.length; B++) {
         var A = quirks[B];
         var m = add_quirk(A);
-        console.log("Quirk: " + A);
         //map.addChild(n);
         map_entities.push(m);
         if (border_mode) {
             border_logic(m)
         }
     }
-    console.log("Map created: " + current_map);
     let animatables = {};
     for (var v in map_info.animatables || {}) {
         animatables[v] = add_animatable(v, map_info.animatables[v]);
@@ -6198,7 +6194,7 @@ function create_map() {
         })
     }
     */
-    console.log("Map created: " + current_map)
+
 }
 
 function retile_the_map() {
