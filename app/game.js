@@ -440,6 +440,7 @@ Game.prototype.init = function () {
                             xpph: toPrettyNum(Math.floor(xpps) * 3600),
                             tlu: (time > 0) ? days + "d " + hours + ":" + minutes + ":" + seconds : "Infinity",
                             party_leader: character.party || "N/A",
+                            realm: server_region + " " + server_identifier,
                         }
                     })
 
