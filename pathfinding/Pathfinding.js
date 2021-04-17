@@ -15,7 +15,7 @@ class Pathfinding extends EventSystem {
                 stdio: [0, 1, 2, 'ipc'],
                 execArgv: [
                     //'--inspect-brk',
-                    //"--max_old_space_size=4096",
+                    "--max_old_space_size=8096",
                 ]
             });
 

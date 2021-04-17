@@ -4,17 +4,17 @@ const character = {
     v: 7, // up
     vn: 2, // down
 };
+const World = require("./World");
 
 class MapProcessor {
     constructor(gameData, keenness = 1, padding = 1) {
         this.keenness = keenness;
         this.padding = padding;
         this.gameData = gameData;
-        this.floors = new Map();
     }
 
-    setCollisionBoxes(map) {
-        for (let [name, floor] of this.floors) {
+    setCollisionBoxes(world) {
+        for (let [name, floor] of world.floors) {
             const x_lines = floor.mapData.geometry.x_lines
             const y_lines = floor.mapData.geometry.y_lines
             for (let pos in x_lines) {
@@ -25,7 +25,7 @@ class MapProcessor {
                 let y1 = Math.floor((yTop - character.vn - this.padding) / this.padding);
                 let x2 = Math.ceil((x + character.h + this.padding) / this.padding);
                 let y2 = Math.ceil((yBot + character.v + this.padding) / this.padding);
-                floor.setBox(x1, y1, x2, y2, floor.size, floor.matrices.base, 1);
+                floor.setBox(x1, y1, x2, y2, floor.size, floor.matrices.base, 0xfffe);
             }
 
             for (let pos in y_lines) {
@@ -36,112 +36,77 @@ class MapProcessor {
                 let y1 = Math.floor((y - character.vn - this.padding) / this.padding);
                 let x2 = Math.ceil((xRight + character.h + this.padding) / this.padding);
                 let y2 = Math.ceil((y + character.v + this.padding) / this.padding);
-                floor.setBox(x1, y1, x2, y2, floor.size, floor.matrices.base, 1);
+                floor.setBox(x1, y1, x2, y2, floor.size, floor.matrices.base, 0xfffe);
             }
         }
         console.log("Set collision boxes")
     }
 
-    createBoxNeighborMap() {
-        for (let [name, floor] of this.floors) {
-            var links = [];
-            let qtn = [];
-            let qtg = {};
-            for (let i = 1; i < floor.boxes.length; i++) {
-                let box = floor.boxes[i];
+    createBoxNeighborMap(world) {
+        for (let [name, floor] of world.floors) {
+            for (let i = 0; i < floor.boxes.length; i++) {
+                let box = world.boxes[floor.boxes[i]];
                 //TOP
                 for (let j = 0; j < box.size.x; j++) {
                     if (box.x + j > floor.size.x - 1 || (box.y - 1) < 0)
                         break;
-                    let otherBoxId = floor.matrices.boxMap[box.x + j + (box.y - 1) * floor.size.x];
-                    if (otherBoxId !== undefined && otherBoxId !== 0) {
-                        let otherBox = floor.boxes[otherBoxId];
-                        if (links[i] === undefined) {
-                            links[i] = [];
-                        }
-                        if (links[otherBoxId] === undefined) {
-                            links[otherBoxId] = [];
-                        }
+                    let otherBoxId = floor.matrices.base[box.x + j + (box.y - 1) * floor.size.x];
+                    if (otherBoxId < 0xfffd) {
+                        let otherBox = world.boxes[otherBoxId];
 
                         let left = Math.max(box.x, otherBox.x);
                         let right = Math.min(box.x + box.size.x, otherBox.x + otherBox.size.x);
-
-                        qtn.push({x: left + Math.floor((right - left) / 2), y: (box.y - 1)});
-                        links[i].push({x: left + Math.floor((right - left) / 2), y: (box.y - 1)});
-                        links[otherBoxId].push({x: left + Math.floor((right - left) / 2), y: (box.y - 1)});
-
-                        box.neighbors.push(otherBoxId);
-                        otherBox.neighbors.push(i);
-
+                        let dist = Math.sqrt(Math.pow(box.x - otherBox.x, 2) + Math.pow(box.y - otherBox.y, 2));
+                        box.neighbors.push(otherBoxId, dist);
+                        otherBox.neighbors.push(floor.boxes[i], dist);
                         j += right - left - 1;
                     }
                 }
-
+                //Right
                 for (let j = 0; j < box.size.y; j++) {
                     if (box.x + box.size.x > floor.size.x - 1 || (box.y + j) > floor.size.y - 1)
                         break;
-                    let otherBoxId = floor.matrices.boxMap[box.x + box.size.x + (box.y + j) * floor.size.x];
-                    if (otherBoxId !== undefined && otherBoxId !== 0) {
-                        let otherBox = floor.boxes[otherBoxId];
+                    let otherBoxId = floor.matrices.base[box.x + box.size.x + (box.y + j) * floor.size.x];
+                    if (otherBoxId < 0xfffd) {
+                        let otherBox = world.boxes[otherBoxId];
 
-                        if (links[i] === undefined) {
-                            links[i] = [];
-                        }
-                        if (links[otherBoxId] === undefined) {
-                            links[otherBoxId] = [];
-                        }
                         let top = Math.max(box.y, otherBox.y);
                         let bottom = Math.min(box.y + box.size.y, otherBox.y + otherBox.size.y);
-
-                        qtn.push({x: box.x + box.size.x, y: (top + Math.floor((bottom - top) / 2))});
-                        links[i].push({x: box.x + box.size.x, y: (top + Math.floor((bottom - top) / 2))});
-                        links[otherBoxId].push({x: box.x + box.size.x, y: (top + Math.floor((bottom - top) / 2))});
-
-                        box.neighbors.push(otherBoxId);
-                        otherBox.neighbors.push(i);
+                        let dist = Math.sqrt(Math.pow(box.x - otherBox.x, 2) + Math.pow(box.y - otherBox.y, 2));
+                        box.neighbors.push(otherBoxId, dist);
+                        otherBox.neighbors.push(floor.boxes[i], dist);
 
                         j += bottom - top - 1;
                     }
                 }
             }
-            for (let boxLink of links) {
-                if (boxLink)
-                    for (let parent of boxLink) {
-                        if (!qtg[parent.x + ":" + parent.y]) {
-                            qtg[parent.x + ":" + parent.y] = [];
-                        }
-                        for (let child of boxLink) {
-                            qtg[parent.x + ":" + parent.y].push(child)
-                        }
-                    }
-            }
-            floor.qtn = qtn;
-            floor.qtg = qtg;
         }
         console.log("created box neighbour map")
     };
 
-    createBoxMap() {
-        for (let [name, floor] of this.floors) {
+    createBoxMap(world) {
+        let boxCount = 0;
+        for (let [name, floor] of world.floors) {
             let boxes = [];
-            let boxCount = 0;
-            let boxMap = floor.matrices.boxMap;
+            let base = floor.matrices.base;
             for (let i = 0; i < floor.matrices.base.length; i++) {
-                if (boxMap[i] === 2) {
+                if (base[i] === 0xfffd) {
                     const x = (i % floor.size.x);
                     const y = Math.floor(i / floor.size.x);
                     let boxSize;
-                    if ((boxSize = floor.detectBoxSize(x, y, boxMap)) !== null) {
+                    if ((boxSize = floor.detectBoxSize(x, y, base)) !== null) {
                         for (let j = 0; j < boxSize.x; j++) {
                             for (let k = 0; k < boxSize.y; k++) {
-                                boxMap[x + j + (y + k) * floor.size.x] = boxCount;
+                                base[x + j + (y + k) * floor.size.x] = boxCount;
                             }
                         }
-                        boxes[boxCount] = {
+                        boxes.push(boxCount);
+                        world.boxes[boxCount] = {
                             x: x,
                             y: y,
                             size: boxSize,
-                            neighbors: []
+                            neighbors: [],
+                            doors: [],
                         };
                         boxCount++;
                     }
@@ -152,17 +117,17 @@ class MapProcessor {
         console.log("created box map")
     };
 
-    resetXYLines() {
-        for (let [name, floor] of this.floors) {
+    resetXYLines(world) {
+        for (let [name, floor] of world.floors) {
             let xLineStart = null, yLineStart = null;
             const base = floor.matrices.base;
             for (let i = 0; i < base.length - 1; i++) {
                 if (
-                    base[i] === 1 &&
-                    base[i + floor.size.x] === 2
+                    base[i] === 0xfffe &&
+                    base[i + floor.size.x] === 0xfffd
                     ||
-                    base[i] === 2 &&
-                    base[i + floor.size.x] === 1
+                    base[i] === 0xfffd &&
+                    base[i + floor.size.x] === 0xfffe
                 ) {
                     if (yLineStart == null) {
                         yLineStart = i;
@@ -180,11 +145,11 @@ class MapProcessor {
                 }
                 let j = (i % floor.size.y) * floor.size.x + Math.floor(i / floor.size.y);
                 if (
-                    base[j] === 1 &&
-                    base[j + 1] === 2
+                    base[j] === 0xfffe &&
+                    base[j + 1] === 0xfffd
                     ||
-                    base[j] === 2 &&
-                    base[j + 1] === 1
+                    base[j] === 0xfffd &&
+                    base[j + 1] === 0xfffe
                 ) {
                     if (xLineStart == null) {
                         xLineStart = j;
@@ -205,28 +170,86 @@ class MapProcessor {
         console.log("optimized xy Lines");
     }
 
-    discoverWalkableArea() {
-        for (let [name, floor] of this.floors) {
-            for (let k in floor.spawns) {
+    discoverWalkableArea(world) {
+        for (let [name, floor] of world.floors) {
+            for (let k in floor.mapData.spawns) {
                 floor.fill(
-                    Math.floor((floor.spawns[k][0] - floor.offset.x) / this.keenness),
-                    Math.floor((floor.spawns[k][1] - floor.offset.y) / this.keenness),
-                    2
+                    Math.floor((floor.mapData.spawns[k][0] - floor.offset.x)),
+                    Math.floor((floor.mapData.spawns[k][1] - floor.offset.y)),
+                    0xfffd
                 );
             }
         }
         console.log("Discover walkable area")
     }
 
-    createFloors() {
+    createFloors(world) {
         for (let name in this.gameData.maps) {
             let map = this.gameData.maps[name];
             map.geometry = this.gameData.geometry[name];
             if (!map.ignore) {
-                this.floors.set(name, new Floor(map, this.keenness));
+                world.floors.set(name, new Floor(name, map, this.keenness));
             }
         }
         console.log("Create floors");
+    }
+
+    detectingDoors(world) {
+        let doorCount = 0;
+        for (let [name, floor] of world.floors) {
+            for (let doorData of floor.mapData.doors) {
+                let doorId = doorCount++;
+                const entryFloor = floor;
+                const exitFloor = world.floors.get(doorData[4]);
+                const entry = floor.mapData.spawns[doorData[6]];
+                const entryX = Math.floor(entry[0] - floor.offset.x);
+                const entryY = Math.floor(entry[1] - floor.offset.y);
+                const exit = exitFloor.mapData.spawns[doorData[5]];
+                const exitX = Math.floor(exit[0] - exitFloor.offset.x);
+                const exitY = Math.floor(exit[1] - exitFloor.offset.y);
+                if (!exitFloor)
+                    continue;
+
+                let entryBoxId = floor.matrices.base[entryX + entryY * floor.size.x];
+                let exitBoxId = exitFloor.matrices.base[exitX + exitY * exitFloor.size.x];
+                if (world.boxes[entryBoxId] && world.boxes[exitBoxId]) {
+                    const door = {
+                        entryId: entryBoxId,
+                        exitId: exitBoxId,
+                        entry: {
+                            x: entry[0] - entryFloor.offset.x,
+                            y: entry[1] - entryFloor.offset.y
+                        },
+                        exit: {
+                            x: exit[0] - exitFloor.offset.x,
+                            y: exit[1] - exitFloor.offset.y,
+                            floor: exitFloor,
+                            s: doorData[5]
+                        }
+                    }
+
+                    world.boxes[entryBoxId].doors.push(doorId);
+                    world.doors[doorId] = door;
+                } else {
+                    console.log(floor.name)
+                    console.log(" ", entry[0], entry[1])
+                }
+
+            }
+        }
+        console.log("add doors");
+    }
+
+    createWorld() {
+        const world = new World();
+        this.createFloors(world);
+        this.setCollisionBoxes(world);
+        this.discoverWalkableArea(world);
+        this.resetXYLines(world);
+        this.createBoxMap(world);
+        this.createBoxNeighborMap(world)
+        this.detectingDoors(world);
+        return world;
     }
 }
 

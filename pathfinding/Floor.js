@@ -1,14 +1,26 @@
+function bSearch(search, arr) {
+    let low = 0, high = arr.length - 1;
+    while (low + 1 !== high) {
+        let mid = Math.floor((low + high) / 2);
+        if (arr[mid][0] >= search) {
+            high = mid;
+        } else {
+            low = mid;
+        }
+    }
+    return high;
+}
+
 class Floor {
-    constructor(mapData, keenness) {
-        this.name = mapData.name
+    constructor(name, mapData, keenness) {
+        this.name = name
         this.mapData = mapData;
         this.size = {
             x: Math.ceil((this.mapData.geometry.max_x - this.mapData.geometry.min_x + 1) / keenness),
             y: Math.ceil((this.mapData.geometry.max_y - this.mapData.geometry.min_y + 1) / keenness)
         };
         this.matrices = {
-            base: new Int16Array(this.size.x * this.size.y).fill(0),
-            boxMap: new Int16Array(this.size.x * this.size.y).fill(0)
+            base: new Uint16Array(this.size.x * this.size.y).fill(0xffff),
         }
         this.offset = {
             x: this.mapData.geometry.min_x,
@@ -17,7 +29,8 @@ class Floor {
         this.x_lines = [];
         this.y_lines = [];
 
-        this.spawns = this.mapData.spawns;
+        this.doors = [];
+
     }
 
     setBox(x1, y1, x2, y2, size, obj, value) {
@@ -40,7 +53,7 @@ class Floor {
             const pos = open[first] & 0x0fffffff;
             const dir = open[first] & 0xf0000000;
 
-            if (this.matrices.base[pos] === 0) {
+            if (this.matrices.base[pos] === 0xffff) {
                 this.matrices.base[pos] = value;
                 if (dir & 0x80000000 && (pos + 1) % width !== 0) open[(last = (last + 1) % open.length)] = (pos + 1) | 0xb0000000; // going right set direction all but left
                 if (dir & 0x40000000 && (pos - 1) % width !== width - 1) open[(last = (last + 1) % open.length)] = (pos - 1) | 0x70000000; // going left set direction all but right
@@ -51,8 +64,8 @@ class Floor {
         }
     }
 
-    detectBoxSize(x, y, boxMap) {
-        if (this.matrices.base[x + y * this.size.x] !== 2) {
+    detectBoxSize(x, y) {
+        if (this.matrices.base[x + y * this.size.x] !== 0xfffd) {
             return null;
         }
 
@@ -78,7 +91,7 @@ class Floor {
                     let lx = x + boxSize.x;
                     let ly = (y + i);
                     //console.log("x", lx, ly, boxSize)
-                    if (this.matrices.base[lx + ly * this.size.x] !== 2 || boxMap[lx + ly * this.size.x] !== 0) {
+                    if (this.matrices.base[lx + ly * this.size.x] !== 0xfffd) {
                         canExpand.x = false;
                         canExpand.y = false;
 
@@ -94,7 +107,7 @@ class Floor {
                     let lx = x + i;
                     let ly = (y + boxSize.y);
                     //console.log("y", lx, ly, boxSize)
-                    if (this.matrices.base[lx + ly * this.size.x] !== 2 || boxMap[lx + ly * this.size.x] !== 0) {
+                    if (this.matrices.base[lx + ly * this.size.x] !== 0xfffd) {
                         canExpand.y = false;
                         canExpand.x = false;
                         break;
@@ -107,6 +120,33 @@ class Floor {
         }
         return boxSize
     }
+
+    canMoveTo(x1, y1, x2, y2) {
+        const x = Math.min(x1, x2);
+        const y = Math.min(y1, y2);
+        const X = Math.max(x1, x2);
+        const Y = Math.max(y1, y2);
+
+        for (let i = bSearch(x, this.x_lines); i < this.x_lines.length; i++) {
+            const line = this.x_lines[i];
+            if (line[0] > X)
+                break;
+            const y_com = ((y2 - y1) / (x2 - x1)) * (line[0] - x1);
+            if (y_com + y1 < line[2] && y_com + y1 > line[1])
+                return false;
+        }
+
+        for (let i = bSearch(y, this.y_lines); i < this.y_lines.length; i++) {
+            const line = this.y_lines[i];
+            if (line[0] > Y)
+                break;
+            const x_com = ((x2 - x1) / (y2 - y1)) * (line[0] - y1);
+            if (x_com + x1 < line[2] && x_com + x1 > line[1])
+                return false;
+        }
+
+        return true;
+    };
 }
 
 module.exports = Floor;
