@@ -2,9 +2,10 @@ const EventSystem = require("./EventSystem");
 const child_process = require("child_process");
 
 class Game extends EventSystem {
-    constructor(session, ip, port, characterId, runScript, botUI, characterName) {
+    constructor(version, session, ip, port, characterId, runScript, botUI, characterName) {
         super();
         this.process = null;
+        this.version = version;
         this.session = session;
         this.ip = ip;
         this.port = port;
@@ -17,8 +18,8 @@ class Game extends EventSystem {
 
     start() {
         let data = {};
-        const args = [this.session, this.ip, this.port, this.characterId, this.runScript];
-        this.process = child_process.fork("./app/game", args, {
+        const args = [this.version, this.session, this.ip, this.port, this.characterId, this.runScript];
+        this.process = child_process.fork("./app/_Game", args, {
             stdio: [0, 1, 2, 'ipc'],
             execArgv: [
                 //'--inspect-brk',

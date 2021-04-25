@@ -35,7 +35,7 @@ class GameController {
                 gameVersion > this.gameDataManager.versions[0])
                 await this.gameDataManager.updateGameData()
             const botUI = this.botWebInterface.publisher.createInterface();
-            const game = new Game(this.httpWrapper.sessionCookie, serverInfo.ip, serverInfo.port, characterId, runScript, botUI, characterName);
+            const game = new Game(666, this.httpWrapper.sessionCookie, serverInfo.ip, serverInfo.port, characterId, runScript, botUI, characterName);
 
             game.on("start", resolve);
             game.on("stop", () => {
@@ -53,7 +53,7 @@ class GameController {
 
             game.on("cm", (data) => {
                 for (let [characterId, bot] of this.bots) {
-                    if(bot.game.send_cm(data)){
+                    if (bot.game.send_cm(data)) {
                         return;
                     }
                 }
