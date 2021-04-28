@@ -33,6 +33,7 @@ class Game {
         const runner_context = this.make_context(upper);
         vm.runInContext("var active=false,catch_errors=true,is_code=1,is_server=0,is_game=0,is_bot=parent.is_bot,is_cli=parent.is_cli;", runner_context);
         await this.ev_files(runner_sources, runner_context);
+        vm.runInContext("code_run=true;", runner_context);
         console.log("runner instance constructed");
         return runner_context;
     }
@@ -64,7 +65,7 @@ class Game {
         const game_sources = gameFiles.gameFiles.map(f =>
             gameFiles.locate_game_file(f, version))
             .concat(["./app/html_vars.js"]);
-        console.log("constructing game instance from sources:\n", game_sources);
+        console.log("constructing game instance from sources:\n");
         const game_context = this.make_context();
         game_context.io = io;
         game_context.bowser = {};
@@ -80,14 +81,16 @@ class Game {
         extensions.deploy = (char_name, realm = parent.server_region + parent.server_identifier) => null;
         extensions.shutdown = () => process.exit(0);
         extensions.relog = extensions.shutdown;
-
+        game_context.get_code_function = function(f_name) {
+            return extensions.runner && extensions.runner[f_name] || function(){};
+        }
         game_context.caracAL = extensions;
 
         const old_ng_logic = game_context.new_game_logic;
-        game_context.new_game_logic = () => {
+        game_context.new_game_logic = async () => {
             old_ng_logic();
             clearTimeout(extensions.reload_task);
-            extensions.runner = this.make_runner(game_context, "./CODE/" + script_file, version);
+            extensions.runner = await this.make_runner(game_context, "./CODE/" + script_file, version);
         }
         const old_dc = game_context.disconnect;
         game_context.disconnect = () => {
