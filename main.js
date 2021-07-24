@@ -22,6 +22,7 @@ process.on('unhandledRejection', function (exception) {
     process.exit(-1);
 });
 
+
 class ALBot {
     constructor() {
         this.httpWrapper = new HttpWrapper();
@@ -29,6 +30,7 @@ class ALBot {
         this.gameDataManager = new GameDataManager(this.httpWrapper);
         this.botWebInterface = null;
         this.gameController = null;
+        this.currentGameVersion = null;
     }
 
     async start() {
@@ -87,11 +89,30 @@ class ALBot {
 
         let promises = [];
         for (let bot of bots) {
-            promises.push(this.gameController.startCharacter(bot.characterId, bot.server, bot.runScript, bot.characterName))
+            promises.push(this.gameController.startCharacter(bot.characterId, bot.server, bot.runScript, bot.characterName, this.currentGameVersion))
         }
         await Promise.all(promises);
     }
+
+    async houseKeeping() {
+        if (!await this.gameDataManager.isUpToDate()) {
+            let gameVersion = await this.gameDataManager.updateGameData();
+            await this.gameDataManager.applyPatches(gameVersion);
+            this.currentGameVersion = gameVersion;
+        } else {
+            this.currentGameVersion = this.gameDataManager.currentVersion();
+        }
+    }
+
 }
 
-const albot = new ALBot();
-albot.start();
+async function main() {
+    const albot = new ALBot();
+    await albot.houseKeeping();
+    await albot.start();
+    setInterval(() => {
+        albot.houseKeeping();
+    }, 1000 * 60)
+}
+
+main();

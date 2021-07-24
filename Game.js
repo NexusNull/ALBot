@@ -26,10 +26,11 @@ class Game extends EventSystem {
                 //"--max_old_space_size=4096",
             ]
         });
-
-        this.botUI.setDataSource(() => {
-            return data;
-        });
+        if (this.botUI) {
+            this.botUI.setDataSource(() => {
+                return data;
+            });
+        }
 
         this.process.on("message", (m) => {
             switch (m.type) {
@@ -37,7 +38,8 @@ class Game extends EventSystem {
                     data = m.data;
                     break;
                 case "bwiPush":
-                    this.botUI.pushData(m.name, m.data);
+                    if (this.botUI)
+                        this.botUI.pushData(m.name, m.data);
                     break;
                 case "send_cm":
                     this.emit("cm", m)

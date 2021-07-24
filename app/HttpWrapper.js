@@ -175,7 +175,7 @@ class HttpWrapper {
         });
     };
 
-    async getGameVersion() {
+    async getGameVersion(force) {
         var html = await request({
             url: "https://adventure.land/",
             headers: {

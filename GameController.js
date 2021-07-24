@@ -15,7 +15,7 @@ class GameController {
         this.botWebInterface = botWebInterface;
     }
 
-    async startCharacter(characterId, server, runScript, characterName) {
+    async startCharacter(characterId, server, runScript, characterName, gameVersion) {
         return new Promise(async (resolve) => {
             let serverInfo = await this.serverList.getServerInfo(server);
             while (!serverInfo) {
@@ -30,16 +30,15 @@ class GameController {
                 }, 10000);
                 return;
             }
-            let gameVersion = await this.httpWrapper.getGameVersion();
-            if (this.gameDataManager.versions.length <= 0 ||
-                gameVersion > this.gameDataManager.versions[0])
-                await this.gameDataManager.updateGameData()
-            const botUI = this.botWebInterface.publisher.createInterface();
+            let botUI = null;
+            if(this.botWebInterface)
+                botUI = this.botWebInterface.publisher.createInterface();
             const game = new Game(gameVersion, this.httpWrapper.sessionCookie, serverInfo.ip, serverInfo.port, characterId, runScript, botUI, characterName);
 
             game.on("start", resolve);
             game.on("stop", () => {
                 let data = this.bots.get(characterId);
+                if(data.botUI)
                 data.botUI.destroy();
                 this.bots.delete(characterId);
                 if (!data.stopping) {
