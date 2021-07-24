@@ -32,11 +32,11 @@ class GameDataManager {
     }
 
     getAvailableVersions() {
-        let files = fs.readdirSync("./data");
+        let files = fs.readdirSync("./data", {withFileTypes: true});
         let versions = [];
         for (let file of files) {
-            if (file.startsWith("data"))
-                versions.push(+file.split(".")[1])
+            if (file.isDirectory())
+                versions.push(+file.name)
         }
         return versions.sort((a, b) => b - a);
     }
@@ -46,7 +46,7 @@ class GameDataManager {
 
         for (let gameFile of gameFiles) {
             let data = await this.httpWrapper.getFile(gameFile);
-            let localPath = path.join("data", gameVersion, gameFile)
+            let localPath = path.join("data", "" + gameVersion, gameFile)
             fs.mkdirSync(path.parse(localPath).dir, {recursive: true})
             fs.writeFileSync(localPath, data)
         }
@@ -54,7 +54,7 @@ class GameDataManager {
     }
 
     async readPatches(gameVersion) {
-        let localPath = path.join("data", gameVersion, "/patches.json")
+        let localPath = path.join("data", "" + gameVersion, "/patches.json")
         let patches = [];
         try {
             patches = JSON.parse(fs.readFileSync(localPath).toString());
@@ -66,7 +66,7 @@ class GameDataManager {
     }
 
     async writeAppliedPatches(gameVersion, patches) {
-        let localPath = path.join("data", gameVersion, "/patches.json")
+        let localPath = path.join("data", "" + gameVersion, "/patches.json")
         fs.writeFileSync(localPath, JSON.stringify(patches))
     }
 
@@ -74,7 +74,7 @@ class GameDataManager {
         let files = {};
 
         for (let gameFile of gameFiles) {
-            let localPath = path.join("data", gameVersion, gameFile)
+            let localPath = path.join("data", "" + gameVersion, gameFile)
             files[gameFile] = fs.readFileSync(localPath).toString();
         }
         return files;
@@ -82,7 +82,7 @@ class GameDataManager {
 
     async writeFiles(files, gameVersion) {
         for (let filePath in files) {
-            let localPath = path.join("data", gameVersion, filePath)
+            let localPath = path.join("data", "" + gameVersion, filePath)
             fs.writeFileSync(localPath, files[filePath]);
         }
         return files;
@@ -92,7 +92,7 @@ class GameDataManager {
         let patches = fs.readdirSync("app/patches");
         let appliedPatches = await this.readPatches(gameVersion);
         let files = await this.readFiles(gameVersion);
-        console.log("Applying patches");
+        console.log("Applying patches to " + gameVersion);
         let failed = false;
         for (let patchPath of patches) {
             if (failed)
@@ -100,17 +100,20 @@ class GameDataManager {
             let patch = require("./" + path.join("app/patches/", patchPath));
             try {
                 if (!appliedPatches.includes(patchPath)) {
-                    console.log(patchPath);
+                    console.log("    " + patchPath);
                     patch.run(files);
                     appliedPatches.push(patchPath);
                 }
             } catch (e) {
-                console.error("Failed to execute path '" + patchPath + "'");
+                console.error("Failed to execute patch '" + patchPath + "'");
                 failed = true;
             }
         }
-        if(failed)
-            throw new Error("Unable to apply all patches");
+        if (failed) {
+            let error = new Error("Unable to apply all patches to game version:" + gameVersion);
+            error.code = "PATCH_FAIL";
+            throw error;
+        }
         await this.writeAppliedPatches(gameVersion, appliedPatches)
         await this.writeFiles(files, gameVersion)
 

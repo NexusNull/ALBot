@@ -97,13 +97,36 @@ class ALBot {
     async houseKeeping() {
         if (!await this.gameDataManager.isUpToDate()) {
             let gameVersion = await this.gameDataManager.updateGameData();
-            await this.gameDataManager.applyPatches(gameVersion);
+            await this.findRunningVersion();
             this.currentGameVersion = gameVersion;
         } else {
             this.currentGameVersion = this.gameDataManager.currentVersion();
         }
     }
 
+    async findRunningVersion(gameVersion) {
+        if (typeof gameVersion === "undefined")
+            gameVersion = Number.MAX_SAFE_INTEGER;
+        let gameVersions = this.gameDataManager.getAvailableVersions().filter((elem) => elem < gameVersion);
+        if (gameVersions.length == 0) {
+            console.error("No runnable version detected, stopping")
+            process.exit(0)
+        } else {
+            gameVersion = gameVersions[0]
+        }
+        try {
+            await this.gameDataManager.applyPatches(gameVersion);
+        } catch (e) {
+            if (e.code === "PATCH_FAIL") {
+                console.error(e.message)
+                await this.findRunningVersion(gameVersion);
+            } else {
+                throw e;
+            }
+            return;
+        }
+        this.currentGameVersion = gameVersion;
+    }
 }
 
 async function main() {
