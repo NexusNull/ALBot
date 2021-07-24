@@ -106,6 +106,7 @@ class GameDataManager {
                 }
             } catch (e) {
                 console.error("Failed to execute patch '" + patchPath + "'");
+                console.error(e);
                 failed = true;
             }
         }
