@@ -29,6 +29,7 @@ class GameDataManager {
         const versions = this.getAvailableVersions();
         let gameVersion = await this.httpWrapper.getGameVersion();
         return versions.includes(gameVersion);
+
     }
 
     getAvailableVersions() {
@@ -38,7 +39,7 @@ class GameDataManager {
             if (file.isDirectory())
                 versions.push(+file.name)
         }
-        return versions.sort((a, b) => b - a);
+        return versions.sort((a, b) => b - a).map((a)=>""+a);
     }
 
     async updateGameData() {
