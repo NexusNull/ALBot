@@ -43,7 +43,23 @@ However, there currently is no client side check for character limitations, if y
 10. Congratulations you now have a working copy of ALBot, if you experience unexpected behavior please raise an issue.
 
 ## Installation Windows
-#TODO
+https://git-scm.com/download/win
+
+https://nodejs.org/en/download/
+
+open folder in which you would like to install ALBot
+
+shift + Right Click -> Open Command Window Here
+
+git clone https://github.com/NexusNull/ALBot.git
+
+npm install
+
+copy userData.json-example userData.json
+
+Open config file (userData.json) in your favorite editor and endter your credentials. If you don't know how, refer to Section [Understanding userData.json](#Understanding-userData.json) 
+
+node main
 
 ## Understanding userdata.json
 
