@@ -100,7 +100,7 @@ class ALBot {
             await this.findRunningVersion();
             this.currentGameVersion = gameVersion;
         } else {
-            this.currentGameVersion = this.gameDataManager.currentVersion();
+            this.currentGameVersion = await this.gameDataManager.currentVersion();
         }
     }
 
