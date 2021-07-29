@@ -37,40 +37,50 @@
     node main
     ```
     The bot will then try to log in to your account and save your character ids to userdata.json
-9. Open userdata.json again and delete all the character objects you don't want to run.
+9. Open userData.json again and delete all the character objects you don't want to run.
 However, there currently is no client side check for character limitations, if you forget this your bot will keep disconnecting.
 
 10. Congratulations you now have a working copy of ALBot, if you experience unexpected behavior please raise an issue.
 
 ## Installation Windows
-https://git-scm.com/download/win
+1. Install git
+[https://git-scm.com/download/win](https://git-scm.com/download/win)
 
-https://nodejs.org/en/download/
+2. Install node
+[https://nodejs.org/en/download/](https://nodejs.org/en/download/)
 
-open folder in which you would like to install ALBot
+3. open folder in which you would like to install ALBot
 
-shift + Right Click -> Open Command Window Here
+4. shift + Right Click -> Open Command Window Here
 
-git clone https://github.com/NexusNull/ALBot.git
+5. execute the following commands in the console
+    ```
+    git clone https://github.com/NexusNull/ALBot.git
+    cd ALBot
+    npm install
+    copy userData.json-example userData.json
+    ```
 
-npm install
+6. Open the config file (userData.json) in your favorite editor and enter your credentials. If you don't know how, refer to Section [Understanding userData.json](#Understanding-userData.json) 
 
-copy userData.json-example userData.json
+7. Run the bot once with
+    ```
+    node main
+    ```
+    The bot will then try to log in to your account and save your character ids to userdata.json
+    
+9. Open userData.json again and delete all the character objects you don't want to run.
+However, there currently is no client side check for character limitations, if you forget this your bot will keep disconnecting.
 
-Open config file (userData.json) in your favorite editor and endter your credentials. If you don't know how, refer to Section [Understanding userData.json](#Understanding-userData.json) 
+10. Congratulations you now have a working copy of ALBot, if you experience unexpected behavior please raise an issue.
 
-node main
-
-## Understanding userdata.json
+## Understanding userData.json
 
 ### Config 
 With ongoing updates the properties of config are becoming more and more complex, so I want to take some time to explain them in detail here.
 
 #### fetch
 The fetch property sets the bot up in a way that it will discard any existing data about characters and then try to fetch them from the server. This is set to true when ever you recieve a fresh copy of ALBot simply because ALBot needs to get this information first before anything else can be done. The fetched data is then put into the the `"bots"` array ready for editing.
-
-#### botKey
-An old property used for testing in different environments, as of late it is no longer in use and can be removed.
 
 #### botWebInterface
 Bot-web-interface or BWI is another module that I developed which displays data using a graphical interface.
@@ -116,10 +126,6 @@ Size controls the resolution of the generated image.
     "bots": []
 }
 ```
-
-
-
-
 
 If you have questions and/or suggestions please refer to [repo](https://github.com/NexusNull/bot-web-interface).
 If fetch is set to true, it will fetch your character data on the next run. This means previous entries in bots will be overwritten.
