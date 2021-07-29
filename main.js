@@ -22,6 +22,7 @@ process.on('unhandledRejection', function (exception) {
     process.exit(-1);
 });
 
+
 class ALBot {
     constructor() {
         this.httpWrapper = new HttpWrapper();
@@ -29,6 +30,7 @@ class ALBot {
         this.gameDataManager = new GameDataManager(this.httpWrapper);
         this.botWebInterface = null;
         this.gameController = null;
+        this.currentGameVersion = null;
     }
 
     async start() {
@@ -87,11 +89,53 @@ class ALBot {
 
         let promises = [];
         for (let bot of bots) {
-            promises.push(this.gameController.startCharacter(bot.characterId, bot.server, bot.runScript, bot.characterName))
+            promises.push(this.gameController.startCharacter(bot.characterId, bot.server, bot.runScript, bot.characterName, this.currentGameVersion))
         }
         await Promise.all(promises);
     }
+
+    async houseKeeping() {
+        if (!await this.gameDataManager.isUpToDate()) {
+            let gameVersion = await this.gameDataManager.updateGameData();
+            await this.findRunningVersion();
+            this.currentGameVersion = gameVersion;
+        } else {
+            this.currentGameVersion = await this.gameDataManager.currentVersion();
+        }
+    }
+
+    async findRunningVersion(gameVersion) {
+        if (typeof gameVersion === "undefined")
+            gameVersion = Number.MAX_SAFE_INTEGER;
+        let gameVersions = this.gameDataManager.getAvailableVersions().filter((elem) => elem < gameVersion);
+        if (gameVersions.length == 0) {
+            console.error("No runnable version detected, stopping")
+            process.exit(0)
+        } else {
+            gameVersion = gameVersions[0]
+        }
+        try {
+            await this.gameDataManager.applyPatches(gameVersion);
+        } catch (e) {
+            if (e.code === "PATCH_FAIL") {
+                console.error(e.message)
+                await this.findRunningVersion(gameVersion);
+            } else {
+                throw e;
+            }
+            return;
+        }
+        this.currentGameVersion = gameVersion;
+    }
 }
 
-const albot = new ALBot();
-albot.start();
+async function main() {
+    const albot = new ALBot();
+    await albot.houseKeeping();
+    await albot.start();
+    setInterval(() => {
+        albot.houseKeeping();
+    }, 1000 * 60)
+}
+
+main();
