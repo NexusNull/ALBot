@@ -31,21 +31,21 @@ class GameController {
                 return;
             }
             let botUI = null;
-            if(this.botWebInterface)
+            if (this.botWebInterface)
                 botUI = this.botWebInterface.publisher.createInterface();
             const game = new Game(gameVersion, this.httpWrapper.sessionCookie, serverInfo.ip, serverInfo.port, characterId, runScript, botUI, characterName);
 
             game.on("start", resolve);
             game.on("stop", () => {
                 let data = this.bots.get(characterId);
-                if(data.botUI)
-                data.botUI.destroy();
+                if (data.botUI)
+                    data.botUI.destroy();
                 this.bots.delete(characterId);
                 if (!data.stopping) {
                     console.log(`character: ${characterId} stopped unexpectedly, restarting ...`)
                     this.bots.delete(characterId);
                     setTimeout(() => {
-                        this.startCharacter(characterId, server, runScript)
+                        this.startCharacter(characterId, server, runScript, characterName, gameVersion)
                     }, 1000);
                 }
             });
