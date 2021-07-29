@@ -29,7 +29,7 @@ class Game {
         const runner_sources = gameFiles.runnerFiles.map(f =>
             gameFiles.locate_game_file(f, version))
             .concat([CODE_file]);
-        console.log("constructing runner instance from sources:\n", runner_sources);
+        console.log("constructing runner instance from sources:\n");
         const runner_context = this.make_context(upper);
         vm.runInContext("var active=false,catch_errors=true,is_code=1,is_server=0,is_game=0,is_bot=parent.is_bot,is_cli=parent.is_cli;", runner_context);
         await this.ev_files(runner_sources, runner_context);
