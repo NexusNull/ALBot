@@ -6,6 +6,8 @@ const GameDataManager = require("./GameDataManager")
 const BotWebInterface = require("bot-web-interface");
 const uiGenerator = require("./app/uiGenerator");
 const Pathfinding = require("./pathfinding/Pathfinding");
+const fs = require("fs");
+const path = require("path");
 
 
 process.on('uncaughtException', function (exception) {
@@ -83,6 +85,15 @@ class ALBot {
             let pathFinding = new Pathfinding();
             await pathFinding.start();
         }
+
+        // clear session Storage
+        let files = [];
+        do {
+            files = fs.readdirSync("app/sessionStorage");
+            for (let file of files) {
+                fs.unlinkSync(path.join(__dirname, "app/sessionStorage", file))
+            }
+        } while (files.length !== 0)
 
         console.log("Starting characters");
         let bots = config.getBots();

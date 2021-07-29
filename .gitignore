@@ -4,3 +4,4 @@ userData.json
 ./package-lock.json
 ./CODE
 /app/localStorage/
+/app/sessionStorage/
