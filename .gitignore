@@ -3,3 +3,5 @@ userData.json
 .idea/
 ./package-lock.json
 /CODE/
+/app/localStorage/
+/app/sessionStorage/

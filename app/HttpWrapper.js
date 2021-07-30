@@ -157,28 +157,25 @@ class HttpWrapper {
         })
     };
 
-    async getGameData() {
+    async getFile(path) {
         return new Promise(async (resolve, reject) => {
             try {
                 let code = await request({
-                    url: "https://adventure.land/data.js",
+                    url: "https://adventure.land/" + path,
                     headers: {
                         "x-requested-with": "XMLHttpRequest",
                         "Accept": "application/json, text/javascript, */*; q=0.01",
                         "cookie": "auth=" + this.sessionCookie,
                     }
                 });
-                let sandbox = {};
-                let context = vm.createContext(sandbox);
-                vm.runInContext(code, context);
-                resolve(sandbox.G);
+                resolve(code);
             } catch (e) {
                 reject("Could not retrieve game data");
             }
         });
     };
 
-    async getGameVersion() {
+    async getGameVersion(force) {
         var html = await request({
             url: "https://adventure.land/",
             headers: {
