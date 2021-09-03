@@ -65,7 +65,7 @@ class ALBot {
 
         if (config.isFetch()) {
             console.log("Populating config file with data.");
-            const characters = await this.httpWrapper.getServersAndCharacters().characters;
+            const characters = (await this.httpWrapper.getServersAndCharacters()).characters;
             let bots = [];
             for (let char of characters) {
                 bots.push({
