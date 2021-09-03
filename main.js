@@ -65,7 +65,7 @@ class ALBot {
 
         if (config.isFetch()) {
             console.log("Populating config file with data.");
-            const characters = await this.httpWrapper.getCharacters();
+            const characters = await this.httpWrapper.getServersAndCharacters().characters;
             let bots = [];
             for (let char of characters) {
                 bots.push({
@@ -87,14 +87,15 @@ class ALBot {
         }
 
         // clear session Storage
-        let files = [];
-        do {
-            files = fs.readdirSync("app/sessionStorage");
-            for (let file of files) {
-                fs.unlinkSync(path.join(__dirname, "app/sessionStorage", file))
-            }
-        } while (files.length !== 0)
-
+        try {
+            let files = [];
+            do {
+                files = fs.readdirSync("app/sessionStorage");
+                for (let file of files) {
+                    fs.unlinkSync(path.join(__dirname, "app/sessionStorage", file))
+                }
+            } while (files.length !== 0)
+        } catch (e) {}
         console.log("Starting characters");
         let bots = config.getBots();
 
