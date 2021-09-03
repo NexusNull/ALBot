@@ -3,6 +3,7 @@
  */
 const request = require("request-promise-native");
 const vm = require('vm');
+const base_url = "https://adventure.land"
 
 /**
  *
@@ -28,14 +29,14 @@ class HttpWrapper {
         console.log("Logging in.");
         return new Promise(async (resolve, reject) => {
             try {
-                await request({url: "https://adventure.land"});
+                await request({url: base_url+""});
             } catch (err) {
                 reject("could not fetch index.html on login." + err);
             }
             try {
                 await request.post(
                     {
-                        url: "https://adventure.land/api/signup_or_login",
+                        url: base_url+"/api/signup_or_login",
                         formData: {
                             arguments: '{"email":"' + email + '","password":"' + password + '","only_login":true}',
                             method: "signup_or_login"
@@ -92,7 +93,7 @@ class HttpWrapper {
     async getCharacters() {
         return new Promise(async (resolve) => {
             var html = await request.post({
-                url: "https://adventure.land/api/servers_and_characters",
+                url: base_url+"/api/servers_and_characters",
                 headers: {cookie: "auth=" + this.sessionCookie},
                 formData: {method: "servers_and_characters", arguments: "{}"}
             });
@@ -104,7 +105,7 @@ class HttpWrapper {
     async getServersAndCharacters() {
         return new Promise(async (resolve) => {
             var html = await request.post({
-                url: "https://adventure.land/api/servers_and_characters",
+                url: base_url+"/api/servers_and_characters",
                 headers: {cookie: "auth=" + this.sessionCookie},
                 formData: {method: "servers_and_characters", arguments: "{}"}
             });
@@ -117,7 +118,7 @@ class HttpWrapper {
     async getServerList() {
         return new Promise(async (resolve, reject) => {
             var options = {
-                url: "https://adventure.land/api/get_servers",
+                url: base_url+"/api/get_servers",
                 method: "POST",
                 headers: {
                     "x-requested-with": "XMLHttpRequest",
@@ -141,7 +142,7 @@ class HttpWrapper {
         return new Promise(async (resolve) => {
             console.log("check Login:");
             var html = await request.post({
-                url: "https://adventure.land/api/servers_and_characters",
+                url: base_url+"/api/servers_and_characters",
                 headers: {cookie: "auth=" + this.sessionCookie},
                 formData: {method: "servers_and_characters", arguments: "{}"}
             });
@@ -161,7 +162,7 @@ class HttpWrapper {
         return new Promise(async (resolve, reject) => {
             try {
                 let code = await request({
-                    url: "https://adventure.land/" + path,
+                    url: base_url+"/" + path,
                     headers: {
                         "x-requested-with": "XMLHttpRequest",
                         "Accept": "application/json, text/javascript, */*; q=0.01",
@@ -177,7 +178,7 @@ class HttpWrapper {
 
     async getGameVersion(force) {
         var html = await request({
-            url: "https://adventure.land/",
+            url: base_url+"/",
             headers: {
                 "x-requested-with": "XMLHttpRequest",
                 "Accept": "application/json, text/javascript, */*; q=0.01",
