@@ -4,7 +4,7 @@
 const request = require("request-promise-native");
 const vm = require('vm');
 const glob_config = require("../Config");
-const base_url = glob_config.config.baseUrl || "https://adventure.land";
+const base_url = glob_config.config.config.baseUrl || "https://adventure.land";
 
 /**
  *
