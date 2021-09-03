@@ -19,7 +19,7 @@ class Game extends EventSystem {
 
     start() {
         let data = {};
-        const args = [this.version, this.session, this.ip, this.port, this.characterId, this.runScript, glob_config.config.upgradeSockVersion];
+        const args = [this.version, this.session, this.ip, this.port, this.characterId, this.runScript, glob_config.config.config.upgradeSockVersion];
         this.process = child_process.fork("./app/_Game", args, {
             stdio: [0, 1, 2, 'ipc'],
             execArgv: [
