@@ -100,7 +100,8 @@ class Game {
 
         vm.runInContext("add_log = console.log", game_context);
 
-        vm.runInContext("mode.log_calls=true;mode.log_incoming=true;", game_context);
+        //If you are having trouble with socket.io try this!
+        //vm.runInContext("mode.log_calls=true;mode.log_incoming=true;", game_context);
 
 
         vm.runInContext("the_game()", game_context);

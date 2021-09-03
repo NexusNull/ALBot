@@ -3,7 +3,8 @@
  */
 const request = require("request-promise-native");
 const vm = require('vm');
-const base_url = "https://adventure.land"
+const glob_config = require("../Config");
+const base_url = glob_config.config.baseUrl || "https://adventure.land";
 
 /**
  *
@@ -29,7 +30,7 @@ class HttpWrapper {
         console.log("Logging in.");
         return new Promise(async (resolve, reject) => {
             try {
-                await request({url: base_url+""});
+                await request({url: base_url});
             } catch (err) {
                 reject("could not fetch index.html on login." + err);
             }
@@ -154,7 +155,7 @@ class HttpWrapper {
 
     async getGameVersion(force) {
         var html = await request({
-            url: base_url+"/",
+            url: base_url,
             headers: {
                 "x-requested-with": "XMLHttpRequest",
                 "Accept": "application/json, text/javascript, */*; q=0.01",
