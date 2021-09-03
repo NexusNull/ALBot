@@ -33,7 +33,7 @@ class GameController {
             let botUI = null;
             if (this.botWebInterface)
                 botUI = this.botWebInterface.publisher.createInterface();
-            const game = new Game(gameVersion, this.httpWrapper.sessionCookie, serverInfo.ip, serverInfo.port, characterId, runScript, botUI, characterName);
+            const game = new Game(gameVersion, this.httpWrapper.sessionCookie, serverInfo.addr, serverInfo.port, characterId, runScript, botUI, characterName);
 
             game.on("start", resolve);
             game.on("stop", () => {
