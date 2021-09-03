@@ -2,7 +2,6 @@
  * Created by nexus on 15/05/17.
  */
 const request = require("request-promise-native");
-const vm = require('vm');
 const base_url = "https://adventure.land"
 
 /**
@@ -88,18 +87,6 @@ class HttpWrapper {
                 reject(e);
             }
         });
-    };
-
-    async getCharacters() {
-        return new Promise(async (resolve) => {
-            var html = await request.post({
-                url: base_url+"/api/servers_and_characters",
-                headers: {cookie: "auth=" + this.sessionCookie},
-                formData: {method: "servers_and_characters", arguments: "{}"}
-            });
-            let data = JSON.parse(html)[0];
-            resolve(data.characters);
-        })
     };
 
     async getServersAndCharacters() {
