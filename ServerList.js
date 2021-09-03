@@ -17,7 +17,7 @@ class ServerList {
 
     async updateServerList() {
         if (this.lastUpdate < (new Date().getTime()) - 60 * 1000) {
-            this.serverList = await this.httpWrapper.getServerList();
+            this.serverList = (await this.httpWrapper.getServersAndCharacters()).servers;
             this.lastUpdate = new Date().getTime();
         }
     }
