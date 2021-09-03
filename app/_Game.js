@@ -1,5 +1,5 @@
 const vm = require('vm');
-const io = require("socket.io-client");
+let io = require("socket.io-client");
 const fs = require('fs').promises;
 const {JSDOM} = require("jsdom");
 const node_query = require('jquery');
@@ -99,11 +99,17 @@ class Game {
         }
 
         vm.runInContext("add_log = console.log", game_context);
+
+        //If you are having trouble with socket.io try this!
+        //vm.runInContext("mode.log_calls=true;mode.log_incoming=true;", game_context);
+
+
         vm.runInContext("the_game()", game_context);
+        const timeout = 10;
         extensions.reload_task = setTimeout(() => {
-            console.log("game not loaded after 7 seconds, reloading");
+            console.log("game not loaded after "+timeout+" seconds, reloading");
             extensions.relog();
-        }, 7100);
+        }, timeout*1000+100);
         console.log("game instance constructed");
         return game_context;
     }
@@ -116,6 +122,10 @@ class Game {
         const realm_port = args[3];
         const cid = args[4];
         const script_file = args[5];
+        const upgrade_socket_io = args[6];
+        if(upgrade_socket_io) {
+            io = require("socket.io-client-new");
+        }
         await this.make_game(version, realm_addr, realm_port, sess, cid, script_file);
     }
 
