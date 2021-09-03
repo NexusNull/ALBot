@@ -91,18 +91,6 @@ class HttpWrapper {
         });
     };
 
-    async getCharacters() {
-        return new Promise(async (resolve) => {
-            var html = await request.post({
-                url: base_url+"/api/servers_and_characters",
-                headers: {cookie: "auth=" + this.sessionCookie},
-                formData: {method: "servers_and_characters", arguments: "{}"}
-            });
-            let data = JSON.parse(html)[0];
-            resolve(data.characters);
-        })
-    };
-
     async getServersAndCharacters() {
         return new Promise(async (resolve) => {
             var html = await request.post({
