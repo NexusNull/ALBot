@@ -4,6 +4,7 @@
     "fetch": true,
     "botKey": 1,
     "browserUserAgent": "{ALBot: (v1.7.0)}",
+    "upgradeSockVersion": 0,
     "botWebInterface": {
       "enabled": false,
       "port": 2080,
