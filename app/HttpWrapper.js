@@ -114,30 +114,6 @@ class HttpWrapper {
         })
     };
 
-
-    async getServerList() {
-        return new Promise(async (resolve, reject) => {
-            var options = {
-                url: base_url+"/api/get_servers",
-                method: "POST",
-                headers: {
-                    "x-requested-with": "XMLHttpRequest",
-                    cookie: "auth=" + this.sessionCookie
-                },
-                form: {
-                    method: "get_servers"
-                }
-            };
-
-            let data = JSON.parse(await request(options));
-
-            if (data[0].type === "success")
-                resolve(data[0].message);
-            else
-                reject();
-        })
-    };
-
     async checkLogin() {
         return new Promise(async (resolve) => {
             console.log("check Login:");
