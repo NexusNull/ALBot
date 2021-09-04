@@ -4,6 +4,7 @@ const fs = require('fs').promises;
 const {JSDOM} = require("jsdom");
 const node_query = require('jquery');
 const gameFiles = new (require("./GameFiles"))();
+const bwiUtil = require("./bwiUtil");
 
 process.on('unhandledRejection', function (exception) {
     console.log("promise rejected: \n", exception);
@@ -90,6 +91,10 @@ class Game {
         game_context.new_game_logic = async () => {
             old_ng_logic();
             clearTimeout(extensions.reload_task);
+
+            require("./uiGenerator").game_context = game_context;
+            bwiUtil.registerListeners(game_context);
+
             extensions.runner = await this.make_runner(game_context, "./CODE/" + script_file, version);
         }
         const old_dc = game_context.disconnect;
