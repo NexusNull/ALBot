@@ -44,7 +44,7 @@ let uiGenerator = function () {
 
     this.defaultStructure = [
         {name: "name", type: "text", label: "name"},
-        {name: "inv", type: "text", label: "Inventory"},
+        {name: "inv", type: "labelProgressBar", label: "Inventory", options: {color: "brown"}},
         {name: "level", type: "text", label: "Level"},
         {name: "gold", type: "text", label: "Gold"},
         {name: "xp", type: "progressBar", label: "Experience", options: {color: "green"}},
