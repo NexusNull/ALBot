@@ -35,6 +35,7 @@ function get(from, what) {
 }
 
 let uiGenerator = function () {
+    this.game_context = null;
     this.miniMapHeight = get(config, ["botWebInterface", "minimap", "size", "height"]) || 200;
     this.miniMapWidth = get(config, ["botWebInterface", "minimap", "size", "width"]) || 376;
     this.enableMiniMap = get(config, ["botWebInterface", "minimap", "enabled"]) || false;
@@ -87,14 +88,14 @@ uiGenerator.prototype.generateMiniMap = function (hitLog, entities) {
     }
     var screenSize = {width: 800, height: 600};
     var pos = {
-        x: character.real_x - Math.floor(screenSize.width / 2),
-        y: character.real_y - Math.floor(screenSize.height / 2)
+        x: this.game_context.character.real_x - Math.floor(screenSize.width / 2),
+        y: this.game_context.character.real_y - Math.floor(screenSize.height / 2)
     };
-    var map = character.in;
+    var map = this.game_context.character.in;
 
-    if (G.maps[map]) {
-        let xLines = G.maps[map].data.x_lines;
-        let yLines = G.maps[map].data.y_lines;
+    if (this.game_context.G.maps[map]) {
+        let xLines = this.game_context.G.maps[map].data.x_lines;
+        let yLines = this.game_context.G.maps[map].data.y_lines;
 
         for (let i = bSearch(pos.x, xLines); i < xLines.length && xLines[i][0] < pos.x + screenSize.width; i++) {
             let line = xLines[i];
@@ -116,10 +117,10 @@ uiGenerator.prototype.generateMiniMap = function (hitLog, entities) {
     for (let hit of hitLog) {
         let source = entities[hit.hid];
         let target = entities[hit.id];
-        if (hit.hid === character.id)
-            source = character;
-        if (hit.id === character.id)
-            target = character;
+        if (hit.hid === this.game_context.character.id)
+            source = this.game_context.character;
+        if (hit.id === this.game_context.character.id)
+            target = this.game_context.character;
 
         if (source && target) {
             let color = [255, 255, 255, 255];
@@ -183,11 +184,11 @@ uiGenerator.prototype.generateMiniMap = function (hitLog, entities) {
     }
 
     var targetIds = [];
-    if (character.target)
-        targetIds.push(character.target);
+    if (this.game_context.character.target)
+        targetIds.push(this.game_context.character.target);
     for (let id in entities) {
         let entity = entities[id];
-        if (entity.target === character.id)
+        if (entity.target === this.game_context.character.id)
             if (!targetIds.includes(entity.id))
                 targetIds.push(entity.id);
     }
@@ -203,10 +204,10 @@ uiGenerator.prototype.generateMiniMap = function (hitLog, entities) {
     }
 
 
-    //draw character
+    //draw this.game_context.character
     pngUtil.draw_dot(
-        ((character.real_x - pos.x) / screenSize.width) * png.width,
-        ((character.real_y - pos.y) / screenSize.height) * png.height,
+        ((this.game_context.character.real_x - pos.x) / screenSize.width) * png.width,
+        ((this.game_context.character.real_y - pos.y) / screenSize.height) * png.height,
         2,
         png, [0, 200, 0, 255]);
 
