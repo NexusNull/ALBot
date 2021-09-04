@@ -124,7 +124,8 @@ function registerListeners(game_inst) {
                   data: {
                       name: game_inst.character.id,
                       level: game_inst.character.level,
-                      inv: game_inst.character.isize - game_inst.character.esize + " / " + game_inst.character.isize,
+                      inv: [(game_inst.character.isize - game_inst.character.esize) / game_inst.character.isize,
+                            game_inst.character.isize - game_inst.character.esize + " / " + game_inst.character.isize],
                       xp: Math.floor(game_inst.character.xp * 10000 / game_inst.character.max_xp) / 100,
                       health: Math.floor(game_inst.character.hp * 10000 / game_inst.character.max_hp) / 100,
                       mana: Math.floor(game_inst.character.mp * 10000 / game_inst.character.max_mp) / 100,
