@@ -11,7 +11,7 @@
   "license": "GNU GPLv3.0",
   "dependencies": {
     "axios": "^0.21.2",
-    "bot-web-interface": "^2.0.2",
+    "bot-web-interface": "^2.0.3",
     "cheerio": "1.0.0-rc.3",
     "extend": "3.0.2",
     "form-data": "^2.3.3",
