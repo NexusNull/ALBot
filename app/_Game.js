@@ -128,7 +128,7 @@ class Game {
         const cid = args[4];
         const script_file = args[5];
         const upgrade_socket_io = args[6];
-        if(upgrade_socket_io) {
+        if(upgrade_socket_io !== "undefined") {
             io = require("socket.io-client-new");
         }
         await this.make_game(version, realm_addr, realm_port, sess, cid, script_file);
