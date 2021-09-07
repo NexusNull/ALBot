@@ -1,5 +1,5 @@
 const vm = require('vm');
-let io = require("socket.io-client");
+const io = require("socket.io-client");
 const fs = require('fs').promises;
 const {JSDOM} = require("jsdom");
 const node_query = require('jquery');
@@ -127,10 +127,6 @@ class Game {
         const realm_port = args[3];
         const cid = args[4];
         const script_file = args[5];
-        const upgrade_socket_io = args[6];
-        if(upgrade_socket_io !== "undefined") {
-            io = require("socket.io-client-new");
-        }
         await this.make_game(version, realm_addr, realm_port, sess, cid, script_file);
     }
 
