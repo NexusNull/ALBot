@@ -18,7 +18,7 @@ function run(files) {
         tmp = tmp.join("var keys=localStorage._keys")
     } else success = false;
 
-    if (success) {
+    if (!success) {
         console.error("Unable to find correct needle, aborting ...");
         files["/js/runner_functions.js"] = safeCopy;
     } else{
