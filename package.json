@@ -19,7 +19,7 @@
     "jsdom": "^16.5.3",
     "lodash": "^4.17.21",
     "node-fetch": "^2.6.1",
-    "node-localstorage": "2.2.1",
+    "node-localstorage-sync": "2.2.3",
     "pngjs": "^6.0.0",
     "promise": "8.0.3",
     "request": "2.88.0",
