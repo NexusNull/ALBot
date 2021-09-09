@@ -50,19 +50,19 @@ class ALBot {
         if (session && session !== "") {
             this.httpWrapper.setSession(session);
         }
-
+        console.log("checking Login")
         if (!await this.httpWrapper.checkLogin()) {
             let login = config.getLogin();
-            let loggedIn = await this.httpWrapper.login(login.email, login.password);
-            if (loggedIn) {
+            try {
+                await this.httpWrapper.login(login.email, login.password);
                 const session = this.httpWrapper.sessionCookie;
                 config.setSession(session);
-            } else {
+            } catch (e) {
                 console.error("Unable to log in, aborting ...")
                 process.exit(1);
             }
         }
-
+        console.log("Logged in")
         if (config.isFetch()) {
             console.log("Populating config file with data.");
             const characters = (await this.httpWrapper.getServersAndCharacters()).characters;
@@ -95,7 +95,8 @@ class ALBot {
                     fs.unlinkSync(path.join(__dirname, "app/sessionStorage", file))
                 }
             } while (files.length !== 0)
-        } catch (e) {}
+        } catch (e) {
+        }
         console.log("Starting characters");
         let bots = config.getBots();
 

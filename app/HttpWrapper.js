@@ -27,7 +27,7 @@ class HttpWrapper {
      * @return {Object}
      */
     async login(email, password) {
-        console.log("Logging in.");
+        let error = "";
         let form = new FormData();
         form.append("method", "signup_or_login")
         form.append("arguments", '{"email":"' + email + '","password":"' + password + '","only_login":true}')
@@ -43,13 +43,12 @@ class HttpWrapper {
                 if (data[i].type === "message") {
                     if (typeof data[i].message === "string") {
                         if (data[i].message === "Logged In!") {
-                            console.log("Login successful.");
                             loginSuccessful = true;
                         }
                     }
                 } else if (data[i].type === "ui_error") {
                     if (typeof data[i].message === "string") {
-                        console.log(data[i].message);
+                        error = data[i].message;
                         loginSuccessful = false;
                     }
                 }
@@ -64,11 +63,9 @@ class HttpWrapper {
                 }
             }
         } else {
-            process.exit(0)
+            throw new Error("Not logged in: " + error)
         }
         return loginSuccessful;
-
-
     };
 
     async getServersAndCharacters() {
@@ -88,7 +85,6 @@ class HttpWrapper {
 
     async checkLogin() {
         return new Promise(async (resolve) => {
-            console.log("check Login:");
             const form = new FormData();
             form.append("method", "servers_and_characters")
             form.append("arguments", '{}');
@@ -99,10 +95,8 @@ class HttpWrapper {
 
             const data = response.data[0];
             if (data.args && data.args[0] === "Not logged in.") {
-                console.log("not logged in");
                 resolve(false);
             } else if (data.type && data.type === "servers_and_characters") {
-                console.log("logged in");
                 resolve(true);
             }
             resolve(false);
