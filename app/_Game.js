@@ -82,10 +82,15 @@ class Game {
         extensions.deploy = (char_name, realm = parent.server_region + parent.server_identifier) => null;
         extensions.shutdown = () => process.exit(0);
         extensions.relog = extensions.shutdown;
-        game_context.get_code_function = function(f_name) {
-            return extensions.runner && extensions.runner[f_name] || function(){};
+        extensions.send_cm = (receiver, data) => {
+            process.send({type: "cm", data: {receiver: receiver, data: data}});
+        }
+        game_context.get_code_function = function (f_name) {
+            return extensions.runner && extensions.runner[f_name] || function () {
+            };
         }
         game_context.caracAL = extensions;
+        game_context.albot = extensions;
 
         const old_ng_logic = game_context.new_game_logic;
         game_context.new_game_logic = async () => {
@@ -108,13 +113,25 @@ class Game {
         //If you are having trouble with socket.io try this!
         //vm.runInContext("mode.log_calls=true;mode.log_incoming=true;", game_context);
 
+        process.on("message", (m) => {
+            switch (m.type) {
+                case "on_cm":
+                    extensions.runner.character.trigger("cm", {
+                        name: m.from,
+                        message: m.data,
+                        date: m.date,
+                        local: true
+                    });
+                    break;
+            }
+        })
 
         vm.runInContext("the_game()", game_context);
         const timeout = 10;
         extensions.reload_task = setTimeout(() => {
-            console.log("game not loaded after "+timeout+" seconds, reloading");
+            console.log("game not loaded after " + timeout + " seconds, reloading");
             extensions.relog();
-        }, timeout*1000+100);
+        }, timeout * 1000 + 100);
         console.log("game instance constructed");
         return game_context;
     }

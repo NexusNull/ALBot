@@ -42,9 +42,8 @@ class Game extends EventSystem {
                     if (this.botUI)
                         this.botUI.pushData(m.name, m.data);
                     break;
-                case "send_cm":
-                    this.emit("cm", m)
-                    break;
+                case "cm":
+                    this.emit("cm", m.data);
             }
         });
         this.process.on("exit", () => {
@@ -53,13 +52,14 @@ class Game extends EventSystem {
 
     }
 
-    send_cm(data) {
-        if (data.characterName === this.characterName) {
+    send_cm(message) {
+        if (message.receiver === this.characterName) {
             this.process.send({
                 type: "on_cm",
-                from: data.from,
-                data: data.data,
-
+                from: message.data[0],
+                data: message.data[1],
+                date: message.data[2],
+                id: message.data[3]
             })
             return true;
         }
