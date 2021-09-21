@@ -85,6 +85,7 @@ class Game {
         game_context.user_auth = this.session.split("-")[1];
         game_context.character_to_load = this.characterId;
 
+
         extensions.deploy = (char_name, realm = parent.server_region + parent.server_identifier) => null;
         extensions.shutdown = () => process.exit(0);
         extensions.relog = extensions.shutdown;
@@ -125,12 +126,13 @@ class Game {
         process.on("message", (m) => {
             switch (m.type) {
                 case "on_cm":
-                    extensions.runner.character.trigger("cm", {
-                        name: m.from,
-                        message: m.data,
-                        date: m.date,
-                        local: true
-                    });
+                    if (extensions.runner)
+                        extensions.runner.character.trigger("cm", {
+                            name: m.from,
+                            message: m.data,
+                            date: m.date,
+                            local: true
+                        });
                     break;
             }
         })
