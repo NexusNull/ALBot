@@ -19,15 +19,31 @@ const gameFiles = [
 class GameDataManager {
     constructor(httpWrapper) {
         this.httpWrapper = httpWrapper;
+        this.currentGameVersion = -1
+        this.lastUpdated = 0;
     }
 
     async currentVersion() {
-        return await this.httpWrapper.getGameVersion();
+        if (this.lastUpdated < Date.now() - 60 * 1000) {
+            this.lastUpdated = Date.now();
+            let version = 0;
+            do {
+                try {
+                    version = await this.httpWrapper.getGameVersion();
+                } catch (e) {
+                    console.log(e);
+                    await sleep(15000);
+                }
+            } while (!version)
+            this.currentGameVersion = version;
+        } else {
+            return this.currentGameVersion;
+        }
     }
 
     async isUpToDate() {
         const versions = this.getAvailableVersions();
-        let gameVersion = await this.httpWrapper.getGameVersion();
+        let gameVersion = await this.currentVersion();
         return versions.includes(gameVersion);
 
     }
@@ -39,11 +55,11 @@ class GameDataManager {
             if (file.isDirectory())
                 versions.push(+file.name)
         }
-        return versions.sort((a, b) => b - a).map((a)=>""+a);
+        return versions.sort((a, b) => b - a).map((a) => "" + a);
     }
 
     async updateGameData() {
-        let gameVersion = await this.httpWrapper.getGameVersion();
+        let gameVersion = await this.currentVersion();
 
         for (let gameFile of gameFiles) {
             let data = await this.httpWrapper.getFile(gameFile);

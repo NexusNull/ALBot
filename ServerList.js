@@ -17,7 +17,16 @@ class ServerList {
 
     async updateServerList() {
         if (this.lastUpdate < (new Date().getTime()) - 60 * 1000) {
-            this.serverList = (await this.httpWrapper.getServersAndCharacters()).servers;
+            let data;
+            do {
+                try {
+                    data = await this.httpWrapper.getServersAndCharacters();
+                } catch (e) {
+                    console.log(e);
+                    await sleep(15000);
+                }
+            } while (!data);
+            this.serverList = data.servers
             this.lastUpdate = new Date().getTime();
         }
     }
