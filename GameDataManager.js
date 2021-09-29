@@ -36,6 +36,7 @@ class GameDataManager {
                 }
             } while (!version)
             this.currentGameVersion = version;
+            return version;
         } else {
             return this.currentGameVersion;
         }
