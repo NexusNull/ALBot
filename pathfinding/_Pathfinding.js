@@ -3,6 +3,7 @@ const HttpWrapper = require("../app/HttpWrapper");
 const MapProcessor = require("./MapProcessor")
 const PriorityQueue = require("./PriorityQueue")
 const io = require("socket.io")(3000)
+const vm = require("vm");
 
 class _Pathfinding {
     constructor() {
@@ -18,11 +19,13 @@ class _Pathfinding {
     async loadData() {
         let gameVersion = await this.httpWrapper.getGameVersion();
         try {
-            let buffer = fs.readFileSync("data/data." + gameVersion + ".json");
-            this.gameData = JSON.parse(buffer.toString());
+            const buffer = fs.readFileSync(`data/${gameVersion}/data.js`);
+            const context = {};
+            vm.runInNewContext(buffer.toString("utf-8"), context);
+            this.gameData = context.G;
             console.log("Reading game data from cache for pathfinding");
         } catch (e) {
-            console.log(`Unable to read data for version:${gameVersion} instance stopping.`);
+            console.log(`Unable to read data form version: ${gameVersion} path finding instance stopping.`);
             process.exit(1);
         }
     }
