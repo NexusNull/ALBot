@@ -2,7 +2,14 @@ const fs = require("fs");
 const HttpWrapper = require("../app/HttpWrapper");
 const MapProcessor = require("./MapProcessor")
 const PriorityQueue = require("./PriorityQueue")
-const io = require("socket.io")(3000)
+const io = require("socket.io").Server;
+const server = new io({
+    cors: {
+        origin: ["http://adventure.land"],
+    }
+});
+
+
 const vm = require("vm");
 
 class _Pathfinding {
@@ -122,7 +129,7 @@ async function main() {
         await pathfinding.loadData();
         await pathfinding.createMesh();
     }
-    io.on("connection", (socket) => {
+    server.on("connection", (socket) => {
         socket.on("findPath", (data, cb) => {
                 let {startX, startY, startMap, endX, endY, endMap} = data;
                 let path = pathfinding.findPath(startX, startY, startMap, endX, endY, endMap);
@@ -147,7 +154,7 @@ async function main() {
             }
         )
     })
-
+    server.listen(3000);
     if (process.send)
         process.send("ready")
 
