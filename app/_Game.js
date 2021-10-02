@@ -1,6 +1,8 @@
 const vm = require('vm');
 const io = require("socket.io-client");
 const fs = require('fs').promises;
+const _fs = require('fs');
+const path = require('path');
 const {JSDOM} = require("jsdom");
 const node_query = require('jquery');
 const gameFiles = new (require("./GameFiles"))();
@@ -95,6 +97,18 @@ class Game {
         game_context.get_code_function = (f_name) => {
             return extensions.runner && extensions.runner[f_name] || function () {
             };
+        }
+        game_context.get_code_file = (name_or_slot) => {
+            if (typeof name_or_slot === "string") {
+                let buffer;
+                try {
+                    buffer = _fs.readFileSync(path.join(__dirname, "../CODE/", name_or_slot));
+                } catch (e) {
+
+                }
+                if(buffer)
+                    return buffer.toString();
+            }
         }
 
         game_context.caracAL = extensions;
