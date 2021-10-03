@@ -1,0 +1,17 @@
+[
+  {"name": "name", "type": "text", "label": "name"},
+  {"name": "inv", "type": "labelProgressBar", "label": "Inventory", "options": {"color": "brown"}},
+  {"name": "level", "type": "text", "label": "Level"},
+  {"name": "gold", "type": "text", "label": "Gold"},
+  {"name": "xp", "type": "progressBar", "label": "Experience", "options": {"color": "green"}},
+  {"name": "health", "type": "progressBar", "label": "Health", "options": {"color": "red"}},
+  {"name": "mana", "type": "progressBar", "label": "Mana", "options": {"color": "blue"}},
+  {"name": "targets", "type": "botUI", "label": "Targets"},
+  {"name": "status", "type": "text", "label": "Status"},
+  {"name": "dps", "type": "text", "label": "Damage/s"},
+  {"name": "gph", "type": "text", "label": "Gold/h"},
+  {"name": "xpph", "type": "text", "label": "XP/h"},
+  {"name": "tlu", "type": "text", "label": "TLU"},
+  {"name": "party_leader", "type": "text", "label": "Party Leader"},
+  {"name": "realm", "type": "text", "label": "Realm"}
+]

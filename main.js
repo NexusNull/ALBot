@@ -4,7 +4,7 @@ const HttpWrapper = require("./app/HttpWrapper")
 const ServerList = require("./ServerList")
 const GameDataManager = require("./GameDataManager")
 const BotWebInterface = require("bot-web-interface");
-const uiGenerator = require("./app/uiGenerator");
+const uiGenerator = require("./app/UIGenerator");
 const Pathfinding = require("./pathfinding/Pathfinding");
 const fs = require("fs");
 const path = require("path");
@@ -42,7 +42,7 @@ class ALBot {
                 port: config.config.config.botWebInterface.port,
                 password: (config.config.config.botWebInterface.password ? config.config.config.botWebInterface.password : null)
             });
-            this.botWebInterface.publisher.setDefaultStructure(uiGenerator.getDefaultStructure());
+            this.botWebInterface.publisher.setDefaultStructure(require("./app/defaultUI.json"));
         }
         this.gameController = new GameController(this.httpWrapper, this.serverList, this.gameDataManager, this.botWebInterface);
 
