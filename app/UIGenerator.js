@@ -43,20 +43,9 @@ class UIGenerator {
         this.enableBotWebInterface = get(config, ["botWebInterface", "enabled"]) || false;
         this.updateTiming = get(config, ["botWebInterface", "minimap", "speed"]) || 1000;
 
-        this.defaultStructure = require("./defaultUI.json");
-
-        if (this.enableMiniMap) {
-            this.defaultStructure.push({
-                name: "minimap", type: "image", label: "Minimap", options:
-                    {width: this.miniMapWidth, height: this.miniMapHeight}
-            })
-        }
     };
 
 
-    getDefaultStructure() {
-        return this.defaultStructure;
-    };
 
     generateMiniMap(hitLog, entities) {
         //Minimap creation

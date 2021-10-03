@@ -42,7 +42,17 @@ class ALBot {
                 port: config.config.config.botWebInterface.port,
                 password: (config.config.config.botWebInterface.password ? config.config.config.botWebInterface.password : null)
             });
-            this.botWebInterface.publisher.setDefaultStructure(require("./app/defaultUI.json"));
+            let defaultStructure = require("./app/defaultUI.json")
+            if (config.config.config.botWebInterface.minimap.enabled) {
+                defaultStructure.push({
+                    name: "minimap", type: "image", label: "Minimap", options:
+                        {
+                            width: config.config.config.botWebInterface.minimap.size.width,
+                            height: config.config.config.botWebInterface.minimap.size.height
+                        }
+                })
+            }
+            this.botWebInterface.publisher.setDefaultStructure(defaultStructure);
         }
         this.gameController = new GameController(this.httpWrapper, this.serverList, this.gameDataManager, this.botWebInterface);
 
