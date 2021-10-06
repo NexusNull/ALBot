@@ -1,3 +1,9 @@
+sleep = async function (num) {
+    return new Promise(function (resolve) {
+        setTimeout(resolve, num);
+    });
+};
+
 class ServerList {
     constructor(httpWrapper) {
         this.httpWrapper = httpWrapper;

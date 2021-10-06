@@ -15,6 +15,11 @@ const gameFiles = [
     "/js/runner_functions.js",
     "/js/runner_compat.js"
 ];
+sleep = async function (num) {
+    return new Promise(function (resolve) {
+        setTimeout(resolve, num);
+    });
+};
 
 class GameDataManager {
     constructor(httpWrapper) {
