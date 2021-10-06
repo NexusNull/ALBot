@@ -13,11 +13,15 @@ class ServerList {
 
     async getServerInfo(serverIdentifier) {
         await this.updateServerList();
-        let [region, name] = serverIdentifier.split(" ");
-        for (let server of this.serverList) {
-            if (region === server.region && name === server.name) {
-                return server;
+        try {
+            let [region, name] = serverIdentifier.split(" ");
+            for (let server of this.serverList) {
+                if (region === server.region && name === server.name) {
+                    return server;
+                }
             }
+        } catch (e) {
+            return null;
         }
     }
 
