@@ -50,7 +50,7 @@ class GameDataManager {
     async isUpToDate() {
         const versions = this.getAvailableVersions();
         let gameVersion = await this.currentVersion();
-        return versions.includes(gameVersion);
+        return versions.includes("" + gameVersion);
 
     }
 
