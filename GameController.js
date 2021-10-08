@@ -23,13 +23,6 @@ class GameController {
                 await sleep(10000);
                 serverInfo = await this.serverList.getServerInfo(server);
             }
-            if (!serverInfo) {
-                console.log("Server unavailable, retrying in 10 seconds")
-                setTimeout(() => {
-                    this.startCharacter(characterId, server, runScript)
-                }, 10000);
-                return;
-            }
             let botUI = null;
             if (this.botWebInterface)
                 botUI = this.botWebInterface.publisher.createInterface();
@@ -58,7 +51,15 @@ class GameController {
                 }
                 game.send_cm_failed(data)
             })
-
+            game.on("config", async (data) => {
+                console.log(data)
+                switch (data.type) {
+                    case "switchServer":
+                        await this.stopCharacter(characterId);
+                        await this.startCharacter(characterId, data.server, runScript, characterName, gameVersion)
+                        break;
+                }
+            })
             this.bots.set(characterId, {
                 characterId,
                 server,
@@ -71,8 +72,13 @@ class GameController {
         })
     }
 
-    async stopCharacter() {
-
+    async stopCharacter(characterId) {
+        return new Promise((resolve, reject) => {
+            let bot = this.bots.get(characterId);
+            bot.game.on("stop", resolve);
+            bot.stopping = true;
+            bot.game.stop();
+        });
     }
 
 

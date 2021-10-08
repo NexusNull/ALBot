@@ -44,6 +44,11 @@ class Game extends EventSystem {
                     break;
                 case "cm":
                     this.emit("cm", m.data);
+                    break;
+                case "config":
+                    this.emit("config", m.data);
+                    break;
+
             }
         });
         this.process.on("exit", () => {
@@ -76,7 +81,7 @@ class Game extends EventSystem {
 
     stop() {
         if (this.process)
-            this.process.exit(1);
+            this.process.kill(15);
     }
 }
 
