@@ -75,9 +75,13 @@ class GameController {
     async stopCharacter(characterId) {
         return new Promise((resolve, reject) => {
             let bot = this.bots.get(characterId);
-            bot.game.on("stop", resolve);
-            bot.stopping = true;
-            bot.game.stop();
+            if (bot) {
+                bot.game.on("stop", resolve);
+                bot.stopping = true;
+                bot.game.stop();
+            } else {
+                resolve();
+            }
         });
     }
 
