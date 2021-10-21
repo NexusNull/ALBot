@@ -13,6 +13,7 @@
 3. Install nvm
     ```
     curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.37.2/install.sh | bash
+    bash
     ```
 4. Use nvm to install node 7.9.0
     ```
@@ -29,7 +30,7 @@
     ```
 7. Rename copy config file and enter credentials. If you don't know how, refer to Section [Understanding userData.json](#Understanding-userData.json) 
     ```
-    cp userData.json-example userData.json
+    cp userData.example.json userData.json
     nano userData.json
     ```
 8. Run the bot once with
